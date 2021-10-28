@@ -42,8 +42,8 @@ pub struct VestingDetails {
     /// The vesting periodicity(hourly/daily/weekly/monthly) expressed in seconds
     pub vesting_periodicity: u64,
     
-    /// Total vesting period in months
-    pub total_vesting_period: u64,
+    /// vesting count for each period
+    pub vesting_count_per_period: Uint128,
     
     /// Total amount to be vested over period of time 
     /// This also includes the seed tokens
@@ -51,7 +51,7 @@ pub struct VestingDetails {
     
     /// Total number of tokens transferred till date
     /// This also includes the seed tokens 
-    pub total_transferred_tokens_till_now: Uint128,
+    pub total_claimed_tokens_till_now: Uint128,
     
     /// Number of tokens available for claiming
     pub tokens_available_to_claim: Uint128,

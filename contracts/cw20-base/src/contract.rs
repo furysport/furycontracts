@@ -7,8 +7,8 @@ use cosmwasm_std::{
 
 use cw2::set_contract_version;
 use cw20::{
-    BalanceResponse, Cw20Coin, Cw20ReceiveMsg, DownloadLogoResponse, EmbeddedLogo, Logo, LogoInfo,
-    MarketingInfoResponse, MinterResponse, TokenInfoResponse,
+    BalanceResponse, Cw20Coin, Cw20ReceiveMsg, DownloadLogoResponse, EmbeddedLogo,
+    Logo, LogoInfo, MarketingInfoResponse, MinterResponse, TokenInfoResponse,
 };
 
 use crate::allowances::{
@@ -19,7 +19,7 @@ use crate::enumerable::{query_all_accounts, query_all_allowances};
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::state::{
-    MinterData, TokenInfo, VestingDetails, BALANCES, LOGO, MARKETING_INFO, TOKEN_INFO,
+    ALLOWANCES, MinterData, TokenInfo, VestingDetails, BALANCES, LOGO, MARKETING_INFO, TOKEN_INFO,
     VESTING_DETAILS,
 };
 
@@ -152,12 +152,15 @@ pub fn instantiate(
         MARKETING_INFO.save(deps.storage, &data)?;
     }
 
-    instantiate_vesting_schedules(deps, env)?;
+    instantiate_category_vesting_schedules(deps, env)?;
 
     Ok(Response::default())
 }
 
-fn instantiate_vesting_schedules(deps: DepsMut, env: Env) -> Result<Response, ContractError> {
+fn instantiate_category_vesting_schedules(
+    deps: DepsMut,
+    env: Env,
+) -> Result<Response, ContractError> {
     let vesting_start_timestamp = env.block.time;
     //Save vesting details for Gamified Airdrop
     let ga_address = deps
@@ -167,9 +170,9 @@ fn instantiate_vesting_schedules(deps: DepsMut, env: Env) -> Result<Response, Co
         vesting_start_timestamp: vesting_start_timestamp,
         initial_vesting_count: Uint128::from(3_950_000_000_000u128),
         vesting_periodicity: 24 * 60 * 60, //daily
-        total_vesting_period: 36,
+        vesting_count_per_period: Uint128::from(69_490_740_740u128),
         total_vesting_token_count: Uint128::from(79_000_000_000_000u128),
-        total_transferred_tokens_till_now: Uint128::zero(),
+        total_claimed_tokens_till_now: Uint128::zero(),
         tokens_available_to_claim: Uint128::zero(),
         cliff_period: 0,
     };
@@ -183,9 +186,9 @@ fn instantiate_vesting_schedules(deps: DepsMut, env: Env) -> Result<Response, Co
         vesting_start_timestamp: vesting_start_timestamp,
         initial_vesting_count: Uint128::zero(),
         vesting_periodicity: 24 * 60 * 60, //daily
-        total_vesting_period: 9,
+        vesting_count_per_period: Uint128::from(70_000_000_000u128),
         total_vesting_token_count: Uint128::from(37_800_000_000_000u128),
-        total_transferred_tokens_till_now: Uint128::zero(),
+        total_claimed_tokens_till_now: Uint128::zero(),
         tokens_available_to_claim: Uint128::zero(),
         cliff_period: 2,
     };
@@ -199,9 +202,9 @@ fn instantiate_vesting_schedules(deps: DepsMut, env: Env) -> Result<Response, Co
         vesting_start_timestamp: vesting_start_timestamp,
         initial_vesting_count: Uint128::from(4_200_000_000_000u128),
         vesting_periodicity: 24 * 60 * 60, //daily
-        total_vesting_period: 36,
+        vesting_count_per_period: Uint128::from(210_000_000_000u128),
         total_vesting_token_count: Uint128::from(42_000_000_000_000u128),
-        total_transferred_tokens_till_now: Uint128::zero(),
+        total_claimed_tokens_till_now: Uint128::zero(),
         tokens_available_to_claim: Uint128::zero(),
         cliff_period: 0,
     };
@@ -529,8 +532,7 @@ fn periodically_transfer_to_categories(
     }
 
     // Fetch all tokens that can be distributed as per vesting logic
-    let distribution_details = populate_transfer_details(&deps, &env, now)?;
-    
+    let distribution_details = populate_transfer_details(&deps, now)?;
     // Calculate the total amount to be vested
     let total_transfer_amount = calculate_total_distribution(&distribution_details);
     //Get the balance available in main wallet
@@ -552,8 +554,6 @@ fn periodically_transfer_to_categories(
         // Transfer the funds
         let res = distribute_vested(
             &mut deps,
-            &env,
-            &info,
             distribute_from.clone(),
             elem.address.clone(),
             elem.amount,
@@ -564,8 +564,6 @@ fn periodically_transfer_to_categories(
         // Save distribution information
         let res = update_vesting_details(
             &mut deps,
-            &env,
-            &info,
             elem.address.clone(),
             Some(elem.amount),
             None,
@@ -580,8 +578,6 @@ fn periodically_transfer_to_categories(
 
 fn distribute_vested(
     deps: &mut DepsMut,
-    env: &Env,
-    info: &MessageInfo,
     sender: String,
     recipient: String,
     amount: Uint128,
@@ -595,7 +591,7 @@ fn distribute_vested(
 
     BALANCES.update(
         deps.storage,
-        &info.sender,
+        &sender_addr,
         |balance: Option<Uint128>| -> StdResult<_> {
             Ok(balance.unwrap_or_default().checked_sub(amount)?)
         },
@@ -667,7 +663,7 @@ fn periodically_calculate_vested(
     }
 
     // Fetch all tokens that can be vested as per vesting logic
-    let vested_details = populate_vested_details(&deps, &env, now)?;
+    let vested_details = populate_vested_details(&deps, now)?;
     // Calculate the total amount to be vested
     let total_vested_amount = calculate_total_distribution(&vested_details);
     //Get the balance available in main wallet
@@ -686,12 +682,23 @@ fn periodically_calculate_vested(
     let mut attribs: Vec<Attribute> = Vec::new();
     for elem in vested_details {
         //Update the allowancs
-        // Implement for updating the allowances here
+        let spender_addr = deps.api.addr_validate(&elem.address)?;
+        if spender_addr == info.sender {
+            return Err(ContractError::CannotSetOwnAccount {});
+        }
+        ALLOWANCES.update(
+            deps.storage,
+            (&info.sender, &spender_addr),
+            |allow| -> StdResult<_> {
+                let mut val = allow.unwrap_or_default();
+                val.allowance += elem.amount;
+                Ok(val)
+            },
+        )?;
+    
         //Save the vesting details
         let res = update_vesting_details(
             &mut deps,
-            &env,
-            &info,
             elem.address,
             None,
             Some(elem.amount),
@@ -706,8 +713,6 @@ fn periodically_calculate_vested(
 
 fn update_vesting_details(
     deps: &mut DepsMut,
-    env: &Env,
-    info: &MessageInfo,
     address: String,
     transferred: Option<Uint128>,
     vestable: Option<Uint128>,
@@ -718,8 +723,11 @@ fn update_vesting_details(
             VESTING_DETAILS.update(deps.storage, &addr, |vd| -> StdResult<_> {
                 match vd {
                     Some(mut v) => {
-                        v.total_transferred_tokens_till_now =
-                            v.total_transferred_tokens_till_now + transferred;
+                        let new_count = v.total_claimed_tokens_till_now + transferred;
+                        if new_count <= v.total_vesting_token_count {
+                            v.total_claimed_tokens_till_now =
+                                new_count;
+                        }
                         Ok(v)
                     }
                     None => Err(StdError::GenericErr {
@@ -735,8 +743,13 @@ fn update_vesting_details(
             VESTING_DETAILS.update(deps.storage, &addr, |vd| -> StdResult<_> {
                 match vd {
                     Some(mut v) => {
-                        v.tokens_available_to_claim = v.initial_vesting_count + vestable
-                            - v.total_transferred_tokens_till_now;
+                        let mut vestable_mut = vestable;
+                        let new_count = v.initial_vesting_count +  v.total_claimed_tokens_till_now + vestable;
+                        if new_count > v.total_vesting_token_count {
+                            vestable_mut = v.total_vesting_token_count - v.initial_vesting_count - v.total_claimed_tokens_till_now;
+                        }
+                        v.tokens_available_to_claim =
+                            v.initial_vesting_count + vestable_mut - v.total_claimed_tokens_till_now;
                         Ok(v)
                     }
                     None => Err(StdError::GenericErr {
@@ -752,50 +765,31 @@ fn update_vesting_details(
 
 fn populate_transfer_details(
     deps: &DepsMut,
-    env: &Env,
     now: Timestamp,
 ) -> StdResult<Vec<Cw20Coin>> {
     let mut distribution_details: Vec<Cw20Coin> = Vec::new();
     //Tokens to be transferred to Marketing Wallet
     let mrktng_address = String::from("terra1rvcwcs5l7mkehpjlwrgxccpuerhmmps7j5xprw");
-    let marketing_vesting_info = calculate_vesting_for_now(deps, env, mrktng_address, now)?;
+    let marketing_vesting_info = calculate_vesting_for_now(deps, mrktng_address, now)?;
     distribution_details.push(marketing_vesting_info);
 
     //Tokens to be transferred to Gamified Airdrop wallet
     let ga_address = String::from("terra1xejpn25rwusss9tc8sec63uet2q2vcls53ufmx");
-    let ga_vesting_info = calculate_vesting_for_now(deps, env, ga_address, now)?;
+    let ga_vesting_info = calculate_vesting_for_now(deps, ga_address, now)?;
     distribution_details.push(ga_vesting_info);
     Ok(distribution_details)
 }
 
-fn populate_distribution_details(
-    deps: &DepsMut,
-    env: &Env,
-    now: Timestamp,
-) -> StdResult<Vec<Cw20Coin>> {
-    let mut distribution_details: Vec<Cw20Coin> = Vec::new();
-    let mrktng_address = String::from("terra1rvcwcs5l7mkehpjlwrgxccpuerhmmps7j5xprw");
-    let marketing_vesting_info = calculate_vesting_for_now(deps, env, mrktng_address, now)?;
-    distribution_details.push(marketing_vesting_info);
-
-    //Gamified Airdrop wallet
-    let ga_address = String::from("terra1xejpn25rwusss9tc8sec63uet2q2vcls53ufmx");
-    let ga_vesting_info = calculate_vesting_for_now(deps, env, ga_address, now)?;
-    distribution_details.push(ga_vesting_info);
-    Ok(distribution_details)
-}
-
-fn populate_vested_details(deps: &DepsMut, env: &Env, now: Timestamp) -> StdResult<Vec<Cw20Coin>> {
+fn populate_vested_details(deps: &DepsMut, now: Timestamp) -> StdResult<Vec<Cw20Coin>> {
     let mut distribution_details: Vec<Cw20Coin> = Vec::new();
     let private_sale_address = String::from("terra178q35xk9uddv2m80vhtcpy3sh7cfzcglceyqst");
-    let priv_sale_vesting_info = calculate_vesting_for_now(deps, env, private_sale_address, now)?;
+    let priv_sale_vesting_info = calculate_vesting_for_now(deps, private_sale_address, now)?;
     distribution_details.push(priv_sale_vesting_info);
     Ok(distribution_details)
 }
 
 fn calculate_vesting_for_now(
     deps: &DepsMut,
-    env: &Env,
     address: String,
     now: Timestamp,
 ) -> StdResult<Cw20Coin> {
@@ -803,21 +797,29 @@ fn calculate_vesting_for_now(
     let vd = VESTING_DETAILS
         .may_load(deps.storage, &wallet_address)?
         .unwrap_or_default();
-    let vesting_period = now.seconds() - vd.vesting_start_timestamp.seconds();
-    let mut seconds_lapsed = Some(
-        vd.vesting_start_timestamp
-            .plus_seconds(vd.cliff_period * 30 * 24 * 60 * 60)
-            .plus_seconds(vesting_period)
-            .minus_seconds(now.seconds())
-            .seconds(),
-    )
-    .unwrap_or_default();
 
-    // Incomplete logic
-    //ToDo: Returning 1000 as a value for now
+    let mut seconds_lapsed = 0;
+    let now_seconds: u64 = now.seconds();
+    let vesting_start_seconds = vd.vesting_start_timestamp.seconds();
+    if now_seconds > (vesting_start_seconds + (vd.cliff_period * 30 * 24 * 60 * 60)) {
+        // the now time is greater (ahead) of vesting start + cliff
+        seconds_lapsed = now_seconds - (vesting_start_seconds + (vd.cliff_period * 30 * 24 * 60 * 60));
+    }
+
+    let mut vesting_slots = 0;
+    if vd.vesting_periodicity > 0 {
+        vesting_slots = seconds_lapsed / vd.vesting_periodicity
+    }
+
+    let tokens_for_this_period_result = vd.vesting_count_per_period.checked_mul(Uint128::from(vesting_slots));
+    let tokens_for_this_period: Uint128;
+    match tokens_for_this_period_result {
+        Ok(tokens) => tokens_for_this_period = tokens,
+        Err(_) => tokens_for_this_period = Uint128::zero(),
+    }
     Ok(Cw20Coin {
         address: address,
-        amount: Uint128::from(1000u128),
+        amount: tokens_for_this_period,
     })
 }
 
@@ -861,11 +863,10 @@ pub fn query_balance(deps: Deps, address: String) -> StdResult<BalanceResponse> 
 }
 pub fn query_vesting_details(deps: Deps, address: String) -> StdResult<VestingDetails> {
     let address = deps.api.addr_validate(&address)?;
-    let vd = VESTING_DETAILS
-        .may_load(deps.storage, &address)?;
+    let vd = VESTING_DETAILS.may_load(deps.storage, &address)?;
     match vd {
-        Some(vd) => { return Ok(vd)},
-        None => { return Err(StdError::generic_err("No vesting details found"))},
+        Some(vd) => return Ok(vd),
+        None => return Err(StdError::generic_err("No vesting details found")),
     };
 }
 pub fn query_token_info(deps: Deps) -> StdResult<TokenInfoResponse> {

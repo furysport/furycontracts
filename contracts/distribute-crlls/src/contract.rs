@@ -38,7 +38,7 @@ pub fn instantiate(
     Ok(Response::default())
 }
 
-pub fn instantiate_vesting_details(deps: &mut DepsMut, env: Env) -> Result<Uint128, ContractError> {
+pub fn instantiate_vesting_details(deps: &mut DepsMut, env: Env) -> Result<(), ContractError> {
     let purchased_till_date = Uint128::from(1050000000000u128);
     let now = env.block.time;
     // save details for angel invester wallet
@@ -58,22 +58,11 @@ pub fn instantiate_vesting_details(deps: &mut DepsMut, env: Env) -> Result<Uint1
         &gamified_airdrop_address,
         &gamified_vesting_details,
     )?;
-
-    let mut total_supply = Uint128::zero();
-    // let address = deps.api.addr_validate(&row.address)?;
-    // VESTING_DETAILS.save(deps.storage, &address, &row.amount)?;
-    // total_supply += row.amount;
-    // for row in accounts {
-    //     let address = deps.api.addr_validate(&row.address)?;
-    //     VESTING_BALANCES.save(deps.storage, &address, &row.amount)?;
-    //     total_supply += row.amount;
-    // }
-    Ok(total_supply)
+    Ok(())
 }
 
 pub fn distribute_to_accounts(
     deps: &mut DepsMut,
-    env: &mut Env,
     info: &mut MessageInfo,
 ) -> Result<Response, ContractError> {
     // Contract address of cw20_base contract
@@ -189,7 +178,7 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
-        ExecuteMsg::Distribute {} => distribute_to_accounts(&mut deps, &mut env, &mut info),
+        ExecuteMsg::Distribute {} => distribute_to_accounts(&mut deps, &mut info),
         ExecuteMsg::TransferFrom {
             owner,
             recipient,
