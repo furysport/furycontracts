@@ -53,12 +53,24 @@ pub struct VestingDetails {
     /// This also includes the seed tokens 
     pub total_claimed_tokens_till_now: Uint128,
     
+    /// Timestamp for the latest claimed/transferred transaction.
+    /// This will be used to calculate the next vesting count
+    pub last_claimed_timestamp: Timestamp,
+    
     /// Number of tokens available for claiming
     pub tokens_available_to_claim: Uint128,
 
+    /// Timestamp for the latest claimed/transferred transaction.
+    /// This will be used to calculate the next vesting count
+    pub last_vesting_timestamp: Timestamp,
+    
     /// Cliff time period expressed in months
     pub cliff_period: u64,
+
+    /// This contains addredd of parent category. It will be none for all main categories. 
+    pub category_address: Option<String>,
 }
+
 
 pub const TOKEN_INFO: Item<TokenInfo> = Item::new("token_info");
 pub const MARKETING_INFO: Item<MarketingInfoResponse> = Item::new("marketing_info");

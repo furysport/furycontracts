@@ -21,6 +21,9 @@ pub enum ContractError {
     #[error("No allowance for this account")]
     NoAllowance {},
 
+    // #[error("No vesting details for this account")]
+    // NoVestingDetails (String),
+
     #[error("Minting cannot exceed the cap")]
     CannotExceedCap {},
 
