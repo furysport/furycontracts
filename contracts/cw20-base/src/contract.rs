@@ -1,7 +1,7 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    attr, to_binary, Attribute, Binary, Deps, DepsMut, Env, MessageInfo, OverflowError,
+    attr, to_binary, Addr, Attribute, Binary, Deps, DepsMut, Env, MessageInfo, OverflowError,
     OverflowOperation, Response, StdError, StdResult, Timestamp, Uint128,
 };
 
@@ -182,6 +182,7 @@ fn instantiate_category_vesting_schedules(
     let ga_vesting_details = VestingDetails {
         vesting_start_timestamp: vesting_start_timestamp,
         initial_vesting_count: Uint128::from(3_950_000_000_000u128),
+        initial_vesting_claimed_count: Uint128::zero(),
         vesting_periodicity: 5 * 60, // (every 5 minutes) 24 * 60 * 60, // (daily)
         vesting_count_per_period: Uint128::from(69_490_740_740u128),
         total_vesting_token_count: Uint128::from(79_000_000_000_000u128),
@@ -199,6 +200,7 @@ fn instantiate_category_vesting_schedules(
     let advisors_vesting_details = VestingDetails {
         vesting_start_timestamp: vesting_start_timestamp,
         initial_vesting_count: Uint128::zero(),
+        initial_vesting_claimed_count: Uint128::zero(),
         vesting_periodicity: 5 * 60, // (every 5 minutes) 24 * 60 * 60, // (daily)24 * 60 * 60, //daily
         vesting_count_per_period: Uint128::from(40_833_333_333u128),
         total_vesting_token_count: Uint128::from(14_700_000_000_000u128),
@@ -216,6 +218,7 @@ fn instantiate_category_vesting_schedules(
     let priv_sale_vesting_details = VestingDetails {
         vesting_start_timestamp: vesting_start_timestamp,
         initial_vesting_count: Uint128::from(4_200_000_000_000u128),
+        initial_vesting_claimed_count: Uint128::zero(),
         vesting_periodicity: 5 * 60, // (every 5 minutes) 24 * 60 * 60,24 * 60 * 60, //daily
         vesting_count_per_period: Uint128::from(210_000_000_000u128),
         total_vesting_token_count: Uint128::from(42_000_000_000_000u128),
@@ -279,6 +282,7 @@ fn instantiate_sub_category_vesting_schedules(
                             .unwrap()
                             .checked_div(category_max_amount)
                             .unwrap(),
+                        initial_vesting_claimed_count: Uint128::zero(),
                         vesting_periodicity: cvd.vesting_periodicity,
                         vesting_count_per_period: cvd
                             .vesting_count_per_period
@@ -631,15 +635,6 @@ fn periodically_transfer_to_categories(
     // Fetch all tokens that can be distributed as per vesting logic
     let distribution_details = populate_transfer_details(&deps, now)?;
 
-    // let mut balances = String::new();
-    // for dist in distribution_details {
-    //     balances.push_str(dist.address.as_str());
-    //     balances.push(':');
-    //     balances.push_str(dist.amount.to_string().as_str());
-    //     balances.push('\n');
-    // }
-
-    // return Err(ContractError::Std(StdError::GenericErr { msg: balances }));
     // Calculate the total amount to be vested
     let total_transfer_amount = calculate_total_distribution(&distribution_details);
     //Get the balance available in main wallet
@@ -673,7 +668,7 @@ fn periodically_transfer_to_categories(
             &mut deps,
             elem.spender_address.clone(),
             env.block.time,
-            Some(elem.amount),
+            Some(elem),
             None,
         )?;
         for attrib in res.attributes {
@@ -825,46 +820,46 @@ fn periodically_calculate_vesting(
     }
     let mut attribs: Vec<Attribute> = Vec::new();
     for elem in vested_details {
-        //Update the allowancs
-        let spender_addr = deps.api.addr_validate(&elem.spender_address)?;
-        if spender_addr == info.sender {
-            return Err(ContractError::CannotSetOwnAccount {});
-        }
-        let category_address = elem.category_address.unwrap_or_default();
-        let owner_addr = deps.api.addr_validate(&category_address)?;
-        let key = (&owner_addr, &spender_addr);
-        // load value and delete if it hits 0, or update otherwise
-        let allowance = ALLOWANCES.load(deps.storage, key);
-        match allowance {
-            Ok(mut a) => {
-                // update the new amount
-                a.allowance = a
-                    .allowance
-                    .checked_add(elem.amount)
-                    .map_err(StdError::overflow)?;
-                ALLOWANCES.save(deps.storage, key, &a)?;
+        if elem.amount.is_zero() == false {
+            //Update the allowancs
+            let spender_addr = deps.api.addr_validate(&elem.spender_address)?;
+            if spender_addr == info.sender {
+                return Err(ContractError::CannotSetOwnAccount {});
             }
-            Err(_) => {
-                // Add the new amount
-                let allowance_response = AllowanceResponse {
-                    allowance: elem.amount,
-                    expires: Expiration::Never {},
-                };
-                ALLOWANCES.save(deps.storage, key, &allowance_response)?;
+            let category_address = elem.clone().category_address.unwrap_or_default();
+            let owner_addr = deps.api.addr_validate(&category_address)?;
+            let key = (&owner_addr, &spender_addr);
+            let allowance = ALLOWANCES.load(deps.storage, key);
+            match allowance {
+                Ok(mut a) => {
+                    // update the new amount
+                    a.allowance = a
+                        .allowance
+                        .checked_add(elem.amount)
+                        .map_err(StdError::overflow)?;
+                    ALLOWANCES.save(deps.storage, key, &a)?;
+                }
+                Err(_) => {
+                    // Add the new amount
+                    let allowance_response = AllowanceResponse {
+                        allowance: elem.amount,
+                        expires: Expiration::Never {},
+                    };
+                    ALLOWANCES.save(deps.storage, key, &allowance_response)?;
+                }
+            }
+            //Save the vesting details
+            let res = update_vesting_details(
+                &mut deps,
+                elem.clone().spender_address,
+                env.block.time,
+                None,
+                Some(elem),
+            )?;
+            for attrib in res.attributes {
+                attribs.push(attrib);
             }
         }
-        //Save the vesting details
-        let res = update_vesting_details(
-            &mut deps,
-            elem.spender_address,
-            env.block.time,
-            None,
-            Some(elem.amount),
-        )?;
-        for attrib in res.attributes {
-            attribs.push(attrib);
-        }
-        attribs.push(Attribute::new("kuchha hua", "Pata nahi"));
     }
     Ok(Response::new().add_attributes(attribs))
 }
@@ -873,8 +868,8 @@ fn update_vesting_details(
     deps: &mut DepsMut,
     address: String,
     execution_timestamp: Timestamp,
-    transferred: Option<Uint128>,
-    vestable: Option<Uint128>,
+    transferred: Option<VestingInfo>,
+    vestable: Option<VestingInfo>,
 ) -> Result<Response, ContractError> {
     let addr = deps.api.addr_validate(&address)?;
     match transferred {
@@ -882,12 +877,13 @@ fn update_vesting_details(
             VESTING_DETAILS.update(deps.storage, &addr, |vd| -> StdResult<_> {
                 match vd {
                     Some(mut v) => {
-                        let new_count = v.total_claimed_tokens_till_now + transferred;
+                        let new_count = v.total_claimed_tokens_till_now + transferred.amount;
                         if new_count <= v.total_vesting_token_count {
                             v.total_claimed_tokens_till_now = new_count;
                             v.last_vesting_timestamp = execution_timestamp;
                             v.last_claimed_timestamp = execution_timestamp;
                         }
+                        v.initial_vesting_claimed_count = v.initial_vesting_count;
                         Ok(v)
                     }
                     None => Err(StdError::GenericErr {
@@ -903,14 +899,16 @@ fn update_vesting_details(
             VESTING_DETAILS.update(deps.storage, &addr, |vd| -> StdResult<_> {
                 match vd {
                     Some(mut v) => {
-                        let mut vestable_mut = vestable;
-                        let new_count = v.tokens_available_to_claim + vestable;
+                        let mut vestable_mut = vestable.clone();
+                        let new_count = v.tokens_available_to_claim + vestable.amount;
                         if v.total_claimed_tokens_till_now + new_count > v.total_vesting_token_count
                         {
-                            vestable_mut =
+                            vestable_mut.amount =
                                 v.total_vesting_token_count - v.total_claimed_tokens_till_now;
                         }
-                        v.tokens_available_to_claim = v.tokens_available_to_claim + vestable_mut;
+                        v.tokens_available_to_claim =
+                            v.tokens_available_to_claim + vestable_mut.amount;
+                        v.initial_vesting_claimed_count = v.initial_vesting_count;
                         v.last_vesting_timestamp = execution_timestamp;
                         Ok(v)
                     }
@@ -930,13 +928,6 @@ fn populate_transfer_details(
     now: Timestamp,
 ) -> Result<Vec<VestingInfo>, ContractError> {
     let mut distribution_details: Vec<VestingInfo> = Vec::new();
-    //Tokens to be transferred to adviser Wallet
-    // let adviser_address = String::from(ADVISOR_WALLET);
-    // let adviser_vesting_info = calculate_vesting_for_now(deps, adviser_address, now)?;
-    // match adviser_vesting_info {
-    //     Ok(avd) => distribution_details.push(avd),
-    //     Err(e) => Err(e),
-    // }
 
     let ga_address = String::from(GAMIFIED_AIRDROP_WALLET);
     let ga_vesting_info = calculate_vesting_for_now(deps, ga_address, now)?;
@@ -973,6 +964,7 @@ fn populate_vesting_details(
     Ok(distribution_details)
 }
 
+#[derive(Clone, Default)]
 pub struct VestingInfo {
     pub spender_address: String,
     pub category_address: Option<String>,
@@ -988,73 +980,86 @@ fn calculate_vesting_for_now(
     let wallet_address = deps.api.addr_validate(&address)?;
     message.push_str(" address is valid ");
     let vested_detais = VESTING_DETAILS.may_load(deps.storage, &wallet_address);
-    // .unwrap_or(return Err(ContractError::Std(StdError::GenericErr{msg:String::from("")})));
-
     match vested_detais {
         Ok(vested_detais) => {
             message.push_str(" Vesting details found ");
             let vd = vested_detais.unwrap();
-            let mut seconds_lapsed = 0;
-            let now_seconds: u64 = now.seconds();
-            let vesting_start_seconds = vd.last_vesting_timestamp.seconds();
-            if now_seconds > (vesting_start_seconds + (vd.cliff_period * 30 * 24 * 60 * 60)) {
-                // the now time is greater (ahead) of vesting start + cliff
-                seconds_lapsed =
-                    now_seconds - (vesting_start_seconds + (vd.cliff_period * 30 * 24 * 60 * 60));
-            }
-            message.push_str(" seconds_lapsed = ");
-            message.push_str(seconds_lapsed.to_string().as_str());
-            let mut vesting_slots = 0;
-            if vd.vesting_periodicity > 0 {
-                vesting_slots = seconds_lapsed / vd.vesting_periodicity
-            }
-            message.push_str(" vesting_slots = ");
-            message.push_str(vesting_slots.to_string().as_str());
-            let tokens_for_this_period_result = vd
-                .vesting_count_per_period
-                .checked_mul(Uint128::from(vesting_slots));
-            let mut tokens_for_this_period: Uint128;
-            match tokens_for_this_period_result {
-                Ok(tokens) => {
-                    message.push_str(" tokens = ");
-                    message.push_str(tokens.to_string().as_str());
-                    tokens_for_this_period = tokens;
-                }
-                Err(e) => {
-                    message.push_str(" error = ");
-                    message.push_str(e.to_string().as_str());
-                    tokens_for_this_period = Uint128::zero();
-                }
-            }
-            if vd.total_vesting_token_count
-                < (tokens_for_this_period
-                    + vd.total_claimed_tokens_till_now
-                    + vd.tokens_available_to_claim)
-            {
-                tokens_for_this_period = vd.total_vesting_token_count
-                    - (vd.total_claimed_tokens_till_now + vd.tokens_available_to_claim);
-            }
-            if tokens_for_this_period.is_zero() {
-                message.push_str(" No new vesting available for ");
-                message.push_str(address.as_str());
-                message.push_str(" total_vesting_token_count = ");
-                message.push_str(vd.total_vesting_token_count.to_string().as_str());
-                message.push_str(" total_claimed_tokens_till_now = ");
-                message.push_str(vd.total_claimed_tokens_till_now.to_string().as_str());
-                message.push_str(" tokens_available_to_claim = ");
-                message.push_str(vd.tokens_available_to_claim.to_string().as_str());
-                Err(ContractError::Std(StdError::GenericErr { msg: message }))
-            } else {
-                Ok(VestingInfo {
-                    spender_address: address,
-                    category_address: vd.category_address,
-                    amount: tokens_for_this_period,
-                })
-            }
+            let vesting_info = calculate_tokens_for_this_period(wallet_address, now, vd)?;
+
+            Ok(vesting_info)
         }
         Err(e) => Err(ContractError::Std(StdError::GenericErr {
             msg: e.to_string(),
         })),
+    }
+}
+
+fn calculate_tokens_for_this_period(
+    wallet_address: Addr,
+    now: Timestamp,
+    vd: VestingDetails,
+) -> Result<VestingInfo, ContractError> {
+    println!("entered calculate_vesting_for_now: ");
+    let mut seconds_lapsed = 0;
+    let now_seconds: u64 = now.seconds();
+    println!("now_seconds = {}", now_seconds);
+    let vesting_start_seconds = vd.vesting_start_timestamp.seconds();
+    println!("vesting_start_seconds = {:?}", vesting_start_seconds);
+    println!("vd.vesting_periodicity = {}", vd.vesting_periodicity);
+    if vd.vesting_periodicity > 0 {
+        let mut vesting_intervals = 0;
+        if now_seconds > (vesting_start_seconds + (vd.cliff_period * 30 * 24 * 60 * 60)) {
+            // the now time is greater (ahead) of vesting start + cliff
+            seconds_lapsed =
+                now_seconds - (vesting_start_seconds + (vd.cliff_period * 30 * 24 * 60 * 60));
+            println!("seconds_lapsed_1 = {}", seconds_lapsed);
+            let total_vesting_intervals = seconds_lapsed / vd.vesting_periodicity;
+            println!("total_vesting_intervals = {}", total_vesting_intervals);
+            let seconds_till_last_vesting = vd.last_vesting_timestamp.seconds()
+                - (vd.vesting_start_timestamp.seconds() + vd.cliff_period * 30 * 24 * 60 * 60);
+            println!("seconds_till_last_vesting = {}", seconds_till_last_vesting);
+            let total_vested_intervals = (seconds_till_last_vesting) / vd.vesting_periodicity;
+            println!("total_vested_intervals = {}", total_vested_intervals);
+
+            vesting_intervals = total_vesting_intervals - total_vested_intervals;
+            println!("vesting_intervals = {}", vesting_intervals);
+        }
+        let tokens_for_this_period_result = vd
+            .vesting_count_per_period
+            .checked_mul(Uint128::from(vesting_intervals));
+        let mut tokens_for_this_period: Uint128;
+        match tokens_for_this_period_result {
+            Ok(tokens) => {
+                println!("tokens = {}", tokens);
+                //Add the initial vested tokens that are not yet claimed
+                tokens_for_this_period = tokens;
+            }
+            Err(e) => {
+                println!("error = {:?}", e);
+                let mut message = String::from("error = ");
+                message.push_str(e.to_string().as_str());
+                tokens_for_this_period = Uint128::zero();
+            }
+        }
+        if vd.total_vesting_token_count
+            < (tokens_for_this_period
+                + vd.total_claimed_tokens_till_now
+                + vd.tokens_available_to_claim)
+        {
+            tokens_for_this_period = vd.total_vesting_token_count
+                - (vd.total_claimed_tokens_till_now + vd.tokens_available_to_claim);
+        }
+        println!("tokens_for_this_period = {}", tokens_for_this_period);
+        Ok(VestingInfo {
+            spender_address: wallet_address.to_string(),
+            category_address: vd.category_address,
+            amount: tokens_for_this_period
+                + (vd.initial_vesting_count - vd.initial_vesting_claimed_count),
+        })
+    } else {
+        return Err(ContractError::Std(StdError::generic_err(String::from(
+            "No vesting for this address",
+        ))));
     }
 }
 
@@ -2572,7 +2577,559 @@ mod tests {
 
         let new_from_balance = get_balance(deps.as_ref(), distribute_from);
         let new_to_balance = get_balance(deps.as_ref(), distribute_to);
+        // check that the transfer happened
         assert_eq!(calc_new_from_balance, new_from_balance);
         assert_eq!(calc_new_to_balance, new_to_balance);
+    }
+
+    #[test]
+    fn fail_transfer_to_categories() {
+        let mut deps = mock_dependencies(&[]);
+        let distribute_from = String::from("addr0001");
+        let distribute_to = String::from("addr0002");
+        let amount1 = Uint128::from(1000u128);
+
+        do_instantiate(deps.as_mut(), &distribute_from, amount1);
+
+        let init_from_balance = get_balance(deps.as_ref(), distribute_from.clone());
+        let init_to_balance = get_balance(deps.as_ref(), distribute_to.clone());
+
+        let amount = init_from_balance + Uint128::from(1000u128);
+
+        // Try to transfer more than the funds available - it should fail
+        let mut_deps = &mut deps.as_mut();
+        let res = distribute_vested(
+            mut_deps,
+            distribute_from.clone(),
+            distribute_to.clone(),
+            amount,
+        );
+
+        let new_from_balance = get_balance(deps.as_ref(), distribute_from);
+        let new_to_balance = get_balance(deps.as_ref(), distribute_to);
+
+        // check that the transfer did not happen
+        assert_eq!(new_from_balance, init_from_balance);
+        assert_eq!(new_to_balance, init_to_balance);
+    }
+
+    fn get_vesting_details() -> VestingDetails {
+        let now = mock_env().block.time;
+        let category_address = String::from("addr0002");
+        return VestingDetails {
+            category_address: None,
+            cliff_period: 0,
+            initial_vesting_claimed_count: Uint128::from(3950000000000u128),
+            initial_vesting_count: Uint128::from(3950000000000u128),
+            last_claimed_timestamp: Timestamp::from_nanos(1635791232475049015u64),
+            last_vesting_timestamp: Timestamp::from_nanos(1635791232475049015u64),
+            tokens_available_to_claim: Uint128::zero(),
+            total_claimed_tokens_till_now: Uint128::from(3950000000000u128),
+            total_vesting_token_count: Uint128::from(79000000000000u128),
+            vesting_count_per_period: Uint128::from(69490740740u128),
+            vesting_periodicity: 300,
+            vesting_start_timestamp: Timestamp::from_nanos(1635791182247090323u64),
+            // vesting_start_timestamp: now,
+            // initial_vesting_count: Uint128::from(0u128),
+            // initial_vesting_claimed_count: Uint128::from(0u128),
+            // vesting_periodicity: 300, // In seconds
+            // vesting_count_per_period: Uint128::from(10u128),
+            // total_vesting_token_count: Uint128::from(2000u128),
+            // total_claimed_tokens_till_now: Uint128::from(0u128),
+            // last_claimed_timestamp: now,
+            // tokens_available_to_claim: Uint128::from(0u128),
+            // last_vesting_timestamp: now,
+            // cliff_period: 0, // in months
+            // category_address: Some(category_address),
+        };
+    }
+
+    #[test]
+    fn test_vesting_at_tge() {
+        use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let spender_address = String::from("addr0001");
+        let category_address = String::from("addr0002");
+
+        let now = mock_env().block.time; // today
+        let now =
+            Timestamp::from_nanos(1635791182247090323u64).plus_seconds((30 * 24 * 60 * 60) + 650);
+        let now =
+            Timestamp::from_nanos(1635791182247090323u64).plus_seconds(650);
+        println!("now {:?}", now);
+
+        // vesting at TGE
+        let mut vesting_details = get_vesting_details();
+        vesting_details.last_vesting_timestamp =
+            Timestamp::from_nanos(1635791182247090323u64).plus_seconds(300);
+        vesting_details.tokens_available_to_claim += vesting_details.vesting_count_per_period;
+        let vested_amount = calculate_tokens_for_this_period(
+            Addr::unchecked(category_address.clone()),
+            now,
+            vesting_details,
+        );
+        match vested_amount {
+            Ok(va) => {
+                assert_eq!(va.amount, Uint128::from(1234u128));
+            }
+            Err(e) => {
+                println!("error = {:?}", e);
+                assert_eq!(1, 0);
+            }
+        }
+    }
+    // #[test]
+    // fn test_vesting_at_tge_with_initial_seed() {
+    //     use std::time::{Duration, SystemTime, UNIX_EPOCH};
+    //     let spender_address = String::from("addr0001");
+    //     let category_address = String::from("addr0002");
+
+    //     let now = mock_env().block.time; // today
+
+    //     // vesting at TGE
+    //     let mut vesting_details = get_vesting_details();
+    //     vesting_details.initial_vesting_count = Uint128::from(1000u128);
+    //     let vested_amount = calculate_tokens_for_this_period(
+    //         Addr::unchecked(category_address.clone()),
+    //         now,
+    //         vesting_details,
+    //     );
+    //     match vested_amount {
+    //         Ok(va) => {
+    //             assert_eq!(va.amount, Uint128::from(1000u128));
+    //         }
+    //         Err(e) => {
+    //             println!("error = {:?}", e);
+    //             assert_eq!(1, 0);
+    //         }
+    //     }
+    // }
+    // #[test]
+    // fn test_vesting_at_tge_no_initial_seed_first_interval() {
+    //     use std::time::{Duration, SystemTime, UNIX_EPOCH};
+    //     let spender_address = String::from("addr0001");
+    //     let category_address = String::from("addr0002");
+
+    //     let now = mock_env().block.time; // today
+
+    //     // vesting at TGE
+    //     let mut vesting_details = get_vesting_details();
+    //     vesting_details.vesting_start_timestamp = vesting_details
+    //         .vesting_start_timestamp
+    //         .minus_seconds(vesting_details.vesting_periodicity);
+    //     let vested_amount = calculate_tokens_for_this_period(
+    //         Addr::unchecked(category_address.clone()),
+    //         now,
+    //         vesting_details,
+    //     );
+    //     match vested_amount {
+    //         Ok(va) => {
+    //             assert_eq!(va.amount, Uint128::from(10u128));
+    //         }
+    //         Err(e) => {
+    //             println!("error = {:?}", e);
+    //             assert_eq!(1, 0);
+    //         }
+    //     }
+    // }
+
+    // #[test]
+    // fn test_vesting_at_tge_with_initial_seed_first_interval() {
+    //     use std::time::{Duration, SystemTime, UNIX_EPOCH};
+    //     let spender_address = String::from("addr0001");
+    //     let category_address = String::from("addr0002");
+
+    //     let now = mock_env().block.time; // today
+
+    //     // vesting at TGE
+    //     let mut vesting_details = get_vesting_details();
+    //     vesting_details.initial_vesting_count = Uint128::from(1000u128);
+    //     vesting_details.vesting_start_timestamp = vesting_details
+    //         .vesting_start_timestamp
+    //         .minus_seconds(vesting_details.vesting_periodicity);
+    //     let vested_amount = calculate_tokens_for_this_period(
+    //         Addr::unchecked(category_address.clone()),
+    //         now,
+    //         vesting_details,
+    //     );
+    //     match vested_amount {
+    //         Ok(va) => {
+    //             assert_eq!(va.amount, Uint128::from(1010u128));
+    //         }
+    //         Err(e) => {
+    //             println!("error = {:?}", e);
+    //             assert_eq!(1, 0);
+    //         }
+    //     }
+    // }
+    // #[test]
+    // fn test_vesting_at_tge_no_initial_seed_2_uncalc_interval() {
+    //     use std::time::{Duration, SystemTime, UNIX_EPOCH};
+    //     let spender_address = String::from("addr0001");
+    //     let category_address = String::from("addr0002");
+
+    //     let now = mock_env().block.time; // today
+
+    //     // vesting at TGE
+    //     let mut vesting_details = get_vesting_details();
+    //     vesting_details.vesting_start_timestamp = vesting_details
+    //         .vesting_start_timestamp
+    //         .minus_seconds(vesting_details.vesting_periodicity * 2);
+    //     vesting_details.vesting_start_timestamp =
+    //         vesting_details.vesting_start_timestamp.minus_seconds(5);
+    //     let vested_amount = calculate_tokens_for_this_period(
+    //         Addr::unchecked(category_address.clone()),
+    //         now,
+    //         vesting_details,
+    //     );
+    //     match vested_amount {
+    //         Ok(va) => {
+    //             assert_eq!(va.amount, Uint128::from(20u128));
+    //         }
+    //         Err(e) => {
+    //             println!("error = {:?}", e);
+    //             assert_eq!(1, 0);
+    //         }
+    //     }
+    // }
+    // #[test]
+    // fn test_vesting_at_tge_with_initial_seed_2_uncalc_interval() {
+    //     use std::time::{Duration, SystemTime, UNIX_EPOCH};
+    //     let spender_address = String::from("addr0001");
+    //     let category_address = String::from("addr0002");
+
+    //     let now = mock_env().block.time; // today
+
+    //     // vesting at TGE
+    //     let mut vesting_details = get_vesting_details();
+    //     vesting_details.initial_vesting_count = Uint128::from(1000u128);
+    //     vesting_details.vesting_start_timestamp = vesting_details
+    //         .vesting_start_timestamp
+    //         .minus_seconds(vesting_details.vesting_periodicity * 2);
+    //     vesting_details.vesting_start_timestamp =
+    //         vesting_details.vesting_start_timestamp.minus_seconds(5);
+    //     let vested_amount = calculate_tokens_for_this_period(
+    //         Addr::unchecked(category_address.clone()),
+    //         now,
+    //         vesting_details,
+    //     );
+    //     match vested_amount {
+    //         Ok(va) => {
+    //             assert_eq!(va.amount, Uint128::from(1020u128));
+    //         }
+    //         Err(e) => {
+    //             println!("error = {:?}", e);
+    //             assert_eq!(1, 0);
+    //         }
+    //     }
+    // }
+
+    // #[test]
+    // fn test_vesting_at_tge_no_initial_seed_1vested_1uncalc_interval() {
+    //     use std::time::{Duration, SystemTime, UNIX_EPOCH};
+    //     let spender_address = String::from("addr0001");
+    //     let category_address = String::from("addr0002");
+
+    //     let now = mock_env().block.time; // today
+
+    //     let mut vesting_details = get_vesting_details();
+
+    //     vesting_details.tokens_available_to_claim = Uint128::from(10u128);
+
+    //     vesting_details.vesting_start_timestamp =
+    //         now.minus_seconds(vesting_details.vesting_periodicity * 2);
+    //     vesting_details.vesting_start_timestamp =
+    //         vesting_details.vesting_start_timestamp.minus_seconds(5);
+
+    //     vesting_details.last_vesting_timestamp =
+    //         now.minus_seconds(vesting_details.vesting_periodicity);
+    //     vesting_details.last_vesting_timestamp =
+    //         vesting_details.last_vesting_timestamp.minus_seconds(5);
+
+    //     let vested_amount = calculate_tokens_for_this_period(
+    //         Addr::unchecked(category_address.clone()),
+    //         now,
+    //         vesting_details,
+    //     );
+    //     match vested_amount {
+    //         Ok(va) => {
+    //             assert_eq!(va.amount, Uint128::from(10u128));
+    //         }
+    //         Err(e) => {
+    //             println!("error = {:?}", e);
+    //             assert_eq!(1, 0);
+    //         }
+    //     }
+    // }
+
+    // #[test]
+    // fn test_vesting_at_tge_no_initial_seed_1claimed_1uncalc_interval() {
+    //     use std::time::{Duration, SystemTime, UNIX_EPOCH};
+    //     let spender_address = String::from("addr0001");
+    //     let category_address = String::from("addr0002");
+
+    //     let now = mock_env().block.time; // today
+
+    //     let mut vesting_details = get_vesting_details();
+
+    //     vesting_details.total_claimed_tokens_till_now = Uint128::from(10u128);
+
+    //     vesting_details.vesting_start_timestamp =
+    //         now.minus_seconds(vesting_details.vesting_periodicity * 2);
+    //     vesting_details.vesting_start_timestamp =
+    //         vesting_details.vesting_start_timestamp.minus_seconds(5);
+
+    //     vesting_details.last_vesting_timestamp =
+    //         now.minus_seconds(vesting_details.vesting_periodicity);
+    //     vesting_details.last_vesting_timestamp =
+    //         vesting_details.last_vesting_timestamp.minus_seconds(5);
+
+    //     let vested_amount = calculate_tokens_for_this_period(
+    //         Addr::unchecked(category_address.clone()),
+    //         now,
+    //         vesting_details,
+    //     );
+    //     match vested_amount {
+    //         Ok(va) => {
+    //             assert_eq!(va.amount, Uint128::from(10u128));
+    //         }
+    //         Err(e) => {
+    //             println!("error = {:?}", e);
+    //             assert_eq!(1, 0);
+    //         }
+    //     }
+    // }
+
+    // #[test]
+    // fn test_vesting_at_tge_no_initial_seed_1claimed_half_uncalc_interval() {
+    //     use std::time::{Duration, SystemTime, UNIX_EPOCH};
+    //     let spender_address = String::from("addr0001");
+    //     let category_address = String::from("addr0002");
+
+    //     let now = mock_env().block.time; // today
+
+    //     let mut vesting_details = get_vesting_details();
+
+    //     vesting_details.total_claimed_tokens_till_now = Uint128::from(10u128);
+
+    //     vesting_details.vesting_start_timestamp =
+    //         now.minus_seconds(vesting_details.vesting_periodicity * 2);
+    //     vesting_details.vesting_start_timestamp =
+    //         vesting_details.vesting_start_timestamp.plus_seconds(5);
+
+    //     vesting_details.last_vesting_timestamp =
+    //         now.minus_seconds(vesting_details.vesting_periodicity);
+    //     vesting_details.last_vesting_timestamp =
+    //         vesting_details.last_vesting_timestamp.plus_seconds(5);
+
+    //     let vested_amount = calculate_tokens_for_this_period(
+    //         Addr::unchecked(category_address.clone()),
+    //         now,
+    //         vesting_details,
+    //     );
+    //     match vested_amount {
+    //         Ok(va) => {
+    //             assert_eq!(va.amount, Uint128::from(10u128));
+    //         }
+    //         Err(e) => {
+    //             println!("error = {:?}", e);
+    //             assert_eq!(1, 0);
+    //         }
+    //     }
+    // }
+
+    #[test]
+    fn test_vesting() {
+        use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let spender_address = String::from("addr0001");
+        let category_address = String::from("addr0002");
+
+        let now = mock_env().block.time; // today
+
+        let mut vesting_details = get_vesting_details();
+
+        // vesting_periodicity = 86400; // in seconds
+        // vesting_started_before = 92; // in days
+        // cliff_period = 3; // in months
+        // vesting_start_timestamp = mock_env()
+        //     .block
+        //     .time
+        //     .minus_seconds(vesting_started_before * 86400);
+        // last_vesting_timestamp = mock_env().block.time;
+        // total_vesting_token_count = Uint128::from(200u128);
+        // total_claimed_tokens_till_now = Uint128::from(0u128);
+        // tokens_available_to_claim = Uint128::from(10000u128);
+        // let vested_amount = calculate_tokens_for_this_period(
+        //     Addr::unchecked(category_address.clone()),
+        //     now,
+        //     VestingDetails {
+        //         vesting_start_timestamp: vesting_start_timestamp,
+        //         initial_vesting_count: initial_vesting_count,
+        //         initial_vesting_claimed_count: initial_vesting_claimed_count,
+        //         vesting_periodicity: vesting_periodicity,
+        //         vesting_count_per_period: vesting_count_per_period,
+        //         total_vesting_token_count: total_vesting_token_count,
+        //         total_claimed_tokens_till_now: total_claimed_tokens_till_now,
+        //         last_claimed_timestamp: last_claimed_timestamp,
+        //         tokens_available_to_claim: tokens_available_to_claim,
+        //         last_vesting_timestamp: last_vesting_timestamp,
+        //         cliff_period: cliff_period,
+        //         category_address: Some(category_address.clone()),
+        //     },
+        // );
+        // match vested_amount {
+        //     Ok(va) => {
+        //         assert_eq!(va.amount, Uint128::from(200u128));
+        //     }
+        //     Err(e) => {
+        //         assert_eq!(1, 0);
+        //     }
+        // }
+
+        // vesting_periodicity = 86400; // in seconds
+        // vesting_started_before = 90; // in days
+        // cliff_period = 3; // in months
+        // vesting_start_timestamp = mock_env()
+        //     .block
+        //     .time
+        //     .minus_seconds(vesting_started_before * 86400);
+        // last_vesting_timestamp = mock_env().block.time;
+        // total_vesting_token_count = Uint128::from(200u128);
+        // total_claimed_tokens_till_now = Uint128::from(0u128);
+        // tokens_available_to_claim = Uint128::from(10000u128);
+        // let vested_amount = calculate_tokens_for_this_period(
+        //     Addr::unchecked(category_address.clone()),
+        //     now,
+        //     VestingDetails {
+        //         vesting_start_timestamp: vesting_start_timestamp,
+        //         initial_vesting_count: initial_vesting_count,
+        //         initial_vesting_claimed_count: initial_vesting_claimed_count,
+        //         vesting_periodicity: vesting_periodicity,
+        //         vesting_count_per_period: vesting_count_per_period,
+        //         total_vesting_token_count: total_vesting_token_count,
+        //         total_claimed_tokens_till_now: total_claimed_tokens_till_now,
+        //         last_claimed_timestamp: last_claimed_timestamp,
+        //         tokens_available_to_claim: tokens_available_to_claim,
+        //         last_vesting_timestamp: last_vesting_timestamp,
+        //         cliff_period: cliff_period,
+        //         category_address: Some(category_address.clone()),
+        //     },
+        // );
+        // match vested_amount {
+        //     Ok(va) => {
+        //         assert_eq!(va.amount, Uint128::zero());
+        //     }
+        //     Err(e) => {
+        //         assert_eq!(1, 0);
+        //     }
+        // }
+
+        // vesting_periodicity = 86400; // in seconds
+        // vesting_started_before = 89; // in days
+        // cliff_period = 3; // in months
+        // let mut vesting_start_timestamp = mock_env()
+        //     .block
+        //     .time
+        //     .minus_seconds(vesting_started_before * 86400);
+        // last_vesting_timestamp = mock_env().block.time;
+        // total_vesting_token_count = Uint128::from(200u128);
+        // total_claimed_tokens_till_now = Uint128::from(0u128);
+        // tokens_available_to_claim = Uint128::from(10000u128);
+        // let vested_amount = calculate_tokens_for_this_period(
+        //     Addr::unchecked(category_address.clone()),
+        //     now,
+        //     VestingDetails {
+        //         vesting_start_timestamp: vesting_start_timestamp,
+        //         initial_vesting_count: initial_vesting_count,
+        //         initial_vesting_claimed_count: initial_vesting_claimed_count,
+        //         vesting_periodicity: vesting_periodicity,
+        //         vesting_count_per_period: vesting_count_per_period,
+        //         total_vesting_token_count: total_vesting_token_count,
+        //         total_claimed_tokens_till_now: total_claimed_tokens_till_now,
+        //         last_claimed_timestamp: last_claimed_timestamp,
+        //         tokens_available_to_claim: tokens_available_to_claim,
+        //         last_vesting_timestamp: last_vesting_timestamp,
+        //         cliff_period: cliff_period,
+        //         category_address: Some(category_address.clone()),
+        //     },
+        // );
+        // match vested_amount {
+        //     Ok(va) => {
+        //         assert_eq!(va.amount, Uint128::zero());
+        //     }
+        //     Err(e) => {
+        //         assert_eq!(1, 0);
+        //     }
+        // }
+
+        // vesting_periodicity = 86400; // in seconds
+        // vesting_started_before = 89; // in days
+        // cliff_period = 0; // in months
+        // let mut vesting_start_seconds =
+        //     mock_env().block.time.seconds() - vesting_started_before * 86400;
+        // last_vesting_timestamp = mock_env().block.time;
+        // total_vesting_token_count = Uint128::from(200u128);
+        // total_claimed_tokens_till_now = Uint128::from(0u128);
+        // tokens_available_to_claim = Uint128::from(10000u128);
+        // let vested_amount = calculate_tokens_for_this_period(
+        //     Addr::unchecked(category_address.clone()),
+        //     now,
+        //     VestingDetails {
+        //         vesting_start_timestamp: vesting_start_timestamp,
+        //         initial_vesting_count: initial_vesting_count,
+        //         initial_vesting_claimed_count: initial_vesting_claimed_count,
+        //         vesting_periodicity: vesting_periodicity,
+        //         vesting_count_per_period: vesting_count_per_period,
+        //         total_vesting_token_count: total_vesting_token_count,
+        //         total_claimed_tokens_till_now: total_claimed_tokens_till_now,
+        //         last_claimed_timestamp: last_claimed_timestamp,
+        //         tokens_available_to_claim: tokens_available_to_claim,
+        //         last_vesting_timestamp: last_vesting_timestamp,
+        //         cliff_period: cliff_period,
+        //         category_address: Some(category_address.clone()),
+        //     },
+        // );
+        // match vested_amount {
+        //     Ok(va) => {
+        //         assert_eq!(va.amount, Uint128::from(8900u128));
+        //     }
+        //     Err(e) => {
+        //         assert_eq!(1, 0);
+        //     }
+        // }
+
+        // vesting_periodicity = 0; // in seconds - immediately vest
+        // vesting_started_before = 89; // in days
+        // cliff_period = 0; // in months
+        // vesting_start_seconds = mock_env().block.time.seconds() - vesting_started_before * 86400;
+        // last_vesting_timestamp = mock_env().block.time;
+        // total_vesting_token_count = Uint128::from(200u128);
+        // total_claimed_tokens_till_now = Uint128::from(0u128);
+        // tokens_available_to_claim = Uint128::from(10000u128);
+        // let vested_amount = calculate_tokens_for_this_period(
+        //     Addr::unchecked(category_address.clone()),
+        //     now,
+        //     VestingDetails {
+        //         vesting_start_timestamp: vesting_start_timestamp,
+        //         initial_vesting_count: initial_vesting_count,
+        //         initial_vesting_claimed_count: initial_vesting_claimed_count,
+        //         vesting_periodicity: vesting_periodicity,
+        //         vesting_count_per_period: vesting_count_per_period,
+        //         total_vesting_token_count: total_vesting_token_count,
+        //         total_claimed_tokens_till_now: total_claimed_tokens_till_now,
+        //         last_claimed_timestamp: last_claimed_timestamp,
+        //         tokens_available_to_claim: tokens_available_to_claim,
+        //         last_vesting_timestamp: last_vesting_timestamp,
+        //         cliff_period: cliff_period,
+        //         category_address: Some(category_address.clone()),
+        //     },
+        // );
+        // match vested_amount {
+        //     Ok(va) => {
+        //         assert_eq!(va.amount, Uint128::zero());
+        //     }
+        //     Err(e) => {
+        //         assert_eq!(1, 0);
+        //     }
+        // }
     }
 }

@@ -36,8 +36,11 @@ pub struct VestingDetails {
     /// The system timestamp to be used as starting point of vesting schedule
     pub vesting_start_timestamp: Timestamp,
 
-    /// Initial vested amount. The seed quantity of tokens
+    /// Initial seed amount. The seed quantity of tokens
     pub initial_vesting_count: Uint128,
+    
+    /// amount claimed fom initial seed
+    pub initial_vesting_claimed_count: Uint128,
     
     /// The vesting periodicity(hourly/daily/weekly/monthly) expressed in seconds
     pub vesting_periodicity: u64,
