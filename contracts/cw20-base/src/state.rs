@@ -40,7 +40,7 @@ pub struct VestingDetails {
     pub initial_vesting_count: Uint128,
     
     /// amount claimed fom initial seed
-    pub initial_vesting_claimed_count: Uint128,
+    pub initial_vesting_consumed: Uint128,
     
     /// The vesting periodicity(hourly/daily/weekly/monthly) expressed in seconds
     pub vesting_periodicity: u64,
