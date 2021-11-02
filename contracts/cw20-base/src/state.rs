@@ -58,14 +58,14 @@ pub struct VestingDetails {
     
     /// Timestamp for the latest claimed/transferred transaction.
     /// This will be used to calculate the next vesting count
-    pub last_claimed_timestamp: Timestamp,
+    pub last_claimed_timestamp: Option<Timestamp>,
     
     /// Number of tokens available for claiming
     pub tokens_available_to_claim: Uint128,
 
     /// Timestamp for the latest claimed/transferred transaction.
     /// This will be used to calculate the next vesting count
-    pub last_vesting_timestamp: Timestamp,
+    pub last_vesting_timestamp: Option<Timestamp>,
     
     /// Cliff time period expressed in months
     pub cliff_period: u64,
