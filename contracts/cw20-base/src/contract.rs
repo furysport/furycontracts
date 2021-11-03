@@ -182,7 +182,8 @@ fn instantiate_category_vesting_schedules(
         vesting_start_timestamp: vesting_start_timestamp,
         initial_vesting_count: Uint128::from(3_950_000_000_000u128),
         initial_vesting_consumed: Uint128::zero(),
-        vesting_periodicity: 5 * 60, // (every 5 minutes) 24 * 60 * 60, // (daily)
+        // vesting_periodicity: 5 * 60, // (every 5 minutes)
+        vesting_periodicity: 24 * 60 * 60, // (daily)
         vesting_count_per_period: Uint128::from(69_490_740_740u128),
         total_vesting_token_count: Uint128::from(79_000_000_000_000u128),
         total_claimed_tokens_till_now: Uint128::zero(),
@@ -200,7 +201,8 @@ fn instantiate_category_vesting_schedules(
         vesting_start_timestamp: vesting_start_timestamp,
         initial_vesting_count: Uint128::zero(),
         initial_vesting_consumed: Uint128::zero(),
-        vesting_periodicity: 5 * 60, // (every 5 minutes) 24 * 60 * 60, // (daily)24 * 60 * 60, //daily
+        // vesting_periodicity: 5 * 60, // (every 5 minutes) 
+        vesting_periodicity: 24 * 60 * 60, // (daily)
         vesting_count_per_period: Uint128::from(40_833_333_333u128),
         total_vesting_token_count: Uint128::from(14_700_000_000_000u128),
         total_claimed_tokens_till_now: Uint128::zero(),
@@ -218,7 +220,8 @@ fn instantiate_category_vesting_schedules(
         vesting_start_timestamp: vesting_start_timestamp,
         initial_vesting_count: Uint128::from(4_200_000_000_000u128),
         initial_vesting_consumed: Uint128::zero(),
-        vesting_periodicity: 5 * 60, // (every 5 minutes) 24 * 60 * 60,24 * 60 * 60, //daily
+        // vesting_periodicity: 5 * 60, // (every 5 minutes)
+        vesting_periodicity: 24 * 60 * 60, //24 * 60 * 60, //daily
         vesting_count_per_period: Uint128::from(210_000_000_000u128),
         total_vesting_token_count: Uint128::from(42_000_000_000_000u128),
         total_claimed_tokens_till_now: Uint128::zero(),
@@ -1006,39 +1009,39 @@ fn calculate_tokens_for_this_period(
     now: Timestamp,
     vd: VestingDetails,
 ) -> Result<VestingInfo, ContractError> {
-    println!("entered calculate_vesting_for_now: ");
+    // println!("entered calculate_vesting_for_now: ");
     let mut seconds_lapsed = 0;
     let now_seconds: u64 = now.seconds();
-    println!("now_seconds = {}", now_seconds);
+    // println!("now_seconds = {}", now_seconds);
     let vesting_start_seconds = vd.vesting_start_timestamp.seconds();
-    println!("vesting_start_seconds = {:?}", vesting_start_seconds);
-    println!("vd.vesting_periodicity = {}", vd.vesting_periodicity);
+    // println!("vesting_start_seconds = {:?}", vesting_start_seconds);
+    // println!("vd.vesting_periodicity = {}", vd.vesting_periodicity);
     if vd.vesting_periodicity > 0 {
         let mut vesting_intervals = 0;
-        if now_seconds > (vesting_start_seconds + (vd.cliff_period * 30 * 24 * 60 * 60)) {
+        if now_seconds >= (vesting_start_seconds + (vd.cliff_period * 30 * 24 * 60 * 60)) {
             // the now time is greater (ahead) of vesting start + cliff
             seconds_lapsed =
                 now_seconds - (vesting_start_seconds + (vd.cliff_period * 30 * 24 * 60 * 60));
-            println!("seconds_lapsed_1 = {}", seconds_lapsed);
+            // println!("seconds_lapsed_1 = {}", seconds_lapsed);
             let total_vesting_intervals = seconds_lapsed / vd.vesting_periodicity;
-            println!("total_vesting_intervals = {}", total_vesting_intervals);
-            println!(
-                "vd.last_vesting_timestamp.seconds() = {:?}",
-                vd.last_vesting_timestamp
-            );
-            println!("vesting_start_seconds = {}", vesting_start_seconds);
-            println!("vd.cliff_period = {}", vd.cliff_period);
+            // println!("total_vesting_intervals = {}", total_vesting_intervals);
+            // println!(
+            //     "vd.last_vesting_timestamp.seconds() = {:?}",
+            //     vd.last_vesting_timestamp
+            // );
+            // println!("vesting_start_seconds = {}", vesting_start_seconds);
+            // println!("vd.cliff_period = {}", vd.cliff_period);
             let mut seconds_till_last_vesting = 0;
             if vd.last_vesting_timestamp.is_some() {
                 seconds_till_last_vesting = vd.last_vesting_timestamp.unwrap().seconds()
                     - (vesting_start_seconds + vd.cliff_period * 30 * 24 * 60 * 60);
             }
-            println!("seconds_till_last_vesting = {}", seconds_till_last_vesting);
+            // println!("seconds_till_last_vesting = {}", seconds_till_last_vesting);
             let total_vested_intervals = (seconds_till_last_vesting) / vd.vesting_periodicity;
-            println!("total_vested_intervals = {}", total_vested_intervals);
+            // println!("total_vested_intervals = {}", total_vested_intervals);
 
             vesting_intervals = total_vesting_intervals - total_vested_intervals;
-            println!("vesting_intervals = {}", vesting_intervals);
+            // println!("vesting_intervals = {}", vesting_intervals);
         }
         let tokens_for_this_period_result = vd
             .vesting_count_per_period
@@ -1046,12 +1049,12 @@ fn calculate_tokens_for_this_period(
         let mut tokens_for_this_period: Uint128;
         match tokens_for_this_period_result {
             Ok(tokens) => {
-                println!("tokens = {}", tokens);
+                // println!("tokens = {}", tokens);
                 //Add the initial vested tokens that are not yet claimed
                 tokens_for_this_period = tokens;
             }
             Err(e) => {
-                println!("error = {:?}", e);
+                // println!("error = {:?}", e);
                 let mut message = String::from("error = ");
                 message.push_str(e.to_string().as_str());
                 tokens_for_this_period = Uint128::zero();
@@ -1065,11 +1068,19 @@ fn calculate_tokens_for_this_period(
             tokens_for_this_period = vd.total_vesting_token_count
                 - (vd.total_claimed_tokens_till_now + vd.tokens_available_to_claim);
         }
-        println!("tokens_for_this_period = {}", tokens_for_this_period);
+        // println!("tokens_for_this_period = {}", tokens_for_this_period);
+        //add the initial seed if cliff period is over
+        if now_seconds >= (vesting_start_seconds + (vd.cliff_period * 30 * 24 * 60 * 60)) {
+            tokens_for_this_period += (vd.initial_vesting_count - vd.initial_vesting_consumed);
+            // println!(
+            //     "tokens_for_this_period after adding= {}",
+            //     tokens_for_this_period
+            // );
+        }
         Ok(VestingInfo {
             spender_address: wallet_address.to_string(),
             category_address: vd.category_address,
-            amount: tokens_for_this_period + (vd.initial_vesting_count - vd.initial_vesting_consumed),
+            amount: tokens_for_this_period,
         })
     } else {
         return Err(ContractError::Std(StdError::generic_err(String::from(
@@ -2836,9 +2847,8 @@ mod tests {
         vesting_details.vesting_start_timestamp =
             now.minus_seconds(vesting_details.vesting_periodicity * 2);
 
-        vesting_details.last_vesting_timestamp = Some(
-            now.minus_seconds(vesting_details.vesting_periodicity)
-        );
+        vesting_details.last_vesting_timestamp =
+            Some(now.minus_seconds(vesting_details.vesting_periodicity));
 
         let vested_amount = calculate_tokens_for_this_period(
             Addr::unchecked(category_address.clone()),
@@ -2873,8 +2883,10 @@ mod tests {
         vesting_details.vesting_start_timestamp =
             vesting_details.vesting_start_timestamp.minus_seconds(5);
 
-        vesting_details.last_vesting_timestamp =
-            Some(now.minus_seconds(vesting_details.vesting_periodicity).minus_seconds(5));
+        vesting_details.last_vesting_timestamp = Some(
+            now.minus_seconds(vesting_details.vesting_periodicity)
+                .minus_seconds(5),
+        );
 
         let vested_amount = calculate_tokens_for_this_period(
             Addr::unchecked(category_address.clone()),
@@ -2909,8 +2921,639 @@ mod tests {
         vesting_details.vesting_start_timestamp =
             vesting_details.vesting_start_timestamp.minus_seconds(5);
 
+        vesting_details.last_vesting_timestamp = Some(
+            now.minus_seconds(vesting_details.vesting_periodicity)
+                .minus_seconds(5),
+        );
+
+        let vested_amount = calculate_tokens_for_this_period(
+            Addr::unchecked(category_address.clone()),
+            now,
+            vesting_details,
+        );
+        match vested_amount {
+            Ok(va) => {
+                assert_eq!(va.amount, Uint128::from(10u128));
+            }
+            Err(e) => {
+                println!("error = {:?}", e);
+                assert_eq!(1, 0);
+            }
+        }
+    }
+
+    #[test]
+    fn test_vesting_at_tge_with_cliff() {
+        use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let spender_address = String::from("addr0001");
+        let category_address = String::from("addr0002");
+
+        let now = mock_env().block.time; // today
+        println!("now {:?}", now);
+
+        // vesting at TGE
+        let mut vesting_details = get_vesting_details();
+        vesting_details.cliff_period = 1;
+        vesting_details.tokens_available_to_claim += vesting_details.vesting_count_per_period;
+        let vested_amount = calculate_tokens_for_this_period(
+            Addr::unchecked(category_address.clone()),
+            now,
+            vesting_details,
+        );
+        match vested_amount {
+            Ok(va) => {
+                assert_eq!(va.amount, Uint128::from(0u128));
+            }
+            Err(e) => {
+                println!("error = {:?}", e);
+                assert_eq!(1, 0);
+            }
+        }
+    }
+
+    #[test]
+    fn test_vesting_at_tge_with_initial_seed_with_cliff() {
+        use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let spender_address = String::from("addr0001");
+        let category_address = String::from("addr0002");
+
+        let now = mock_env().block.time; // today
+
+        // vesting at TGE
+        let mut vesting_details = get_vesting_details();
+        vesting_details.cliff_period = 1;
+        vesting_details.initial_vesting_count = Uint128::from(1000u128);
+        let vested_amount = calculate_tokens_for_this_period(
+            Addr::unchecked(category_address.clone()),
+            now,
+            vesting_details,
+        );
+        match vested_amount {
+            Ok(va) => {
+                assert_eq!(va.amount, Uint128::zero());
+            }
+            Err(e) => {
+                println!("error = {:?}", e);
+                assert_eq!(1, 0);
+            }
+        }
+    }
+
+    #[test]
+    fn test_vesting_at_tge_no_initial_seed_first_interval_with_cliff() {
+        use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let spender_address = String::from("addr0001");
+        let category_address = String::from("addr0002");
+
+        let now = mock_env().block.time; // today
+
+        // vesting at TGE
+        let mut vesting_details = get_vesting_details();
+        vesting_details.cliff_period = 1;
+        vesting_details.vesting_start_timestamp = vesting_details
+            .vesting_start_timestamp
+            .minus_seconds(vesting_details.vesting_periodicity);
+        let vcpp = vesting_details.vesting_count_per_period.u128();
+        let vested_amount = calculate_tokens_for_this_period(
+            Addr::unchecked(category_address.clone()),
+            now,
+            vesting_details,
+        );
+        match vested_amount {
+            Ok(va) => {
+                assert_eq!(va.amount.u128(), 0u128);
+            }
+            Err(e) => {
+                println!("error = {:?}", e);
+                assert_eq!(1, 0);
+            }
+        }
+    }
+
+    #[test]
+    fn test_vesting_at_tge_with_initial_seed_first_interval_with_cliff() {
+        use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let spender_address = String::from("addr0001");
+        let category_address = String::from("addr0002");
+
+        let now = mock_env().block.time; // today
+
+        // vesting at TGE
+        let mut vesting_details = get_vesting_details();
+        vesting_details.cliff_period = 1;
+        vesting_details.initial_vesting_count = Uint128::from(1000u128);
+        vesting_details.vesting_start_timestamp = vesting_details
+            .vesting_start_timestamp
+            .minus_seconds(vesting_details.vesting_periodicity);
+        let vested_amount = calculate_tokens_for_this_period(
+            Addr::unchecked(category_address.clone()),
+            now,
+            vesting_details,
+        );
+        match vested_amount {
+            Ok(va) => {
+                assert_eq!(va.amount, Uint128::from(0u128));
+            }
+            Err(e) => {
+                println!("error = {:?}", e);
+                assert_eq!(1, 0);
+            }
+        }
+    }
+
+    #[test]
+    fn test_vesting_at_tge_no_initial_seed_2_uncalc_interval_with_cliff() {
+        use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let spender_address = String::from("addr0001");
+        let category_address = String::from("addr0002");
+
+        let now = mock_env().block.time; // today
+
+        // vesting at TGE
+        let mut vesting_details = get_vesting_details();
+        vesting_details.cliff_period = 1;
+        vesting_details.vesting_start_timestamp = vesting_details
+            .vesting_start_timestamp
+            .minus_seconds(vesting_details.vesting_periodicity * 2);
+        vesting_details.vesting_start_timestamp =
+            vesting_details.vesting_start_timestamp.minus_seconds(5);
+        let vested_amount = calculate_tokens_for_this_period(
+            Addr::unchecked(category_address.clone()),
+            now,
+            vesting_details,
+        );
+        match vested_amount {
+            Ok(va) => {
+                assert_eq!(va.amount, Uint128::from(0u128));
+            }
+            Err(e) => {
+                println!("error = {:?}", e);
+                assert_eq!(1, 0);
+            }
+        }
+    }
+
+    #[test]
+    fn test_vesting_at_tge_with_initial_seed_2_uncalc_intervalwith_cliff() {
+        use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let spender_address = String::from("addr0001");
+        let category_address = String::from("addr0002");
+
+        let now = mock_env().block.time; // today
+
+        // vesting at TGE
+        let mut vesting_details = get_vesting_details();
+        vesting_details.cliff_period = 1;
+        vesting_details.initial_vesting_count = Uint128::from(1000u128);
+        vesting_details.vesting_start_timestamp = vesting_details
+            .vesting_start_timestamp
+            .minus_seconds(vesting_details.vesting_periodicity * 2);
+        vesting_details.vesting_start_timestamp =
+            vesting_details.vesting_start_timestamp.minus_seconds(5);
+        let vested_amount = calculate_tokens_for_this_period(
+            Addr::unchecked(category_address.clone()),
+            now,
+            vesting_details,
+        );
+        match vested_amount {
+            Ok(va) => {
+                assert_eq!(va.amount, Uint128::from(0u128));
+            }
+            Err(e) => {
+                println!("error = {:?}", e);
+                assert_eq!(1, 0);
+            }
+        }
+    }
+
+    #[test]
+    fn test_vesting_at_tge_no_initial_seed_1vested_1uncalc_interval_with_cliff() {
+        use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let spender_address = String::from("addr0001");
+        let category_address = String::from("addr0002");
+
+        let now = mock_env().block.time; // today
+
+        let mut vesting_details = get_vesting_details();
+        vesting_details.cliff_period = 1;
+        vesting_details.tokens_available_to_claim = Uint128::from(10u128);
+
+        vesting_details.vesting_start_timestamp =
+            now.minus_seconds(vesting_details.vesting_periodicity * 2);
+
         vesting_details.last_vesting_timestamp =
-            Some(now.minus_seconds(vesting_details.vesting_periodicity).minus_seconds(5));
+            Some(now.minus_seconds(vesting_details.vesting_periodicity));
+
+        let vested_amount = calculate_tokens_for_this_period(
+            Addr::unchecked(category_address.clone()),
+            now,
+            vesting_details,
+        );
+        match vested_amount {
+            Ok(va) => {
+                assert_eq!(va.amount, Uint128::from(0u128));
+            }
+            Err(e) => {
+                println!("error = {:?}", e);
+                assert_eq!(1, 0);
+            }
+        }
+    }
+
+    #[test]
+    fn test_vesting_at_tge_no_initial_seed_1claimed_1uncalc_interval_with_cliff() {
+        use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let spender_address = String::from("addr0001");
+        let category_address = String::from("addr0002");
+
+        let now = mock_env().block.time; // today
+
+        let mut vesting_details = get_vesting_details();
+        vesting_details.cliff_period = 1;
+        vesting_details.total_claimed_tokens_till_now = Uint128::from(10u128);
+
+        vesting_details.vesting_start_timestamp =
+            now.minus_seconds(vesting_details.vesting_periodicity * 2);
+        vesting_details.vesting_start_timestamp =
+            vesting_details.vesting_start_timestamp.minus_seconds(5);
+
+        vesting_details.last_vesting_timestamp = Some(
+            now.minus_seconds(vesting_details.vesting_periodicity)
+                .minus_seconds(5),
+        );
+
+        let vested_amount = calculate_tokens_for_this_period(
+            Addr::unchecked(category_address.clone()),
+            now,
+            vesting_details,
+        );
+        match vested_amount {
+            Ok(va) => {
+                assert_eq!(va.amount, Uint128::from(0u128));
+            }
+            Err(e) => {
+                println!("error = {:?}", e);
+                assert_eq!(1, 0);
+            }
+        }
+    }
+
+    #[test]
+    fn test_vesting_at_tge_no_initial_seed_1claimed_half_uncalc_interval_with_cliff() {
+        use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let spender_address = String::from("addr0001");
+        let category_address = String::from("addr0002");
+
+        let now = mock_env().block.time; // today
+
+        let mut vesting_details = get_vesting_details();
+        vesting_details.cliff_period = 1;
+        vesting_details.total_claimed_tokens_till_now = Uint128::from(10u128);
+
+        vesting_details.vesting_start_timestamp =
+            now.minus_seconds(vesting_details.vesting_periodicity * 2);
+        vesting_details.vesting_start_timestamp =
+            vesting_details.vesting_start_timestamp.minus_seconds(5);
+
+        vesting_details.last_vesting_timestamp = Some(
+            now.minus_seconds(vesting_details.vesting_periodicity)
+                .minus_seconds(5),
+        );
+
+        let vested_amount = calculate_tokens_for_this_period(
+            Addr::unchecked(category_address.clone()),
+            now,
+            vesting_details,
+        );
+        match vested_amount {
+            Ok(va) => {
+                assert_eq!(va.amount, Uint128::from(0u128));
+            }
+            Err(e) => {
+                println!("error = {:?}", e);
+                assert_eq!(1, 0);
+            }
+        }
+    }
+
+    #[test]
+    fn test_vesting_at_tge_with_cliff_period_over() {
+        use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let spender_address = String::from("addr0001");
+        let category_address = String::from("addr0002");
+
+        let now = mock_env().block.time; // today
+        println!("now {:?}", now);
+
+        // vesting at TGE
+        let mut vesting_details = get_vesting_details();
+        vesting_details.cliff_period = 1;
+        let vesting_start_timestamp = vesting_details
+            .vesting_start_timestamp
+            .minus_seconds(30 * 24 * 60 * 60);
+        vesting_details.vesting_start_timestamp = vesting_start_timestamp;
+        vesting_details.tokens_available_to_claim += vesting_details.vesting_count_per_period;
+        let vested_amount = calculate_tokens_for_this_period(
+            Addr::unchecked(category_address.clone()),
+            now,
+            vesting_details,
+        );
+        match vested_amount {
+            Ok(va) => {
+                assert_eq!(va.amount, Uint128::from(0u128));
+            }
+            Err(e) => {
+                println!("error = {:?}", e);
+                assert_eq!(1, 0);
+            }
+        }
+    }
+
+    #[test]
+    fn test_vesting_at_tge_with_initial_seed_with_cliff_period_over() {
+        use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let spender_address = String::from("addr0001");
+        let category_address = String::from("addr0002");
+
+        let now = mock_env().block.time; // today
+                                         // vesting at TGE
+        let mut vesting_details = get_vesting_details();
+        vesting_details.cliff_period = 1;
+        let vesting_start_timestamp = vesting_details
+            .vesting_start_timestamp
+            .minus_seconds(30 * 24 * 60 * 60);
+        vesting_details.vesting_start_timestamp = vesting_start_timestamp;
+        vesting_details.initial_vesting_count = Uint128::from(1000u128);
+        let vested_amount = calculate_tokens_for_this_period(
+            Addr::unchecked(category_address.clone()),
+            now,
+            vesting_details,
+        );
+        match vested_amount {
+            Ok(va) => {
+                assert_eq!(va.amount, Uint128::from(1000u128));
+            }
+            Err(e) => {
+                println!("error = {:?}", e);
+                assert_eq!(1, 0);
+            }
+        }
+    }
+
+    #[test]
+    fn test_vesting_at_tge_no_initial_seed_first_interval_with_cliff_period_over() {
+        use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let spender_address = String::from("addr0001");
+        let category_address = String::from("addr0002");
+
+        let now = mock_env().block.time; // today
+
+        // vesting at TGE
+        let mut vesting_details = get_vesting_details();
+        vesting_details.cliff_period = 1;
+        let vesting_start_timestamp = vesting_details
+            .vesting_start_timestamp
+            .minus_seconds(30 * 24 * 60 * 60);
+        vesting_details.vesting_start_timestamp = vesting_start_timestamp;
+        vesting_details.vesting_start_timestamp = vesting_details
+            .vesting_start_timestamp
+            .minus_seconds(vesting_details.vesting_periodicity);
+        let vcpp = vesting_details.vesting_count_per_period.u128();
+        let vested_amount = calculate_tokens_for_this_period(
+            Addr::unchecked(category_address.clone()),
+            now,
+            vesting_details,
+        );
+        match vested_amount {
+            Ok(va) => {
+                assert_eq!(va.amount.u128(), vcpp);
+            }
+            Err(e) => {
+                println!("error = {:?}", e);
+                assert_eq!(1, 0);
+            }
+        }
+    }
+
+    #[test]
+    fn test_vesting_at_tge_with_initial_seed_first_interval_with_cliff_period_over() {
+        use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let spender_address = String::from("addr0001");
+        let category_address = String::from("addr0002");
+
+        let now = mock_env().block.time; // today
+
+        // vesting at TGE
+        let mut vesting_details = get_vesting_details();
+        vesting_details.cliff_period = 1;
+        let vesting_start_timestamp = vesting_details
+            .vesting_start_timestamp
+            .minus_seconds(30 * 24 * 60 * 60);
+        vesting_details.vesting_start_timestamp = vesting_start_timestamp;
+        vesting_details.initial_vesting_count = Uint128::from(1000u128);
+        vesting_details.vesting_start_timestamp = vesting_details
+            .vesting_start_timestamp
+            .minus_seconds(vesting_details.vesting_periodicity);
+        let vested_amount = calculate_tokens_for_this_period(
+            Addr::unchecked(category_address.clone()),
+            now,
+            vesting_details,
+        );
+        match vested_amount {
+            Ok(va) => {
+                assert_eq!(va.amount, Uint128::from(1010u128));
+            }
+            Err(e) => {
+                println!("error = {:?}", e);
+                assert_eq!(1, 0);
+            }
+        }
+    }
+
+    #[test]
+    fn test_vesting_at_tge_no_initial_seed_2_uncalc_interval_with_cliff_period_over() {
+        use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let spender_address = String::from("addr0001");
+        let category_address = String::from("addr0002");
+
+        let now = mock_env().block.time; // today
+
+        // vesting at TGE
+        let mut vesting_details = get_vesting_details();
+        vesting_details.cliff_period = 1;
+        let vesting_start_timestamp = vesting_details
+            .vesting_start_timestamp
+            .minus_seconds(30 * 24 * 60 * 60);
+        vesting_details.vesting_start_timestamp = vesting_start_timestamp;
+        vesting_details.vesting_start_timestamp = vesting_details
+            .vesting_start_timestamp
+            .minus_seconds(vesting_details.vesting_periodicity * 2);
+        vesting_details.vesting_start_timestamp =
+            vesting_details.vesting_start_timestamp.minus_seconds(5);
+        let vested_amount = calculate_tokens_for_this_period(
+            Addr::unchecked(category_address.clone()),
+            now,
+            vesting_details,
+        );
+        match vested_amount {
+            Ok(va) => {
+                assert_eq!(va.amount, Uint128::from(20u128));
+            }
+            Err(e) => {
+                println!("error = {:?}", e);
+                assert_eq!(1, 0);
+            }
+        }
+    }
+
+    #[test]
+    fn test_vesting_at_tge_with_initial_seed_2_uncalc_interval_with_cliff_period_over() {
+        use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let spender_address = String::from("addr0001");
+        let category_address = String::from("addr0002");
+
+        let now = mock_env().block.time; // today
+
+        // vesting at TGE
+        let mut vesting_details = get_vesting_details();
+        vesting_details.cliff_period = 1;
+        let vesting_start_timestamp = vesting_details
+            .vesting_start_timestamp
+            .minus_seconds(30 * 24 * 60 * 60);
+        vesting_details.vesting_start_timestamp = vesting_start_timestamp;
+        vesting_details.initial_vesting_count = Uint128::from(1000u128);
+        vesting_details.vesting_start_timestamp = vesting_details
+            .vesting_start_timestamp
+            .minus_seconds(vesting_details.vesting_periodicity * 2);
+        vesting_details.vesting_start_timestamp =
+            vesting_details.vesting_start_timestamp.minus_seconds(5);
+        let vested_amount = calculate_tokens_for_this_period(
+            Addr::unchecked(category_address.clone()),
+            now,
+            vesting_details,
+        );
+        match vested_amount {
+            Ok(va) => {
+                assert_eq!(va.amount, Uint128::from(1020u128));
+            }
+            Err(e) => {
+                println!("error = {:?}", e);
+                assert_eq!(1, 0);
+            }
+        }
+    }
+
+    #[test]
+    fn test_vesting_at_tge_no_initial_seed_1vested_1uncalc_interval_with_cliff_period_over() {
+        use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let spender_address = String::from("addr0001");
+        let category_address = String::from("addr0002");
+
+        let now = mock_env().block.time; // today
+
+        let mut vesting_details = get_vesting_details();
+        vesting_details.cliff_period = 1;
+        let vesting_start_timestamp = vesting_details
+            .vesting_start_timestamp
+            .minus_seconds(30 * 24 * 60 * 60);
+        vesting_details.vesting_start_timestamp = vesting_start_timestamp;
+
+        vesting_details.tokens_available_to_claim = Uint128::from(10u128);
+
+        vesting_details.vesting_start_timestamp = vesting_details
+            .vesting_start_timestamp
+            .minus_seconds(vesting_details.vesting_periodicity * 2);
+
+        vesting_details.last_vesting_timestamp =
+            Some(now.minus_seconds(vesting_details.vesting_periodicity));
+
+        let vested_amount = calculate_tokens_for_this_period(
+            Addr::unchecked(category_address.clone()),
+            now,
+            vesting_details,
+        );
+        match vested_amount {
+            Ok(va) => {
+                assert_eq!(va.amount, Uint128::from(10u128));
+            }
+            Err(e) => {
+                println!("error = {:?}", e);
+                assert_eq!(1, 0);
+            }
+        }
+    }
+
+    #[test]
+    fn test_vesting_at_tge_no_initial_seed_1claimed_1uncalc_interval_with_cliff_period_over() {
+        use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let spender_address = String::from("addr0001");
+        let category_address = String::from("addr0002");
+
+        let now = mock_env().block.time; // today
+
+        let mut vesting_details = get_vesting_details();
+        vesting_details.cliff_period = 1;
+        let vesting_start_timestamp = vesting_details
+            .vesting_start_timestamp
+            .minus_seconds(30 * 24 * 60 * 60);
+        vesting_details.vesting_start_timestamp = vesting_start_timestamp;
+
+        vesting_details.total_claimed_tokens_till_now = Uint128::from(10u128);
+
+        vesting_details.vesting_start_timestamp = vesting_details
+            .vesting_start_timestamp
+            .minus_seconds(vesting_details.vesting_periodicity * 2);
+        vesting_details.vesting_start_timestamp =
+            vesting_details.vesting_start_timestamp.minus_seconds(5);
+
+        vesting_details.last_vesting_timestamp = Some(
+            now.minus_seconds(vesting_details.vesting_periodicity)
+                .minus_seconds(5),
+        );
+
+        let vested_amount = calculate_tokens_for_this_period(
+            Addr::unchecked(category_address.clone()),
+            now,
+            vesting_details,
+        );
+        match vested_amount {
+            Ok(va) => {
+                assert_eq!(va.amount, Uint128::from(10u128));
+            }
+            Err(e) => {
+                println!("error = {:?}", e);
+                assert_eq!(1, 0);
+            }
+        }
+    }
+
+    #[test]
+    fn test_vesting_at_tge_no_initial_seed_1claimed_half_uncalc_interval_with_cliff_period_over() {
+        use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let spender_address = String::from("addr0001");
+        let category_address = String::from("addr0002");
+
+        let now = mock_env().block.time; // today
+
+        let mut vesting_details = get_vesting_details();
+        vesting_details.cliff_period = 1;
+        let vesting_start_timestamp = vesting_details
+            .vesting_start_timestamp
+            .minus_seconds(30 * 24 * 60 * 60);
+        vesting_details.vesting_start_timestamp = vesting_start_timestamp;
+
+        vesting_details.total_claimed_tokens_till_now = Uint128::from(10u128);
+
+        vesting_details.vesting_start_timestamp = vesting_details
+            .vesting_start_timestamp
+            .minus_seconds(vesting_details.vesting_periodicity * 2);
+        vesting_details.vesting_start_timestamp =
+            vesting_details.vesting_start_timestamp.minus_seconds(5);
+
+        vesting_details.last_vesting_timestamp = Some(
+            now.minus_seconds(vesting_details.vesting_periodicity)
+                .minus_seconds(5),
+        );
 
         let vested_amount = calculate_tokens_for_this_period(
             Addr::unchecked(category_address.clone()),
