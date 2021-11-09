@@ -40,7 +40,7 @@ pub fn instantiate(
 
     let config = Config {
         cw20_token_address: deps.api.addr_validate(&msg.cw20_token_address)?,
-        admin_address:  deps.api.addr_validate(&msg.admin_address)?,
+        admin_address: deps.api.addr_validate(&msg.admin_address)?,
     };
     CONFIG.save(deps.storage, &config)?;
     Ok(Response::default())
@@ -63,9 +63,10 @@ pub fn execute(
             amount,
             duration,
         } => stake_on_a_club(deps, env, info, staker, club_name, amount, duration),
-        ExecuteMsg::SetRewardAmount {
-            amount,
-        } => set_reward_amount(deps, env, info, amount),
+        ExecuteMsg::SetRewardAmount { amount } => set_reward_amount(deps, info, amount),
+        ExecuteMsg::CalculateAndDistributeRewards {} => {
+            calculate_and_distribute_rewards(deps, info)
+        }
         ExecuteMsg::IncreaseAllowance {
             spender,
             amount,
@@ -229,17 +230,46 @@ fn stake_on_a_club(
 
 fn set_reward_amount(
     deps: DepsMut,
-    env: Env,
     info: MessageInfo,
     amount: Uint128,
 ) -> Result<Response, ContractError> {
     // Check if this is executed by main/transaction wallet
-        let config = CONFIG.load(deps.storage)?;
+    let config = CONFIG.load(deps.storage)?;
     if info.sender == config.cw20_token_address {
-        return Err(ContractError::Unauthorized{});
+        return Err(ContractError::Unauthorized {});
     }
     REWARD.save(deps.storage, &amount)?;
     return Ok(Response::default());
+}
+
+fn calculate_and_distribute_rewards(
+    deps: DepsMut,
+    info: MessageInfo,
+) -> Result<Response, ContractError> {
+    // Check if this is executed by main/transaction wallet
+    let config = CONFIG.load(deps.storage)?;
+    if info.sender == config.cw20_token_address {
+        return Err(ContractError::Unauthorized {});
+    }
+    let total_reward = REWARD.may_load(deps.storage)?.unwrap_or_default();
+    if total_reward > Uint128::zero() {
+        let _winner_other_split: (Uint128, Uint128) = calculate_20_80_share(total_reward);
+    }
+    return Ok(Response::default());
+}
+
+fn calculate_20_80_share(amount: Uint128) -> (Uint128, Uint128) {
+    let winner_share = amount
+        .checked_mul(Uint128::from(20u128))
+        .unwrap_or_default()
+        .checked_div(Uint128::from(100u128))
+        .unwrap_or_default();
+    let other_share = amount
+        .checked_mul(Uint128::from(80u128))
+        .unwrap_or_default()
+        .checked_div(Uint128::from(100u128))
+        .unwrap_or_default();
+    return (winner_share, other_share);
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]

@@ -15,7 +15,7 @@ pub struct InstantiateMarketingInfo {
 #[derive(Serialize, Deserialize, JsonSchema, Debug, Clone, PartialEq)]
 pub struct InstantiateMsg {
     pub cw20_token_address: String,
-    pub club_staking_address: String,
+    pub admin_address: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -34,6 +34,7 @@ pub enum ExecuteMsg {
     SetRewardAmount {
         amount: Uint128,
     },
+    CalculateAndDistributeRewards{},
     IncreaseAllowance {
         spender: String,
         amount: Uint128,
