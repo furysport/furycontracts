@@ -65,7 +65,7 @@ pub fn execute(
         } => stake_on_a_club(deps, env, info, staker, club_name, amount, duration),
         ExecuteMsg::SetRewardAmount { amount } => set_reward_amount(deps, info, amount),
         ExecuteMsg::CalculateAndDistributeRewards {} => {
-            calculate_and_distribute_rewards(deps, info)
+            calculate_and_distribute_rewards(deps, env, info)
         }
         ExecuteMsg::IncreaseAllowance {
             spender,
@@ -222,7 +222,7 @@ fn save_staking_details(
 ) -> Result<Response, ContractError> {
     // Get the exising stakes for this club
     let mut stakes = Vec::new();
-    let all_stakes = CLUB_STAKING_DETAILS.may_load(storage, club_name)?;
+    let all_stakes = CLUB_STAKING_DETAILS.may_load(storage, club_name.clone())?;
     match all_stakes {
         Some(some_stakes) => {
             stakes = some_stakes;
@@ -342,8 +342,8 @@ fn calculate_and_distribute_rewards(
                 .collect();
             for club_name in all_clubs {
                 let mut all_stakes = Vec::new();
-                let staking_details = CLUB_STAKING_DETAILS.load(deps.storage, club_name)?;
-                for stake in staking_details {
+                let staking_details = CLUB_STAKING_DETAILS.load(deps.storage, club_name.clone())?;
+                for mut stake in staking_details {
                     stake.staked_amount += (remaining_reward.checked_mul(stake.staked_amount))
                         .unwrap_or_default()
                         .checked_div(total_staking)
