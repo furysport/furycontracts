@@ -30,19 +30,19 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 const LOGO_SIZE_CAP: usize = 5 * 1024;
 
-const MAIN_WALLET: &str = "terra1t3czdl5h4w4qwgkzs80fdstj0z7rfv9v2j6uh3";
+const MAIN_WALLET: &str = "terra1ttjw6nscdmkrx3zhxqx3md37phldgwhggm345k";
 
-const GAMIFIED_AIRDROP_WALLET: &str = "terra144tlfg2zqtphwfpwrtqvvzyl362a406v2r08rj";
+const GAMIFIED_AIRDROP_WALLET: &str = "terra1m46vy0jk9wck6r9mg2n8jnxw0y4g4xgl3csh9h";
 
-const ADVISOR_WALLET: &str = "terra17yvv240qq4c6alyrcgvk6wnf402u8gp3d3nxgm";
+const ADVISOR_WALLET: &str = "terra19rgzfvlvq0f82zyy4k7whrur8x9wnpfcj5j9g7";
 
-const PRIVATE_SALE_WALLET: &str = "terra1e7maadq8sdk6aqaz2vwzxrsfr3tu8svz2sw850";
+const PRIVATE_SALE_WALLET: &str = "terra1k20rlfj3ea47zjr2sp672qqscck5k5mf3uersq";
 
-const NITIN_WALLET: &str = "terra1jq6ffpwfj08rx9wxu02ussv6pequm0tkzfjq22";
+const NITIN_WALLET: &str = "terra193c5g5u7s8kvdkzsn4rdkkyfgnp95rv9tcsvqt";
 
-const AJAY_WALLET: &str = "terra1mk9nav0hv5r8f7dwymjxml8yft78qkt6fuqae7";
+const AJAY_WALLET: &str = "terra1jlzr5wgfswz965ppwaqvlqazhyhechk27d3hka";
 
-const SAMEER_WALLET: &str = "terra1cm7rklc6m2r8klnqj505ymntf3xrqtatthc64e";
+const SAMEER_WALLET: &str = "terra1fyjvuhnndqemuv0mw0ry85lz9ku9dydgcd7ju0";
 
 /// Checks if data starts with XML preamble
 fn verify_xml_preamble(data: &[u8]) -> Result<(), ContractError> {
