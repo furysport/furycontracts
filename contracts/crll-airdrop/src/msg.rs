@@ -21,45 +21,40 @@ pub struct InstantiateMsg {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
-    BuyAClub {
-        buyer: String,
-        seller: String,
-        club_name: String,
+    UpdateLunaUserList {
+        count: usize,
+        user_name_list: Vec<String>,
+        luna_airdrop_qualified_list: Vec<bool>, 
+        luna_airdrop_reward_amount_list: Vec<Uint128>,
     },
-    ReleaseClub {
-        owner: String,
-        club_name: String,
+    SetContractLockStatus { 
+        lock_status: Uint128,
     },
-    ClaimOwnerRewards {
-        owner: String,
-        club_name: String,
-        amount: Uint128,
+    CreateLunaUser { 
+        user_name: String,
+        luna_airdrop_qualified: bool, 
+        luna_airdrop_reward_amount: Uint128,
     },
-    ClaimPreviousOwnerRewards {
-        previous_owner: String,
-        club_name: String,
-        amount: Uint128,
+    UpdateLunaUser { 
+        user_name: String,
+        luna_airdrop_qualified: bool, 
+        luna_airdrop_reward_amount: Uint128,
     },
-    StakeOnAClub {
-        staker: String,
-        club_name: String,
-        amount: Uint128,
+    CreateActivity { 
+        activity_name: String,
+        eligible_activity_reward_amount: Uint128,
     },
-    StakeWithdrawFromAClub {
-        staker: String,
-        club_name: String,
-        amount: Uint128,
-        immediate_withdrawal: bool,
+    SetActivityRewardAmount {
+        activity_name: String,
+        eligible_activity_reward_amount: Uint128,
     },
-    PeriodicallyRefundStakeouts {},
-    SetRewardAmount {
-        amount: Uint128,
+    UpdateUserActivity {
+        user_name: String,
+        activity_name: String,
+        activity_qualified: bool,
     },
-    CalculateAndDistributeRewards{},
-    ClaimRewards {
-        staker: String,
-        club_name: String,
-        amount: Uint128,
+    ClaimUserRewards {
+        user_name: String,
     },
     IncreaseAllowance {
         spender: String,
@@ -106,21 +101,9 @@ pub enum QueryMsg {
         start_after: Option<String>,
         limit: Option<u32>,
     },
-    /// Returns the current state of vesting information for the given address.
-    /// Return type: StakingDetails.
-    ClubStakingDetails {
-        club_name: String,
+    /// Returns the current state of activity information for the given address.
+    /// Return type: UserActivityDetails.
+    UserActivityDetails {
+        user_name: String,
     },
-    /// Returns the current state of withdrawn tokens that are locked for 
-    /// BONDING_DURATION = 7 days (before being credited back) for the given address.
-    /// Return type: BondingDetails.
-    ClubBondingDetails {
-        club_name: String,
-    },
-    ClubOwnershipDetails {
-        club_name: String,
-    },
-    AllStakes {},
-    GetClubRankingByStakes {},
-    RewardAmount {},
 }
