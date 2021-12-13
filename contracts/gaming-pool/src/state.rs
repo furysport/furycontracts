@@ -124,6 +124,14 @@ pub struct GameResult {
     pub reward_earned: Uint128,
 }
 
+/// This is used for transferring tokens to multiple wallets
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
+#[serde(rename_all = "snake_case")]
+pub struct WalletTransferDetails {
+    pub wallet_address: String,
+    pub amount: Uint128,
+}
+
 pub const ALLOWANCES: Map<(&Addr, &Addr), AllowanceResponse> = Map::new("allowance");
 
 /// Map of games. The key is game id and the

@@ -29,6 +29,7 @@ use crate::state::{
     WalletPercentage,
     PLATFORM_WALLET_PERCENTAGES,
     GameResult, GAME_RESULT_DUMMY,
+    WalletTransferDetails, 
 };
 
 // version info for migration info
@@ -288,6 +289,8 @@ fn cancel_game(
         },
     )?;
 
+    let mut wallet_transfer_details: Vec<WalletTransferDetails> = Vec::new();
+
     // Get all pools
     let all_pools: Vec<String> = POOL_DETAILS
         .keys(deps.storage, None, None, Order::Ascending)
@@ -335,10 +338,15 @@ fn cancel_game(
                 |balance: Option<Uint128>| -> StdResult<_> { Ok(balance.unwrap_or_default() - pool_type.pool_fee) },
             )?;
 
-            // Do the transfer of pool_fee and PLATFORM_FEE to the actual gamer_addr from the contract 
-            transfer_from_contract_to_wallet(deps.storage, gamer.clone(), refund_amount, "refund".to_string());
+            // Do the transfer of pool_fee and PLATFORM_FEE to the actual gamer from the contract 
+			let transfer_detail = WalletTransferDetails {
+				wallet_address: gamer.clone(),
+				amount: refund_amount,
+			};
+			wallet_transfer_details.push(transfer_detail);
         }
     }
+	transfer_to_multiple_wallets(deps.storage, wallet_transfer_details, "game_cancel_refund".to_string());
     return Ok(Response::new().add_attribute("game_id", game_id.clone()).add_attribute("game_status", GAME_CANCELLED.to_string()));
 }
 
@@ -379,6 +387,8 @@ fn lock_game(
             game_status: GAME_POOL_CLOSED,
         },
     )?;
+
+    let mut wallet_transfer_details: Vec<WalletTransferDetails> = Vec::new();
 
     // refund the gamers whose pool was not completed
     // Get all pools
@@ -431,10 +441,15 @@ fn lock_game(
                 |balance: Option<Uint128>| -> StdResult<_> { Ok(balance.unwrap_or_default() - pool_type.pool_fee) },
             )?;
 
-            // Do the transfer of pool_fee and PLATFORM_FEE to the actual gamer_addr from the contract 
-            transfer_from_contract_to_wallet(deps.storage, gamer.clone(), refund_amount, "refund".to_string());
+            // Do the transfer of pool_fee and PLATFORM_FEE to the actual gamer from the contract 
+			let transfer_detail = WalletTransferDetails {
+				wallet_address: gamer.clone(),
+				amount: refund_amount,
+			};
+			wallet_transfer_details.push(transfer_detail);
         }
     }
+	transfer_to_multiple_wallets(deps.storage, wallet_transfer_details, "unfilled_pool_refund".to_string());
     return Ok(Response::new().add_attribute("game_id", game_id.clone()).add_attribute("game_status", GAME_POOL_CLOSED.to_string()));
 }
 
@@ -802,6 +817,8 @@ fn game_pool_reward_distribute(
     let rake_amount = total_reward - winner_rewards;
     println!("total_reward {:?} winner_rewards {:?} rake_amount {:?}", total_reward, winner_rewards, rake_amount);
 
+    let mut wallet_transfer_details: Vec<WalletTransferDetails> = Vec::new();
+
     let total_platform_fee = Uint128::from(PLATFORM_FEE).checked_mul(Uint128::from(pool_count)).unwrap_or_default();
     // Transfer PLATFORM_FEE to platform wallets
     // These are the refund and development wallets
@@ -818,7 +835,11 @@ fn game_pool_reward_distribute(
                 .checked_div(Uint128::from(100u128))
                 .unwrap_or_default();
         // Transfer proportionate_amount to the corresponding platform wallet
-        transfer_from_contract_to_wallet(deps.storage, wallet_address.clone(), proportionate_amount, "platform_fee".to_string());
+        let transfer_detail = WalletTransferDetails {
+            wallet_address: wallet_address.clone(),
+            amount: proportionate_amount,
+        };
+		wallet_transfer_details.push(transfer_detail);
         println!("transferring {:?} to {:?}", proportionate_amount, wallet_address.clone());
     }
 
@@ -862,10 +883,45 @@ fn game_pool_reward_distribute(
                 .checked_div(Uint128::from(100u128))
                 .unwrap_or_default();
         // Transfer proportionate_amount to the corresponding rake wallet
-        transfer_from_contract_to_wallet(deps.storage, wallet_address.clone(), proportionate_amount, "rake".to_string());
+        let transfer_detail = WalletTransferDetails {
+            wallet_address: wallet_address.clone(),
+            amount: proportionate_amount,
+        };
+		wallet_transfer_details.push(transfer_detail);
         println!("transferring {:?} to {:?}", proportionate_amount, wallet_address.clone());
     }
+
+	transfer_to_multiple_wallets(deps.storage, wallet_transfer_details, "rake_and_platform_fee".to_string());
     return Ok(Response::default());
+}
+
+fn transfer_to_multiple_wallets(
+    store: &dyn Storage,
+    wallet_details: Vec<WalletTransferDetails>,
+	action: String,
+) -> Result<Response, ContractError> {
+    let config = CONFIG.load(store)?;
+	let mut rsp = Response::new();
+	for wallet in wallet_details {
+		let transfer_msg = Cw20ExecuteMsg::Transfer {
+			recipient: wallet.wallet_address,
+			amount: wallet.amount,
+		};
+		let exec = WasmMsg::Execute {
+			contract_addr: config.minting_contract_address.to_string(),
+			msg: to_binary(&transfer_msg).unwrap(),
+			funds: vec![
+				// Coin {
+				//     denom: token_info.name.to_string(),
+				//     amount: price,
+				// },
+			],
+		};
+		let send : SubMsg = SubMsg::new(exec);
+		let rsp = rsp.clone().add_submessage(send);
+	}
+	let data_msg = format!("Amount transferred").into_bytes();
+    return Ok(rsp.add_attribute("action", action).set_data(data_msg));
 }
 
 fn transfer_from_contract_to_wallet(
