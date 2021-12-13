@@ -10,8 +10,8 @@ pub const CONFIG: Item<Config> = Item::new(CONFIG_KEY);
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Config {
-    pub cw20_token_address: Addr,
     pub admin_address: Addr,
+    pub minting_contract_address: Addr,
 }
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug, Clone, PartialEq)]

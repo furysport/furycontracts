@@ -8,8 +8,9 @@ use cw20::AllowanceResponse;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Config {
-    pub cw20_token_address: Addr,
     pub admin_address: Addr,
+    pub minting_contract_address: Addr,
+    pub club_fee_collector_wallet: Addr,
 }
 
 pub const CONFIG_KEY: &str = "config";
@@ -116,7 +117,6 @@ pub const CLUB_BONDING_DETAILS: Map<String, Vec<ClubBondingDetails>> =
 pub const CLUB_PREVIOUS_OWNER_DETAILS: Map<String, ClubPreviousOwnerDetails> =
     Map::new("club_previous_owner_details");
 
-pub const CONTRACT_WALLET: Map<&Addr, Uint128> = Map::new("contract_wallet");
+pub const STAKING_FUNDS: Map<&Addr, Uint128> = Map::new("contract_wallet");
 
 pub const REWARD: Item<Uint128> = Item::new("staking_reward");
-
