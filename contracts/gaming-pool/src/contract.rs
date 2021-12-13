@@ -569,9 +569,9 @@ fn game_pool_bid_submit(
     let mut max_teams_for_pool = pool_type_details.max_teams_for_pool;
     let mut max_teams_for_gamer = pool_type_details.max_teams_for_gamer;
 
-    if pool_fee != amount {
+    if amount != pool_fee + Uint128::from(PLATFORM_FEE) {
         return Err(ContractError::Std(StdError::GenericErr {
-                msg: String::from("Amount being bid does not match the pool fee "),
+                msg: String::from("Amount being bid does not match the pool fee and the platform fee"),
         }));
     }
 
@@ -1463,7 +1463,7 @@ mod tests {
         }
 
         let rewardInfo = mock_info("rewardInfo", &[]);
-        game_pool_bid_submit(deps.as_mut(), mock_env(), owner1Info.clone(), "Gamer001".to_string(), "oneToOne".to_string(), poolId.to_string(), "Game001".to_string(), "Team001".to_string(), Uint128::from(144262u128));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), owner1Info.clone(), "Gamer001".to_string(), "oneToOne".to_string(), poolId.to_string(), "Game001".to_string(), "Team001".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
         
         let queryRes = query_pool_details(&mut deps.storage, "1".to_string());
         
@@ -1530,8 +1530,8 @@ mod tests {
         }
 
         let rewardInfo = mock_info("rewardInfo", &[]);
-        game_pool_bid_submit(deps.as_mut(), mock_env(), owner1Info.clone(), "Gamer001".to_string(), "oneToOne".to_string(), poolId.to_string(), "Game001".to_string(), "Team001".to_string(), Uint128::from(144262u128));
-        game_pool_bid_submit(deps.as_mut(), mock_env(), owner1Info.clone(), "Gamer001".to_string(), "oneToOne".to_string(), poolId.to_string(), "Game001".to_string(), "Team001".to_string(), Uint128::from(144262u128));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), owner1Info.clone(), "Gamer001".to_string(), "oneToOne".to_string(), poolId.to_string(), "Game001".to_string(), "Team001".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), owner1Info.clone(), "Gamer001".to_string(), "oneToOne".to_string(), poolId.to_string(), "Game001".to_string(), "Team001".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
         
         let queryRes = query_pool_details(&mut deps.storage, "2".to_string());
         
@@ -1630,10 +1630,10 @@ mod tests {
         // Adding multile team to pool_1 for Game001
         let ownerXInfo = mock_info("cwtoken11111", &[coin(1000, "stake")]);
         // Adding same team twice in same pool
-        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer001".to_string(), "oneToOne".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team001".to_string(), Uint128::from(144262u128));
-        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer001".to_string(), "oneToOne".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team001".to_string(), Uint128::from(144262u128));
-        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer001".to_string(), "oneToOne".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team002".to_string(), Uint128::from(144262u128));
-        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer001".to_string(), "oneToOne".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team003".to_string(), Uint128::from(144262u128));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer001".to_string(), "oneToOne".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team001".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer001".to_string(), "oneToOne".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team001".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer001".to_string(), "oneToOne".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team002".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer001".to_string(), "oneToOne".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team003".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
 
         let query_pool_details_1 = query_pool_details(&mut deps.storage, pool_id_1.to_string());
         
@@ -1648,9 +1648,9 @@ mod tests {
         }
 
         // Adding multile team to pool_2 for Game001. some of team is already added in pool_1   
-        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer001".to_string(), "multiple".to_string(), pool_id_2.to_string(), "Game001".to_string(), "Team003".to_string(), Uint128::from(144262u128));
-        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer001".to_string(), "multiple".to_string(), pool_id_2.to_string(), "Game001".to_string(), "Team004".to_string(), Uint128::from(144262u128));
-        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer001".to_string(), "multiple".to_string(), pool_id_2.to_string(), "Game001".to_string(), "Team005".to_string(), Uint128::from(144262u128));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer001".to_string(), "multiple".to_string(), pool_id_2.to_string(), "Game001".to_string(), "Team003".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer001".to_string(), "multiple".to_string(), pool_id_2.to_string(), "Game001".to_string(), "Team004".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer001".to_string(), "multiple".to_string(), pool_id_2.to_string(), "Game001".to_string(), "Team005".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
 
         let query_pool_details_2 = query_pool_details(&mut deps.storage, pool_id_2.to_string());
         
@@ -1665,8 +1665,8 @@ mod tests {
         }
 
         // Adding same team to another pool of same pool type
-        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer001".to_string(), "oneToOne".to_string(), pool_id_3.to_string(), "Game001".to_string(), "Team001".to_string(), Uint128::from(144262u128));
-        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer001".to_string(), "multiple".to_string(), pool_id_3.to_string(), "Game001".to_string(), "Team004".to_string(), Uint128::from(144262u128));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer001".to_string(), "oneToOne".to_string(), pool_id_3.to_string(), "Game001".to_string(), "Team001".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer001".to_string(), "multiple".to_string(), pool_id_3.to_string(), "Game001".to_string(), "Team004".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
         
         let query_pool_details_3 = query_pool_details(&mut deps.storage, pool_id_3.to_string());
         
@@ -1735,9 +1735,9 @@ mod tests {
         let rewardInfo = mock_info("rewardInfo", &[]);
         let ownerXInfo = mock_info("cwtoken11111", &[coin(1000, "stake")]);
         // Adding same team twice in same pool
-        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team001".to_string(), Uint128::from(144262u128));
-        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team002".to_string(), Uint128::from(144262u128));
-        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team003".to_string(), Uint128::from(144262u128));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team001".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team002".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team003".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
 
         let query_pool_details_1 = query_pool_details(&mut deps.storage, pool_id_1.to_string());
         
@@ -1805,9 +1805,9 @@ mod tests {
         let rewardInfo = mock_info("rewardInfo", &[]);
         let ownerXInfo = mock_info("cwtoken11111", &[coin(1000, "stake")]);
         // Adding same team twice in same pool
-        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team001".to_string(), Uint128::from(144262u128));
-        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team002".to_string(), Uint128::from(144262u128));
-        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team003".to_string(), Uint128::from(144262u128));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team001".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team002".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team003".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
 
         let query_pool_details_1 = query_pool_details(&mut deps.storage, pool_id_1.to_string());
         
@@ -1950,9 +1950,9 @@ mod tests {
         let rewardInfo = mock_info("rewardInfo", &[]);
         let ownerXInfo = mock_info("cwtoken11111", &[coin(1000, "stake")]);
         // Adding same team twice in same pool
-        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team001".to_string(), Uint128::from(144262u128));
-        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team002".to_string(), Uint128::from(144262u128));
-        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team003".to_string(), Uint128::from(144262u128));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team001".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team002".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team003".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
 
         let query_pool_details_1 = query_pool_details(&mut deps.storage, pool_id_1.to_string());
         
@@ -2101,9 +2101,9 @@ mod tests {
         instantiate(deps.as_mut(), mock_env(), rewardInfo.clone(), instantiate_msg);
         let ownerXInfo = mock_info("cwtoken11111", &[coin(1000, "stake")]);
         // Adding same team twice in same pool
-        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team001".to_string(), Uint128::from(144262u128));
-        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team002".to_string(), Uint128::from(144262u128));
-        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team003".to_string(), Uint128::from(144262u128));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team001".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team002".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team003".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
 
         let query_pool_details_1 = query_pool_details(&mut deps.storage, pool_id_1.to_string());
         
@@ -2281,9 +2281,9 @@ mod tests {
         let rewardInfo = mock_info("rewardInfo", &[]);
         let ownerXInfo = mock_info("cwtoken11111", &[coin(1000, "stake")]);
         // Adding same team twice in same pool
-        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team001".to_string(), Uint128::from(144262u128));
-        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team002".to_string(), Uint128::from(144262u128));
-        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team003".to_string(), Uint128::from(144262u128));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team001".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team002".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team003".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
 
         let query_pool_details_1 = query_pool_details(&mut deps.storage, pool_id_1.to_string());
         
@@ -2480,9 +2480,9 @@ mod tests {
         let rewardInfo = mock_info("rewardInfo", &[]);
         let ownerXInfo = mock_info("cwtoken11111", &[coin(1000, "stake")]);
         // Adding same team twice in same pool
-        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team001".to_string(), Uint128::from(144262u128));
-        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team002".to_string(), Uint128::from(144262u128));
-        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team003".to_string(), Uint128::from(144262u128));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team001".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team002".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team003".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
 
         let query_pool_details_1 = query_pool_details(&mut deps.storage, pool_id_1.to_string());
         
@@ -2613,9 +2613,9 @@ mod tests {
 
         let ownerXInfo = mock_info("cwtoken11111", &[coin(1000, "stake")]);
         // Adding same team twice in same pool
-        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team001".to_string(), Uint128::from(144262u128));
-        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team002".to_string(), Uint128::from(144262u128));
-        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team003".to_string(), Uint128::from(144262u128));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team001".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team002".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team003".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
 
         let query_pool_details_1 = query_pool_details(&mut deps.storage, pool_id_1.to_string());
         
@@ -2802,9 +2802,9 @@ mod tests {
         let rewardInfo = mock_info("rewardInfo", &[]);
         let ownerXInfo = mock_info("cwtoken11111", &[coin(1000, "stake")]);
         // Adding same team twice in same pool
-        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team001".to_string(), Uint128::from(144262u128));
-        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team002".to_string(), Uint128::from(144262u128));
-        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team003".to_string(), Uint128::from(144262u128));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team001".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team002".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team003".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
 
         let query_pool_details_1 = query_pool_details(&mut deps.storage, pool_id_1.to_string());
         
@@ -2890,9 +2890,9 @@ mod tests {
         let rewardInfo = mock_info("rewardInfo", &[]);
         let ownerXInfo = mock_info("cwtoken11111", &[coin(1000, "stake")]);
         // Adding same team twice in same pool
-        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team001".to_string(), Uint128::from(144262u128));
-        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team002".to_string(), Uint128::from(144262u128));
-        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team003".to_string(), Uint128::from(144262u128));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team001".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team002".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
+        game_pool_bid_submit(deps.as_mut(), mock_env(), ownerXInfo.clone(), "Gamer002".to_string(), "oneToTwo".to_string(), pool_id_1.to_string(), "Game001".to_string(), "Team003".to_string(), Uint128::from(144262u128) + Uint128::from(PLATFORM_FEE));
 
         let query_pool_details_1 = query_pool_details(&mut deps.storage, pool_id_1.to_string());
         
