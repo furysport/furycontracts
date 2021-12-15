@@ -10,6 +10,7 @@ use cw20::AllowanceResponse;
 pub struct Config {
     pub admin_address: Addr,
     pub minting_contract_address: Addr,
+    pub platform_fee: Uint128,
 }
 
 pub const CONFIG_KEY: &str = "config";
@@ -100,10 +101,16 @@ pub struct PoolTeamDetails {
     pub team_id: String,
 
     /// reward amount in quantity of tokens after completion of game
-    pub reward_earned: Uint128,
+    pub reward_amount: Uint128,
 
     /// whether the reward has been claimed
     pub claimed_reward: bool,
+
+    /// refund amount in quantity of tokens in case game gets cancelled or pool not filled
+    pub refund_amount: Uint128,
+
+    /// whether the refund has been claimed
+    pub claimed_refund: bool,
 
     /// team points updated after each game
     pub team_points: u64,
@@ -119,9 +126,10 @@ pub struct GameResult {
     pub gamer_address: String,
     pub game_id: String,
     pub team_id: String,
+    pub reward_amount: Uint128,
+    pub refund_amount: Uint128,
     pub team_rank: u64,
     pub team_points: u64,
-    pub reward_earned: Uint128,
 }
 
 /// This is used for transferring tokens to multiple wallets

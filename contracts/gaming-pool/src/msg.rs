@@ -16,6 +16,7 @@ pub struct InstantiateMarketingInfo {
 pub struct InstantiateMsg {
     pub admin_address: String,
     pub minting_contract_address: String,
+    pub platform_fee: Uint128,
 }
 
 use crate::state::{ GameResult, WalletPercentage };
@@ -49,6 +50,9 @@ pub enum ExecuteMsg {
         pool_type: String
     },
     ClaimReward {
+        gamer: String
+    },
+    ClaimRefund {
         gamer: String
     },
     GamePoolRewardDistribute {
