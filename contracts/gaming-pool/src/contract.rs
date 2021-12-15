@@ -46,6 +46,8 @@ const UNCLAIMED_REWARD: bool = false;
 const CLAIMED_REWARD: bool = true;
 const UNCLAIMED_REFUND: bool = false;
 const CLAIMED_REFUND: bool = true;
+const REWARDS_DISTRIBUTED: bool = true;
+const REWARDS_NOT_DISTRIBUTED: bool = false;
 
 const GAME_POOL_OPEN: u64 = 1u64;
 const GAME_POOL_CLOSED: u64 = 2u64;
@@ -547,6 +549,7 @@ fn create_pool(
             pool_id: pool_id_str.clone(),
             pool_type: pool_type.clone(),
             current_teams_count: 0u32,
+            rewards_distributed: REWARDS_NOT_DISTRIBUTED,
         },
     )?;
     return Ok(Response::new().add_attribute("pool_id", pool_id_str.clone()));
@@ -651,6 +654,7 @@ fn game_pool_bid_submit(
                 pool_id: pool_id.clone(),
                 game_id: pool_details.game_id.clone(),
                 current_teams_count: pool_details.current_teams_count,
+                rewards_distributed: pool_details.rewards_distributed,
             },
         )?;
         // Now save the team details
@@ -861,11 +865,6 @@ fn game_pool_reward_distribute(
             }));
         }
     }
-    if game.game_status == GAME_COMPLETED {
-        return Err(ContractError::Std(StdError::GenericErr {
-            msg: String::from("Rewards are already distributed for this game"),
-        }));
-    }
     if game.game_status == GAME_CANCELLED {
         return Err(ContractError::Std(StdError::GenericErr {
             msg: String::from("Rewards cant be distributed as game is cancelled"),
@@ -876,7 +875,6 @@ fn game_pool_reward_distribute(
             msg: String::from("Rewards cant be distributed as game not yet started"),
         }));
     }
-
     GAME_DETAILS.save(
         deps.storage,
         game_id.clone(),
@@ -887,8 +885,25 @@ fn game_pool_reward_distribute(
     )?;
 
     let pool_details = query_pool_details(deps.storage, pool_id.clone())?;
+	if pool_details.rewards_distributed == REWARDS_DISTRIBUTED {
+        return Err(ContractError::Std(StdError::GenericErr {
+            msg: String::from("Rewards are already distributed for this pool"),
+        }));
+	}	
     let pool_count = pool_details.current_teams_count;
     let pool_type = pool_details.pool_type;
+    POOL_DETAILS.save(
+        deps.storage,
+        pool_id.clone(),
+        &PoolDetails {
+            game_id: game_id.clone(),
+            pool_id: pool_id.clone(),
+            pool_type: pool_type.clone(),
+            current_teams_count: pool_details.current_teams_count,
+            rewards_distributed: REWARDS_DISTRIBUTED,
+        },
+    )?;
+
     let pool_type_details;
     let ptd = POOL_TYPE_DETAILS.may_load(deps.storage, pool_type.clone())?;
     match ptd {
@@ -4236,7 +4251,7 @@ mod tests {
                 println!("error parsing header: {:?}", e);
                 assert_eq!(
                     e.to_string(),
-                    "Generic error: Rewards are already distributed for this game".to_string()
+                    "Generic error: Rewards are already distributed for this pool".to_string()
                 );
             }
         }

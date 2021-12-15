@@ -78,6 +78,9 @@ pub struct PoolDetails {
 
     /// How many teams are currently in the pool
     pub current_teams_count: u32,
+
+    /// Whether rewards are distributed for this pool
+    pub rewards_distributed: bool,
 }
 
 
