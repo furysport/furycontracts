@@ -1177,6 +1177,7 @@ fn query_game_result(
     team_id: String,
 ) -> StdResult<GameResult> {
     let mut reward_amount = Uint128::zero();
+    let mut refund_amount = Uint128::zero();
     let mut team_rank = INITIAL_TEAM_RANK;
     let mut team_points = INITIAL_TEAM_POINTS;
 
@@ -1211,6 +1212,9 @@ fn query_game_result(
             if team.claimed_reward == UNCLAIMED_REWARD {
                 reward_amount += team.reward_amount;
             }
+            if team.claimed_refund == UNCLAIMED_REFUND {
+                refund_amount += team.refund_amount;
+            }
         }
     }
     game_result.gamer_address = gamer.clone();
@@ -1219,6 +1223,7 @@ fn query_game_result(
     game_result.team_rank = team_rank;
     game_result.team_points = team_points;
     game_result.reward_amount = reward_amount;
+    game_result.refund_amount = refund_amount;
     return Ok(game_result);
 }
 
