@@ -246,7 +246,7 @@ fn create_game(
     )?;
     return Ok(Response::new()
         .add_attribute("game_id", game_id.clone())
-        .add_attribute("game_status", GAME_POOL_OPEN.to_string()));
+        .add_attribute("game_status", "GAME_POOL_OPEN".to_string()));
 }
 
 fn cancel_game(
@@ -364,7 +364,7 @@ fn cancel_game(
     }
     return Ok(Response::new()
         .add_attribute("game_id", game_id.clone())
-        .add_attribute("game_status", GAME_CANCELLED.to_string())
+        .add_attribute("game_status", "GAME_CANCELLED".to_string())
     ); 
 }
 
@@ -482,7 +482,7 @@ fn lock_game(
     }
     return Ok(Response::new()
         .add_attribute("game_id", game_id.clone())
-        .add_attribute("game_status", GAME_POOL_CLOSED.to_string())
+        .add_attribute("game_status", "GAME_POOL_CLOSED".to_string())
     ); 
 }
 
@@ -1032,8 +1032,11 @@ fn game_pool_reward_distribute(
         "rake_and_platform_fee".to_string(),
     )?;
     return Ok(rsp
-        .add_attribute("game_status", GAME_COMPLETED.to_string())
-        .add_attribute("game_id", game_id.clone()));
+        .add_attribute("game_status", "GAME_COMPLETED".to_string())
+        .add_attribute("game_id", game_id.clone())
+        .add_attribute("pool_status", "POOL_REWARD_DISTRIBUTED".to_string())
+        .add_attribute("pool_id", pool_id.clone())
+    );
 }
 
 fn transfer_to_multiple_wallets(
@@ -2592,7 +2595,7 @@ mod tests {
                 //assert_eq!(pool_detail_1.current_teams_count, 3u32);
                 assert_eq!(
                     lock_game_rsp.attributes[1].value.clone(),
-                    GAME_POOL_CLOSED.to_string()
+                    "GAME_POOL_CLOSED".to_string()
                 );
             }
             Err(e) => {
@@ -2805,7 +2808,7 @@ mod tests {
                 //assert_eq!(pool_detail_1.current_teams_count, 3u32);
                 assert_eq!(
                     lock_game_rsp.attributes[1].value.clone(),
-                    GAME_POOL_CLOSED.to_string()
+                    "GAME_POOL_CLOSED".to_string()
                 );
             }
             Err(e) => {
@@ -3029,7 +3032,7 @@ mod tests {
                 //assert_eq!(pool_detail_1.current_teams_count, 3u32);
                 assert_eq!(
                     lock_game_rsp.attributes[1].value.clone(),
-                    GAME_POOL_CLOSED.to_string()
+                    "GAME_POOL_CLOSED".to_string()
                 );
             }
             Err(e) => {
@@ -3280,7 +3283,7 @@ mod tests {
                 //assert_eq!(pool_detail_1.current_teams_count, 3u32);
                 assert_eq!(
                     lock_game_rsp.attributes[1].value.clone(),
-                    GAME_POOL_CLOSED.to_string()
+                    "GAME_POOL_CLOSED".to_string()
                 );
             }
             Err(e) => {
@@ -3554,7 +3557,7 @@ mod tests {
                 //assert_eq!(pool_detail_1.current_teams_count, 3u32);
                 assert_eq!(
                     lock_game_rsp.attributes[1].value.clone(),
-                    GAME_POOL_CLOSED.to_string()
+                    "GAME_POOL_CLOSED".to_string()
                 );
             }
             Err(e) => {
@@ -3752,7 +3755,7 @@ mod tests {
                 //assert_eq!(pool_detail_1.current_teams_count, 3u32);
                 assert_eq!(
                     lock_game_rsp.attributes[1].value.clone(),
-                    GAME_POOL_CLOSED.to_string()
+                    "GAME_POOL_CLOSED".to_string()
                 );
             }
             Err(e) => {
@@ -4191,7 +4194,7 @@ mod tests {
                 //assert_eq!(pool_detail_1.current_teams_count, 3u32);
                 assert_eq!(
                     lock_game_rsp.attributes[1].value.clone(),
-                    GAME_POOL_CLOSED.to_string()
+                    "GAME_POOL_CLOSED".to_string()
                 );
             }
             Err(e) => {
