@@ -90,7 +90,14 @@ pub enum QueryMsg {
     PoolTeamDetailsWithTeamId {
         pool_id: String,
         team_id: String,
-    }
+    },
+    AllPoolsInGame {
+        game_id: String,
+    },
+    PoolCollection {
+        game_id: String,
+        pool_id: String,
+    },
 }
 
 

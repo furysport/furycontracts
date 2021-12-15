@@ -259,7 +259,7 @@ fn cancel_game(
             invoker: info.sender.to_string(),
         });
     }
-	let platform_fee = config.platform_fee;
+    let platform_fee = config.platform_fee;
 
     let gd = GAME_DETAILS.may_load(deps.storage, game_id.clone())?;
     let mut game;
@@ -335,7 +335,7 @@ fn cancel_game(
             }
             None => {}
         }
-		let mut updated_teams: Vec<PoolTeamDetails> = Vec::new();
+        let mut updated_teams: Vec<PoolTeamDetails> = Vec::new();
         for team in teams {
             let mut gamer = team.gamer_address.clone();
             let gamer_addr = deps.api.addr_validate(&gamer)?;
@@ -347,21 +347,21 @@ fn cancel_game(
                 },
             )?;
 
-			// No transfer to be done to the gamers. Just update their refund amounts.
-			// They have to come and collect their refund
-			let mut updated_team = team.clone();
-			updated_team.refund_amount = refund_amount;
-			updated_team.claimed_refund = UNCLAIMED_REFUND;
-			println!(
-				"refund for {:?} is {:?}",
-				team.team_id, updated_team.refund_amount
-			);
-			updated_teams.push(updated_team);
-		}
-		POOL_TEAM_DETAILS.save(deps.storage, pool_id.clone(), &updated_teams)?;
-	}
+            // No transfer to be done to the gamers. Just update their refund amounts.
+            // They have to come and collect their refund
+            let mut updated_team = team.clone();
+            updated_team.refund_amount = refund_amount;
+            updated_team.claimed_refund = UNCLAIMED_REFUND;
+            println!(
+                "refund for {:?} is {:?}",
+                team.team_id, updated_team.refund_amount
+            );
+            updated_teams.push(updated_team);
+        }
+        POOL_TEAM_DETAILS.save(deps.storage, pool_id.clone(), &updated_teams)?;
+    }
     return Ok(Response::new()
-		.add_attribute("game_id", game_id.clone())
+        .add_attribute("game_id", game_id.clone())
         .add_attribute("game_status", GAME_CANCELLED.to_string())
     ); 
 }
@@ -378,7 +378,7 @@ fn lock_game(
             invoker: info.sender.to_string(),
         });
     }
-	let platform_fee = config.platform_fee;
+    let platform_fee = config.platform_fee;
 
     let gd = GAME_DETAILS.may_load(deps.storage, game_id.clone())?;
     let mut game;
@@ -453,7 +453,7 @@ fn lock_game(
             }
             None => {}
         }
-		let mut updated_teams: Vec<PoolTeamDetails> = Vec::new();
+        let mut updated_teams: Vec<PoolTeamDetails> = Vec::new();
         for team in teams {
             let mut gamer = team.gamer_address.clone();
             let gamer_addr = deps.api.addr_validate(&gamer)?;
@@ -465,21 +465,21 @@ fn lock_game(
                 },
             )?;
 
-			// No transfer to be done to the gamers. Just update their refund amounts.
-			// They have to come and collect their refund
-			let mut updated_team = team.clone();
-			updated_team.refund_amount = refund_amount;
-			updated_team.claimed_refund = UNCLAIMED_REFUND;
-			println!(
-				"refund for {:?} is {:?}",
-				team.team_id, updated_team.refund_amount
-			);
-			updated_teams.push(updated_team);
+            // No transfer to be done to the gamers. Just update their refund amounts.
+            // They have to come and collect their refund
+            let mut updated_team = team.clone();
+            updated_team.refund_amount = refund_amount;
+            updated_team.claimed_refund = UNCLAIMED_REFUND;
+            println!(
+                "refund for {:?} is {:?}",
+                team.team_id, updated_team.refund_amount
+            );
+            updated_teams.push(updated_team);
         }
-		POOL_TEAM_DETAILS.save(deps.storage, pool_id.clone(), &updated_teams)?;
+        POOL_TEAM_DETAILS.save(deps.storage, pool_id.clone(), &updated_teams)?;
     }
     return Ok(Response::new()
-		.add_attribute("game_id", game_id.clone())
+        .add_attribute("game_id", game_id.clone())
         .add_attribute("game_status", GAME_POOL_CLOSED.to_string())
     ); 
 }
@@ -569,7 +569,7 @@ fn game_pool_bid_submit(
             invoker: info.sender.to_string(),
         });
     }
-	let platform_fee = config.platform_fee;
+    let platform_fee = config.platform_fee;
 
     let gd = GAME_DETAILS.may_load(deps.storage, game_id.clone())?;
     let game;
@@ -847,7 +847,7 @@ fn game_pool_reward_distribute(
             invoker: info.sender.to_string(),
         });
     }
-	let platform_fee = config.platform_fee;
+    let platform_fee = config.platform_fee;
 
     let gd = GAME_DETAILS.may_load(deps.storage, game_id.clone())?;
     let mut game;
@@ -1101,6 +1101,8 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::PoolTeamDetailsWithTeamId { pool_id, team_id } => {
             to_binary(&query_team_details(deps.storage, pool_id, team_id)?)
         }
+        QueryMsg::AllPoolsInGame { game_id } => to_binary(&query_all_pools_in_game(deps.storage, game_id)?),
+        QueryMsg::PoolCollection { game_id, pool_id } => to_binary(&query_pool_collection(deps.storage, game_id, pool_id)?),
     }
 }
 
@@ -1274,6 +1276,51 @@ fn query_team_details(
     return Err(StdError::generic_err("Pool Team Details not found"));
 }
 
+fn query_all_pools_in_game(
+    storage: &dyn Storage,
+    game_id: String,
+) -> StdResult<Vec<PoolDetails>> {
+    let mut all_pool_details = Vec::new();
+    let all_pools: Vec<String> = POOL_DETAILS
+        .keys(storage, None, None, Order::Ascending)
+        .map(|k| String::from_utf8(k).unwrap())
+        .collect();
+    for pool_name in all_pools {
+        let pool_details = POOL_DETAILS.load(storage, pool_name)?;
+        if pool_details.game_id == game_id {
+            all_pool_details.push(pool_details);
+        }
+    }
+    return Ok(all_pool_details);
+}
+
+fn query_pool_collection(
+    storage: &dyn Storage,
+    game_id: String,
+    pool_id: String,
+) -> StdResult<Uint128> {
+    let pd = POOL_DETAILS.may_load(storage, pool_id.clone())?;
+    let pool;
+    match pd {
+        Some(pd) => { pool = pd }
+        None => return Err(StdError::generic_err("No pool details found")),
+    };
+
+    let ptd = POOL_TYPE_DETAILS.may_load(storage, pool.pool_type.clone())?;
+    let pool_type;
+    match ptd {
+        Some(ptd) => {
+            pool_type = ptd;
+        }
+        None => return Err(StdError::generic_err("No pool type details found")),
+    };
+
+    let pool_collection = pool_type.pool_fee
+        .checked_mul(Uint128::from(pool.current_teams_count))
+        .unwrap_or_default();
+    return Ok(pool_collection);
+}
+
 #[cfg(test)]
 mod tests {
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
@@ -1287,7 +1334,7 @@ mod tests {
     #[test]
     fn test_create_and_query_game() {
         let mut deps = mock_dependencies(&[]);
-		let platform_fee = Uint128::from(300000u128);
+        let platform_fee = Uint128::from(300000u128);
 
         let owner1Info = mock_info("Owner001", &[coin(1000, "stake")]);
         let instantiate_msg = InstantiateMsg {
@@ -1326,7 +1373,7 @@ mod tests {
     fn test_create_and_query_pool_detail() {
         let mut deps = mock_dependencies(&[]);
         let owner1Info = mock_info("Owner001", &[coin(1000, "stake")]);
-		let platform_fee = Uint128::from(300000u128);
+        let platform_fee = Uint128::from(300000u128);
         let instantiate_msg = InstantiateMsg {
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
@@ -1382,7 +1429,7 @@ mod tests {
     fn test_save_and_query_team_detail() {
         let mut deps = mock_dependencies(&[]);
         let owner1Info = mock_info("Owner001", &[coin(1000, "stake")]);
-		let platform_fee = Uint128::from(300000u128);
+        let platform_fee = Uint128::from(300000u128);
         let instantiate_msg = InstantiateMsg {
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
@@ -1468,7 +1515,7 @@ mod tests {
     fn test_get_team_count_for_user_in_pool_type() {
         let mut deps = mock_dependencies(&[]);
         let owner1Info = mock_info("Owner001", &[coin(1000, "stake")]);
-		let platform_fee = Uint128::from(300000u128);
+        let platform_fee = Uint128::from(300000u128);
         let instantiate_msg = InstantiateMsg {
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
@@ -1576,7 +1623,7 @@ mod tests {
     fn test_query_all_teams() {
         let mut deps = mock_dependencies(&[]);
         let owner1Info = mock_info("Owner001", &[coin(1000, "stake")]);
-		let platform_fee = Uint128::from(300000u128);
+        let platform_fee = Uint128::from(300000u128);
         let instantiate_msg = InstantiateMsg {
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
@@ -1748,7 +1795,7 @@ mod tests {
     fn test_game_pool_bid_submit_when_pool_team_in_range() {
         let mut deps = mock_dependencies(&[]);
         let owner1Info = mock_info("Gamer001", &[coin(1000, "stake")]);
-		let platform_fee = Uint128::from(300000u128);
+        let platform_fee = Uint128::from(300000u128);
 
         let instantiate_msg = InstantiateMsg {
             minting_contract_address: "cwtoken11111".to_string(),
@@ -1851,7 +1898,7 @@ mod tests {
     fn test_game_pool_bid_submit_when_pool_team_not_in_range() {
         let mut deps = mock_dependencies(&[]);
         let owner1Info = mock_info("Gamer001", &[coin(1000, "stake")]);
-		let platform_fee = Uint128::from(300000u128);
+        let platform_fee = Uint128::from(300000u128);
 
         let instantiate_msg = InstantiateMsg {
             minting_contract_address: "cwtoken11111".to_string(),
@@ -1966,7 +2013,7 @@ mod tests {
     fn test_crete_different_pool_type_and_add_multiple_game_for_given_user() {
         let mut deps = mock_dependencies(&[]);
         let owner1Info = mock_info("Gamer001", &[coin(1000, "stake")]);
-		let platform_fee = Uint128::from(300000u128);
+        let platform_fee = Uint128::from(300000u128);
 
         let instantiate_msg = InstantiateMsg {
             minting_contract_address: "cwtoken11111".to_string(),
@@ -2234,7 +2281,7 @@ mod tests {
     fn test_max_team_per_pool_type_for_given_user() {
         let mut deps = mock_dependencies(&[]);
         let owner1Info = mock_info("Gamer002", &[coin(1000, "stake")]);
-		let platform_fee = Uint128::from(300000u128);
+        let platform_fee = Uint128::from(300000u128);
 
         let instantiate_msg = InstantiateMsg {
             minting_contract_address: "cwtoken11111".to_string(),
@@ -2360,7 +2407,7 @@ mod tests {
     fn test_game_pool_reward_distribute() {
         let mut deps = mock_dependencies(&[]);
         let owner1Info = mock_info("Gamer002", &[coin(1000, "stake")]);
-		let platform_fee = Uint128::from(300000u128);
+        let platform_fee = Uint128::from(300000u128);
 
         let instantiate_msg = InstantiateMsg {
             minting_contract_address: "cwtoken11111".to_string(),
@@ -2573,7 +2620,7 @@ mod tests {
     fn test_cancel_game() {
         let mut deps = mock_dependencies(&[]);
         let owner1Info = mock_info("Gamer002", &[coin(1000, "stake")]);
-		let platform_fee = Uint128::from(300000u128);
+        let platform_fee = Uint128::from(300000u128);
 
         let instantiate_msg = InstantiateMsg {
             minting_contract_address: "cwtoken11111".to_string(),
@@ -2785,7 +2832,7 @@ mod tests {
     fn test_claim_reward() {
         let mut deps = mock_dependencies(&[]);
         let owner1Info = mock_info("Gamer002", &[coin(1000, "stake")]);
-		let platform_fee = Uint128::from(300000u128);
+        let platform_fee = Uint128::from(300000u128);
 
         let instantiate_msg = InstantiateMsg {
             minting_contract_address: "cwtoken11111".to_string(),
@@ -2857,7 +2904,7 @@ mod tests {
                 assert_eq!(1, 2);
             }
         }
-		let platform_fee = Uint128::from(300000u128);
+        let platform_fee = Uint128::from(300000u128);
         let instantiate_msg = InstantiateMsg {
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
@@ -3048,7 +3095,7 @@ mod tests {
     fn test_claim_reward_twice() {
         let mut deps = mock_dependencies(&[]);
         let owner1Info = mock_info("Gamer002", &[coin(1000, "stake")]);
-		let platform_fee = Uint128::from(300000u128);
+        let platform_fee = Uint128::from(300000u128);
 
         let instantiate_msg = InstantiateMsg {
             minting_contract_address: "cwtoken11111".to_string(),
@@ -3316,7 +3363,7 @@ mod tests {
     fn test_refund_game_pool_close_with_team_less_than_minimum_team_count() {
         let mut deps = mock_dependencies(&[]);
         let owner1Info = mock_info("Gamer002", &[coin(1000, "stake")]);
-		let platform_fee = Uint128::from(300000u128);
+        let platform_fee = Uint128::from(300000u128);
 
         let instantiate_msg = InstantiateMsg {
             minting_contract_address: "cwtoken11111".to_string(),
@@ -3388,7 +3435,7 @@ mod tests {
                 assert_eq!(1, 2);
             }
         }
-		let platform_fee = Uint128::from(300000u128);
+        let platform_fee = Uint128::from(300000u128);
         let instantiate_msg = InstantiateMsg {
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
@@ -3519,7 +3566,7 @@ mod tests {
     fn test_cancel_on_completed_game() {
         let mut deps = mock_dependencies(&[]);
         let owner1Info = mock_info("Gamer002", &[coin(1000, "stake")]);
-		let platform_fee = Uint128::from(300000u128);
+        let platform_fee = Uint128::from(300000u128);
 
         let instantiate_msg = InstantiateMsg {
             minting_contract_address: "cwtoken11111".to_string(),
@@ -3748,7 +3795,7 @@ mod tests {
     fn test_reward_distribute_non_completed_game() {
         let mut deps = mock_dependencies(&[]);
         let owner1Info = mock_info("Gamer002", &[coin(1000, "stake")]);
-		let platform_fee = Uint128::from(300000u128);
+        let platform_fee = Uint128::from(300000u128);
 
         let instantiate_msg = InstantiateMsg {
             minting_contract_address: "cwtoken11111".to_string(),
@@ -3953,7 +4000,7 @@ mod tests {
     fn test_game_pool_reward_distribute_again() {
         let mut deps = mock_dependencies(&[]);
         let owner1Info = mock_info("Gamer002", &[coin(1000, "stake")]);
-		let platform_fee = Uint128::from(300000u128);
+        let platform_fee = Uint128::from(300000u128);
 
         let instantiate_msg = InstantiateMsg {
             minting_contract_address: "cwtoken11111".to_string(),
@@ -4025,7 +4072,7 @@ mod tests {
                 assert_eq!(1, 2);
             }
         }
-		let platform_fee = Uint128::from(300000u128);
+        let platform_fee = Uint128::from(300000u128);
         let instantiate_msg = InstantiateMsg {
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
@@ -4193,7 +4240,7 @@ mod tests {
     #[test]
     fn test_set_platform_fee_wallets() {
         let mut deps = mock_dependencies(&[]);
-		let platform_fee = Uint128::from(300000u128);
+        let platform_fee = Uint128::from(300000u128);
 
         let instantiate_msg = InstantiateMsg {
             minting_contract_address: "cwtoken11111".to_string(),
