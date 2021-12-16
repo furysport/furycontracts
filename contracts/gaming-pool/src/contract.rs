@@ -298,7 +298,6 @@ fn cancel_game(
     // Get all pools
     let all_pools: Vec<String> = POOL_DETAILS
         .keys(deps.storage, None, None, Order::Ascending)
-        .filter(|k| String::from_utf8(k.to_vec()).unwrap() == game_id.clone())
         .map(|k| String::from_utf8(k).unwrap())
         .collect();
     for pool_id in all_pools {
@@ -413,7 +412,6 @@ fn lock_game(
     // Get all pools
     let all_pools: Vec<String> = POOL_DETAILS
         .keys(deps.storage, None, None, Order::Ascending)
-        .filter(|k| String::from_utf8(k.to_vec()).unwrap() == game_id.clone())
         .map(|k| String::from_utf8(k).unwrap())
         .collect();
     for pool_id in all_pools {
@@ -766,14 +764,22 @@ fn claim_reward(
         for team in existing_teams {
             let mut updated_team = team.clone();
             println!("Gamer {:?} gamer_address {:?} ", gamer, team.gamer_address);
-            if gamer == team.gamer_address && updated_team.claimed_reward == UNCLAIMED_REWARD {
-                user_reward += updated_team.reward_amount;
+            if gamer == team.gamer_address && team.claimed_reward == UNCLAIMED_REWARD {
+                user_reward += team.reward_amount;
                 updated_team.claimed_reward = CLAIMED_REWARD;
             }
             updated_teams.push(updated_team);
         }
         POOL_TEAM_DETAILS.save(deps.storage, pool_id.clone(), &updated_teams)?;
     }
+
+	println!("reward amount is {:?}", user_reward);
+
+	if user_reward == Uint128::zero() {
+		return Err(ContractError::Std(StdError::GenericErr {
+			msg: String::from("No reward for this user"),
+		}));
+	}
 
     // Do the transfer of reward to the actual gamer_addr from the contract
     transfer_from_contract_to_wallet(
@@ -819,14 +825,22 @@ fn claim_refund(
         for team in existing_teams {
             let mut updated_team = team.clone();
             println!("Gamer {:?} gamer_address {:?} ", gamer, team.gamer_address);
-            if gamer == team.gamer_address && updated_team.claimed_refund == UNCLAIMED_REFUND {
-                user_refund += updated_team.refund_amount;
+            if gamer == team.gamer_address && team.claimed_refund == UNCLAIMED_REFUND {
+                user_refund += team.refund_amount;
                 updated_team.claimed_refund = CLAIMED_REFUND;
             }
             updated_teams.push(updated_team);
         }
         POOL_TEAM_DETAILS.save(deps.storage, pool_id.clone(), &updated_teams)?;
     }
+
+	println!("refund amount is {:?}", user_refund);
+
+	if user_refund == Uint128::zero() {
+		return Err(ContractError::Std(StdError::GenericErr {
+			msg: String::from("No refund for this user"),
+		}));
+	}
 
     // Do the transfer of refund to the actual gamer_addr from the contract
     transfer_from_contract_to_wallet(
@@ -2640,6 +2654,120 @@ mod tests {
     }
 
     #[test]
+    fn test_claim_refund() {
+        let mut deps = mock_dependencies(&[]);
+        let owner1Info = mock_info("Gamer002", &[coin(1000, "stake")]);
+        let platform_fee = Uint128::from(300000u128);
+
+        let instantiate_msg = InstantiateMsg {
+            minting_contract_address: "cwtoken11111".to_string(),
+            admin_address: "admin11111".to_string(),
+            platform_fee: platform_fee,
+        };
+        let adminInfo = mock_info("admin11111", &[]);
+        instantiate(
+            deps.as_mut(),
+            mock_env(),
+            adminInfo.clone(),
+            instantiate_msg,
+        );
+
+        let mut rake_list: Vec<WalletPercentage> = Vec::new();
+        let rake_1 = WalletPercentage {
+            wallet_address: "rake_1".to_string(),
+            wallet_name: "rake_1".to_string(),
+            percentage: 1u32,
+        };
+        rake_list.push(rake_1);
+        let rake_2 = WalletPercentage {
+            wallet_address: "rake_2".to_string(),
+            wallet_name: "rake_2".to_string(),
+            percentage: 2u32,
+        };
+        rake_list.push(rake_2);
+
+        let rake_3 = WalletPercentage {
+            wallet_address: "rake_3".to_string(),
+            wallet_name: "rake_3".to_string(),
+            percentage: 3u32,
+        };
+        rake_list.push(rake_3);
+
+        set_pool_type_params(
+            deps.as_mut(),
+            mock_env(),
+            adminInfo.clone(),
+            "oneToTwo".to_string(),
+            Uint128::from(144262u128),
+            2,
+            10,
+            5,
+            rake_list.clone(),
+        );
+        create_game(
+            deps.as_mut(),
+            mock_env(),
+            adminInfo.clone(),
+            "Game001".to_string(),
+        );
+
+        // create multiple pool
+        let mut pool_id_1 = String::new();
+        let rsp_1 = create_pool(
+            deps.as_mut(),
+            mock_env(),
+            adminInfo.clone(),
+            "Game001".to_string(),
+            "oneToTwo".to_string(),
+        );
+        match rsp_1 {
+            Ok(rsp_1) => {
+                pool_id_1 = rsp_1.attributes[0].value.clone();
+            }
+            Err(e) => {
+                println!("error parsing header: {:?}", e);
+                assert_eq!(1, 2);
+            }
+        }
+        let rewardInfo = mock_info("rewardInfo", &[]);
+        let ownerXInfo = mock_info("cwtoken11111", &[coin(1000, "stake")]);
+        // Adding same team twice in same pool
+        game_pool_bid_submit(
+            deps.as_mut(),
+            mock_env(),
+            ownerXInfo.clone(),
+            "Gamer002".to_string(),
+            "oneToTwo".to_string(),
+            pool_id_1.to_string(),
+            "Game001".to_string(),
+            "Team001".to_string(),
+            Uint128::from(144262u128) + platform_fee,
+        );
+
+        let cancelInfo = mock_info("cancelInfo", &[]);
+        let cancel_rsp = cancel_game(
+            deps.as_mut(),
+            mock_env(),
+            adminInfo.clone(),
+            "Game001".to_string(),
+        );
+
+        let claim_refund_rsp = claim_refund(deps.as_mut(), owner1Info.clone(), "Gamer002".to_string());
+        match claim_refund_rsp {
+            Ok(claim_refund_rsp) => {
+                let amt = claim_refund_rsp.attributes[0].value.clone();
+				let expamt = Uint128::from(144262u128) + platform_fee;
+				let expamtStr = expamt.to_string();
+                assert_eq!(amt, expamtStr);
+            }
+            Err(e) => {
+                println!("error parsing header: {:?}", e);
+                assert_eq!(5, 6);
+            }
+        }
+    }
+
+    #[test]
     fn test_cancel_game() {
         let mut deps = mock_dependencies(&[]);
         let owner1Info = mock_info("Gamer002", &[coin(1000, "stake")]);
@@ -3368,16 +3496,13 @@ mod tests {
             claim_reward(deps.as_mut(), owner1Info.clone(), "Gamer002".to_string());
         match claim_reward_rsp_2 {
             Ok(claim_reward_rsp_2) => {
-                //Since max allowed team for gamer under this pooltype is 2 so it will not allow 3rd team creation under this pooltype.
-                //assert_eq!(pool_detail_1.current_teams_count, 3u32);
-                assert_eq!(
-                    claim_reward_rsp_2.attributes[0].value.clone(),
-                    "0".to_string()
-                );
+				// IT should not come here
+				assert_eq!(1,2);
             }
             Err(e) => {
-                println!("error parsing header: {:?}", e);
-                assert_eq!(7, 8);
+                let outstr = format!("error parsing header: {:?}", e);
+				println!("{:?}", outstr);
+				assert_eq!(outstr, "error parsing header: Std(GenericErr { msg: \"No reward for this user\" })");
             }
         }
     }
@@ -3575,7 +3700,7 @@ mod tests {
             match gf_res {
                 Ok(gf_res) => {
                     println!("error parsing header: {:?}", gf_res);
-                    assert_eq!(gf_res, Uint128::from(432786u128)); // TODO NOT sure about this assertion.
+                    assert_eq!(gf_res, Uint128::from(0u128)); 
                 }
                 Err(e) => {
                     println!("error parsing header: {:?}", e);
