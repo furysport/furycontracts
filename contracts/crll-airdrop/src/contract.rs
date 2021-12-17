@@ -23,6 +23,7 @@ use crate::state::{
     UserActivityDetails, USER_ACTIVITY_DETAILS, 
     AIRDROP_CONTRACT_WALLET, 
     CONTRACT_LOCK_STATUS,
+    UserRewardInfo,
 };
 
 // version info for migration info
@@ -32,7 +33,7 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 const MAIN_WALLET: &str = "terra1t3czdl5h4w4qwgkzs80fdstj0z7rfv9v2j6uh3";
 
 // Note that Luna activity is just a placeholder - so 3 activities
-const NUM_OF_USER_ACTIVITIES: usize = 3; 
+const NUM_OF_USER_ACTIVITIES: usize = 4; 
 const LUNA_ACTIVITY: &str = "LUNA_ACTIVITY";
 const GAMING_ACTIVITY: &str = "GAMING_ACTIVITY";
 const STAKING_ACTIVITY: &str = "STAKING_ACTIVITY";
@@ -43,7 +44,6 @@ const NOT_QUALIFIED_FOR_REWARD: bool = false;
 
 const LOCKED: u128 = 1u128;
 const UNLOCKED: u128 = 0u128;
-
 
 /*
 Flow of contract
@@ -89,57 +89,16 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
-        ExecuteMsg::UpdateLunaUserList {
-            count,
-            user_name_list,
-            luna_airdrop_qualified_list,
-            luna_airdrop_reward_amount_list,
-        } => {
-            update_luna_user_list_details(
-                deps, 
-                env, 
-                info, 
-                count,
-                user_name_list, 
-                luna_airdrop_qualified_list, 
-                luna_airdrop_reward_amount_list)
-        }
-        ExecuteMsg::SetContractLockStatus { 
-            lock_status,
-        } => set_contract_lock_status (deps, lock_status),
-        ExecuteMsg::CreateActivity { 
+        ExecuteMsg::UpdateUserRewardAmount {
             activity_name,
-            eligible_activity_reward_amount,
+            user_reward_list,
         } => {
-            create_activity (deps, env, info, activity_name, LUNA_ACTIVITY.to_string(), eligible_activity_reward_amount)
-        }
-        ExecuteMsg::SetActivityRewardAmount { 
-            activity_name,
-            eligible_activity_reward_amount,
-        } => {
-            update_activity_eligibility_reward_amount (deps, env, info, activity_name, eligible_activity_reward_amount)
-        }
-        ExecuteMsg::CreateLunaUser { 
-            user_name, 
-            luna_airdrop_qualified, 
-            luna_airdrop_reward_amount 
-        } => {
-            create_luna_user_details(deps, env, info, user_name, luna_airdrop_qualified, luna_airdrop_reward_amount)
-        }
-        ExecuteMsg::UpdateLunaUser { 
-            user_name, 
-            luna_airdrop_qualified, 
-            luna_airdrop_reward_amount 
-        } => {
-            update_luna_user_details(deps, env, info, user_name, luna_airdrop_qualified, luna_airdrop_reward_amount)
+            update_activity_reward_for_users (deps, env, info, activity_name, user_reward_list)
         }
         ExecuteMsg::ClaimUserRewards { 
             user_name, 
         } => {
             claim_user_rewards (deps, env, info, user_name)
-        }
-        ExecuteMsg::UpdateUserActivity { user_name, activity_name, activity_qualified } => {
-            update_user_activity(deps, env, info, user_name, activity_name, activity_qualified)
         }
         ExecuteMsg::IncreaseAllowance {
             spender,
@@ -217,7 +176,9 @@ fn claim_user_rewards (
     info: MessageInfo,
     user_name: String,
 ) -> Result<Response, ContractError> {
-    // Ensure that the contract is not locked for batch processing
+/*
+    Nov 30, 2021: LOCKING is no longer needed - so commenting this out
+
     // it needs to get initialized to unlock
     let distribute_from = String::from(MAIN_WALLET);
     let address = deps.api.addr_validate(distribute_from.clone().as_str())?;
@@ -236,6 +197,7 @@ fn claim_user_rewards (
                 }));
         }
     }
+*/
 
     let user_addr = deps.api.addr_validate(&user_name)?;
     //Check if withdrawer is same as invoker
@@ -244,6 +206,10 @@ fn claim_user_rewards (
     }
 
     let mut total_amount = Uint128::zero();
+
+/*
+    Nov 30, 2021: No longer needed as LUNA is also an activity now - so commenting this out
+    
     let res = query_luna_user_details(deps.storage, user_name.clone());
     match res {
         Ok(user) => {
@@ -260,6 +226,7 @@ fn claim_user_rewards (
             }));
         }
     }
+*/
 
     // Get the existing rewards for this user activities
     let mut activities = Vec::new();
@@ -322,6 +289,12 @@ fn create_luna_user_details(
 
     // also create activities : gaming, staking, liquidity
     let mut activities = Vec::new();
+    activities.push(UserActivityDetails {
+        user_name: user_name.clone(),
+        activity_name: LUNA_ACTIVITY.to_string(),
+        activity_qualified: luna_airdrop_qualified,
+        activity_reward_amount_accrued: Uint128::zero(),
+    });
     activities.push(UserActivityDetails {
         user_name: user_name.clone(),
         activity_name: GAMING_ACTIVITY.to_string(),
@@ -420,6 +393,89 @@ fn update_luna_user_list_details(
             }
             USER_ACTIVITY_DETAILS.save(deps.storage, user_name, &updated_user_activities)?;
         }
+    }
+    return Ok(Response::default());
+}
+
+fn update_activity_reward_for_users (
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    activity_name: String,
+    user_reward_list: Vec<UserRewardInfo>,
+) -> Result<Response, ContractError> {
+    // TODO: Add some authentication check here
+
+    for user_reward in user_reward_list {
+        let user_name = user_reward.user_name;
+        let reward_amount = user_reward.reward_amount;
+
+        println!("username {:?} activity {:?} reward {:?}", user_name.clone(), activity_name, reward_amount);    
+
+        let res = query_luna_user_details(deps.storage, user_name.clone());
+        match res {
+            Ok(user) => {
+                // User is already created - do nothing
+            }
+            Err(e) => {
+                // Create the user 
+                LUNA_USER_DETAILS.save(
+                    deps.storage,
+                    user_name.clone(),
+                    &LunaUserDetails {
+                        user_name: user_name.clone(),
+                        luna_airdrop_qualified: QUALIFIED_FOR_REWARD,
+                        luna_airdrop_reward_amount: Uint128::zero(),
+                    },
+                )?;
+                // also create activities : luna, gaming, staking, liquidity
+                let mut activities = Vec::new();
+                activities.push(UserActivityDetails {
+                    user_name: user_name.clone(),
+                    activity_name: LUNA_ACTIVITY.to_string(),
+                    activity_qualified: NOT_QUALIFIED_FOR_REWARD,
+                    activity_reward_amount_accrued: Uint128::zero(),
+                });
+                activities.push(UserActivityDetails {
+                    user_name: user_name.clone(),
+                    activity_name: GAMING_ACTIVITY.to_string(),
+                    activity_qualified: NOT_QUALIFIED_FOR_REWARD,
+                    activity_reward_amount_accrued: Uint128::zero(),
+                });
+                activities.push(UserActivityDetails {
+                    user_name: user_name.clone(),
+                    activity_name: STAKING_ACTIVITY.to_string(),
+                    activity_qualified: NOT_QUALIFIED_FOR_REWARD,
+                    activity_reward_amount_accrued: Uint128::zero(),
+                });
+                activities.push(UserActivityDetails {
+                    user_name: user_name.clone(),
+                    activity_name: LIQUIDITY_ACTIVITY.to_string(),
+                    activity_qualified: NOT_QUALIFIED_FOR_REWARD,
+                    activity_reward_amount_accrued: Uint128::zero(),
+                });
+                USER_ACTIVITY_DETAILS.save(deps.storage, user_name.clone(), &activities)?;
+            }
+        }
+
+        let mut user_activities = Vec::new();
+        let all_user_activities = USER_ACTIVITY_DETAILS.may_load(deps.storage, user_name.clone())?;
+        match all_user_activities {
+            Some(some_user_activities) => {
+                user_activities = some_user_activities;
+            }
+            None => {}
+        }
+        let existing_user_activities = user_activities.clone();
+        let mut updated_user_activities = Vec::new();
+        for user_activity in existing_user_activities {
+            let mut updated_user_activity = user_activity.clone();
+            if user_activity.activity_name == activity_name {
+                updated_user_activity.activity_reward_amount_accrued += reward_amount;
+            }
+            updated_user_activities.push(updated_user_activity);
+        }
+        USER_ACTIVITY_DETAILS.save(deps.storage, user_name, &updated_user_activities)?;
     }
     return Ok(Response::default());
 }
@@ -831,9 +887,9 @@ mod tests {
         let mut user_name_list_for_final_processing = Vec::new();
         let mut qualified_list_for_final_processing = Vec::new();
         let mut rw_amount_list_for_final_processing = Vec::new();
-        let mut total_count = 1000;
+        let total_count = 1000;
         // Worked up to 1 million. Reducing it to 100 
-        for mut count in 1..total_count+1 {
+        for count in 1..total_count+1 {
             let count_str : String = count.to_string();
             let mut username = String::new();
             username += "LunaUser_";
@@ -926,6 +982,127 @@ mod tests {
     }
 
     #[test]
+    fn test_userlist_update_activity() {
+        let mut deps = mock_dependencies(&[]);
+
+        let instantiate_msg = InstantiateMsg {
+            cw20_token_address: "cwtoken11111".to_string(),
+            admin_address: "admin11111".to_string(),
+        };
+        let rewardInfo = mock_info("rewardInfo", &[]);
+
+        create_activity(deps.as_mut(), mock_env(), rewardInfo.clone(), 
+            STAKING_ACTIVITY.to_string(), LUNA_ACTIVITY.to_string(), Uint128::from(33u128));
+        create_activity(deps.as_mut(), mock_env(), rewardInfo.clone(), 
+            GAMING_ACTIVITY.to_string(), LUNA_ACTIVITY.to_string(), Uint128::from(11u128));
+        create_activity(deps.as_mut(), mock_env(), rewardInfo.clone(), 
+            LIQUIDITY_ACTIVITY.to_string(), LUNA_ACTIVITY.to_string(), Uint128::from(42u128));
+
+        let mut user_name_list_for_final_processing = Vec::new();
+        let total_count = 1000;
+        // Worked up to 1 million. Reducing it to 100 
+        for count in 1..total_count+1 {
+            let count_str : String = count.to_string();
+            let mut username = String::new();
+            username += "LunaUser_";
+            username += &count_str;
+
+			let mut user_reward = UserRewardInfo { 
+				user_name: username.clone(),
+				reward_amount: Uint128::from(100u128),
+			};
+			user_name_list_for_final_processing.push (user_reward);
+        }
+		
+        instantiate(deps.as_mut(), mock_env(), rewardInfo.clone(), instantiate_msg).unwrap();
+
+		update_activity_reward_for_users (deps.as_mut(), mock_env(), rewardInfo.clone(), 
+			"STAKING_ACTIVITY".to_string(), user_name_list_for_final_processing.clone());
+        
+        let all_luna_users: Vec<String> = LUNA_USER_DETAILS
+            .keys(&deps.storage, None, None, Order::Ascending)
+            .map(|k| String::from_utf8(k).unwrap())
+            .collect();
+        for user in all_luna_users {
+            // check that these many can be loaded in memory
+            // it maxes out at 2 million for my machine
+            // i7 processor, 32GB RAM, 1 TB SSD
+
+            let queryRes = query_luna_user_details (&deps.storage, user);
+            match queryRes {
+                Ok(lud) => {
+                    assert_eq!(lud.luna_airdrop_qualified, QUALIFIED_FOR_REWARD);
+                    assert_eq!(lud.luna_airdrop_reward_amount, Uint128::zero());
+                }
+                Err(e) => {
+                    println!("error parsing header: {:?}", e);
+                    assert_eq!(1, 2);
+                }
+            }
+        }
+        let queryAllUserActRes = query_all_user_activities(&mut deps.storage);
+        match queryAllUserActRes {
+            Ok(all_acts) => {
+                assert_eq!(all_acts.len(), total_count*NUM_OF_USER_ACTIVITIES);
+                for act in all_acts {
+                    if act.activity_name != STAKING_ACTIVITY.to_string() {
+                        assert_eq!(act.activity_reward_amount_accrued, Uint128::zero());
+                    } else {
+                        assert_eq!(act.activity_reward_amount_accrued, Uint128::from(100u128));
+					}
+                }
+            }
+            Err(e) => {
+                println!("error parsing header: {:?}", e);
+                assert_eq!(1, 2);
+            }
+        }
+
+		update_activity_reward_for_users (deps.as_mut(), mock_env(), rewardInfo.clone(), 
+			"LUNA_ACTIVITY".to_string(), user_name_list_for_final_processing.clone());
+
+        let all_luna_users_2: Vec<String> = LUNA_USER_DETAILS
+            .keys(&deps.storage, None, None, Order::Ascending)
+            .map(|k| String::from_utf8(k).unwrap())
+            .collect();
+        for user in all_luna_users_2 {
+            // check that these many can be loaded in memory
+            // it maxes out at 2 million for my machine
+            // i7 processor, 32GB RAM, 1 TB SSD
+
+            let queryRes = query_luna_user_details (&deps.storage, user);
+            match queryRes {
+                Ok(lud) => {
+                    assert_eq!(lud.luna_airdrop_qualified, QUALIFIED_FOR_REWARD);
+                    assert_eq!(lud.luna_airdrop_reward_amount, Uint128::zero());
+                }
+                Err(e) => {
+                    println!("error parsing header: {:?}", e);
+                    assert_eq!(1, 2);
+                }
+            }
+        }
+        let queryAllUserActRes_2 = query_all_user_activities(&mut deps.storage);
+        match queryAllUserActRes_2 {
+            Ok(all_acts) => {
+                assert_eq!(all_acts.len(), total_count*NUM_OF_USER_ACTIVITIES);
+                for act in all_acts {
+                    if act.activity_name == STAKING_ACTIVITY.to_string() 
+                       || act.activity_name == LUNA_ACTIVITY.to_string() {
+                        assert_eq!(act.activity_reward_amount_accrued, Uint128::from(100u128));
+                    } else {
+                        assert_eq!(act.activity_reward_amount_accrued, Uint128::zero());
+					}
+                }
+            }
+            Err(e) => {
+                println!("error parsing header: {:?}", e);
+                assert_eq!(1, 2);
+            }
+        }
+    }
+
+    #[test]
     fn test_user_activities () {
         let mut deps = mock_dependencies(&[]);
 
@@ -1000,6 +1177,8 @@ mod tests {
         create_luna_user_details(deps.as_mut(), mock_env(), user1Info.clone(), "LunaUser001".to_string(),
             QUALIFIED_FOR_REWARD, Uint128::from(100u128));
 
+        create_activity(deps.as_mut(), mock_env(), rewardInfo.clone(), 
+            LUNA_ACTIVITY.to_string(), LUNA_ACTIVITY.to_string(), Uint128::from(33u128));
         create_activity(deps.as_mut(), mock_env(), rewardInfo.clone(), 
             STAKING_ACTIVITY.to_string(), LUNA_ACTIVITY.to_string(), Uint128::from(33u128));
         create_activity(deps.as_mut(), mock_env(), rewardInfo.clone(), 
@@ -1082,6 +1261,8 @@ mod tests {
             QUALIFIED_FOR_REWARD, Uint128::from(100u128));
 
         create_activity(deps.as_mut(), mock_env(), rewardInfo.clone(), 
+            LUNA_ACTIVITY.to_string(), LUNA_ACTIVITY.to_string(), Uint128::from(33u128));
+        create_activity(deps.as_mut(), mock_env(), rewardInfo.clone(), 
             STAKING_ACTIVITY.to_string(), LUNA_ACTIVITY.to_string(), Uint128::from(33u128));
         create_activity(deps.as_mut(), mock_env(), rewardInfo.clone(), 
             GAMING_ACTIVITY.to_string(), LUNA_ACTIVITY.to_string(), Uint128::from(11u128));
@@ -1162,7 +1343,11 @@ mod tests {
         let rsp = claim_user_rewards(deps.as_mut(), mock_env(), user1Info.clone(), "LunaUser001".to_string());
         match rsp {
             Ok(rsp) => {
-                assert_eq!(rsp, Response::new().add_attribute("reward", Uint128::from(188u128)));
+                /*
+                    Nov 30, 2021: Reward does not get the luna user details reward info anymore
+                    So changing it from 188u128 to 88u128
+                */
+                assert_eq!(rsp, Response::new().add_attribute("reward", Uint128::from(88u128)));
             }
             Err(e) => {
                 println!("error parsing header: {:?}", e);
@@ -1201,6 +1386,8 @@ mod tests {
         create_luna_user_details(deps.as_mut(), mock_env(), user1Info.clone(), "LunaUser001".to_string(),
             NOT_QUALIFIED_FOR_REWARD, Uint128::from(100u128));
 
+        create_activity(deps.as_mut(), mock_env(), rewardInfo.clone(), 
+            LUNA_ACTIVITY.to_string(), LUNA_ACTIVITY.to_string(), Uint128::from(33u128));
         create_activity(deps.as_mut(), mock_env(), rewardInfo.clone(), 
             STAKING_ACTIVITY.to_string(), LUNA_ACTIVITY.to_string(), Uint128::from(33u128));
         create_activity(deps.as_mut(), mock_env(), rewardInfo.clone(), 
@@ -1267,7 +1454,11 @@ mod tests {
         let rsp = claim_user_rewards(deps.as_mut(), mock_env(), user1Info.clone(), "LunaUser001".to_string());
         match rsp {
             Ok(rsp) => {
-                assert_eq!(rsp, Response::new().add_attribute("reward", Uint128::from(100u128)));
+                /*
+                    Nov 30, 2021: Reward does not get the luna user details reward info anymore
+                    So changing it from 100u128 to 0u128
+                */
+                assert_eq!(rsp, Response::new().add_attribute("reward", Uint128::from(0u128)));
             }
             Err(e) => {
                 println!("error parsing header: {:?}", e);

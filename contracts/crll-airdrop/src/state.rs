@@ -22,9 +22,11 @@ pub struct LunaUserDetails {
     /// Address of the user wallet
     pub user_name: String,
 
+    /// Not used anymore
     /// is the user qualified for luna airdrop
     pub luna_airdrop_qualified: bool,
 
+    /// Not used anymore
     /// luna airdrop reward amount calculated outside of the contract
     pub luna_airdrop_reward_amount: Uint128,
 }
@@ -59,6 +61,16 @@ pub struct UserActivityDetails {
 
     /// airdrop reward amount acrrued for this activity in quantity of tokens
     pub activity_reward_amount_accrued: Uint128,
+}
+
+#[derive(Serialize, Deserialize, JsonSchema, Debug, Clone, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub struct UserRewardInfo {
+    /// Address of the user wallet
+    pub user_name: String,
+
+    /// airdrop reward amount in quantity of tokens
+    pub reward_amount: Uint128,
 }
 
 pub const ALLOWANCES: Map<(&Addr, &Addr), AllowanceResponse> = Map::new("allowance");

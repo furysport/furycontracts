@@ -18,40 +18,14 @@ pub struct InstantiateMsg {
     pub admin_address: String,
 }
 
+use crate::state::{ UserRewardInfo };
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
-    UpdateLunaUserList {
-        count: usize,
-        user_name_list: Vec<String>,
-        luna_airdrop_qualified_list: Vec<bool>, 
-        luna_airdrop_reward_amount_list: Vec<Uint128>,
-    },
-    SetContractLockStatus { 
-        lock_status: Uint128,
-    },
-    CreateLunaUser { 
-        user_name: String,
-        luna_airdrop_qualified: bool, 
-        luna_airdrop_reward_amount: Uint128,
-    },
-    UpdateLunaUser { 
-        user_name: String,
-        luna_airdrop_qualified: bool, 
-        luna_airdrop_reward_amount: Uint128,
-    },
-    CreateActivity { 
+    UpdateUserRewardAmount {
         activity_name: String,
-        eligible_activity_reward_amount: Uint128,
-    },
-    SetActivityRewardAmount {
-        activity_name: String,
-        eligible_activity_reward_amount: Uint128,
-    },
-    UpdateUserActivity {
-        user_name: String,
-        activity_name: String,
-        activity_qualified: bool,
+        user_reward_list: Vec<UserRewardInfo>,
     },
     ClaimUserRewards {
         user_name: String,

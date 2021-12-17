@@ -35,7 +35,7 @@ const IMMEDIATE_WITHDRAWAL: bool = true;
 const NO_IMMEDIATE_WITHDRAWAL: bool = false;
 
 // Reward to club owner for buying - 100 tokens
-const CLUB_BUYING_REWARD_AMOUNT: u128 = 100000000u128;
+const CLUB_BUYING_REWARD_AMOUNT: u128 = 0u128;
 
 // Reward to club staker for staking
 const CLUB_STAKING_REWARD_AMOUNT: u128 = 0u128;
@@ -196,6 +196,7 @@ fn claim_previous_owner_rewards(
     club_name: String,
     amount: Uint128,
 ) -> Result<Response, ContractError> {
+    let mut transfer_confirmed = false;
     let previous_owner_addr = deps.api.addr_validate(&previous_owner)?;
     //Check if withdrawer is same as invoker
     if previous_owner_addr != info.sender {
@@ -235,11 +236,17 @@ fn claim_previous_owner_rewards(
                 )?;
 
                 // Add amount to the owners wallet
-                transfer_from_contract_to_wallet(deps.storage, previous_owner.clone(), amount, "previous_owners_reward".to_string());
+                let transfer_confirmed = true;
+
             }
         }
     }
-    return Ok(Response::default());
+    if transfer_confirmed == false{
+        return Err(ContractError::Std(StdError::GenericErr {
+            msg: String::from("Not a valid previous owner for the club"),
+        }));
+    }
+    transfer_from_contract_to_wallet(deps.storage, previous_owner.clone(), amount, "previous_owners_reward".to_string())
 }
 
 fn claim_owner_rewards(
@@ -294,17 +301,16 @@ fn claim_owner_rewards(
                     },
                 )?;
 
-                transfer_from_contract_to_wallet(deps.storage, owner.clone(), amount, "staking_reward".to_string());
             }
         }
     }
 
-    if !transfer_confirmed {
+    if transfer_confirmed == false{
         return Err(ContractError::Std(StdError::GenericErr {
             msg: String::from("Not a valid owner for the club"),
         }));
     }
-    return Ok(Response::default());
+    transfer_from_contract_to_wallet(deps.storage, owner.clone(), amount, "owner_reward".to_string())
 }
 
 fn periodically_refund_stakeouts(
@@ -614,6 +620,7 @@ fn withdraw_stake_from_a_club(
         }
     }
 
+    let mut transfer_confirmed = false;
     if ownership_details.is_some() {
         // update funds in contract wallet
         STAKING_FUNDS.update(
@@ -643,12 +650,7 @@ fn withdraw_stake_from_a_club(
             burn_funds(deps.storage, burn_amount);
 
             // Remaining 90% transfer to staker wallet
-            let refund_amount = withdrawal_amount
-                .checked_mul(Uint128::from(90u128))
-                .unwrap_or_default()
-                .checked_div(Uint128::from(100u128))
-                .unwrap_or_default();
-            transfer_from_contract_to_wallet(deps.storage, staker.clone(), refund_amount, "stake_refund".to_string());
+            transfer_confirmed = true;
         } else {
             // update the staking details
             save_staking_details(
@@ -670,13 +672,21 @@ fn withdraw_stake_from_a_club(
                 withdrawal_amount,
                 CLUB_BONDING_DURATION,
             )?;
+            // early exit with only state change - no token exchange
+            return Ok(Response::default());
         }
     } else {
         return Err(ContractError::Std(StdError::GenericErr {
             msg: String::from("The club is not available for unstaking"),
         }));
     }
-    return Ok(Response::default());
+
+    if transfer_confirmed == false{
+        return Err(ContractError::Std(StdError::GenericErr {
+            msg: String::from("Not a valid owner for the club"),
+        }));
+    }
+    transfer_from_contract_to_wallet(deps.storage, staker.clone(), withdrawal_amount, "staking_withdraw".to_string())
 }
 
 fn save_staking_details(
@@ -835,14 +845,12 @@ fn claim_rewards(
     }
     CLUB_STAKING_DETAILS.save(deps.storage, club_name, &updated_stakes)?;
 
-    if transfer_confirmed {
-        transfer_from_contract_to_wallet(deps.storage, staker.clone(), amount, "reward_claim".to_string());
-    } else {
+    if transfer_confirmed == false {
         return Err(ContractError::Std(StdError::GenericErr {
             msg: String::from("Not a valid staker for the club"),
         }));
     }
-    return Ok(Response::default());
+    transfer_from_contract_to_wallet(deps.storage, staker.clone(), amount, "staking_reward_claim".to_string())
 }
 
 fn calculate_and_distribute_rewards(
@@ -948,6 +956,8 @@ fn calculate_and_distribute_rewards(
                 }
                 CLUB_STAKING_DETAILS.save(deps.storage, club_name, &all_stakes)?;
             }
+            let new_reward = Uint128::zero();
+            REWARD.save(deps.storage, &new_reward)?;
             println!(
                 "total reward given {:?} out of {:?}",
                 reward_given_so_far, total_reward
@@ -1243,7 +1253,7 @@ mod tests {
                 assert_eq!(cod.owner_address, "Owner001".to_string());
                 assert_eq!(cod.price_paid, Uint128::from(1000000u128));
                 assert_eq!(cod.owner_released, false);
-                assert_eq!(cod.reward_amount, Uint128::from(90000000u128));
+                assert_eq!(cod.reward_amount, Uint128::from(0u128));
             }
             Err(e) => {
                 println!("error parsing header: {:?}", e);
@@ -1648,7 +1658,7 @@ mod tests {
             Ok(pod) => {
                 assert_eq!(pod.club_name, "CLUB001".to_string());
                 assert_eq!(pod.previous_owner_address, "Owner001".to_string());
-                assert_eq!(pod.reward_amount, Uint128::from(90000000u128));
+                assert_eq!(pod.reward_amount, Uint128::from(0u128));
             }
             Err(e) => {
                 println!("error parsing header: {:?}", e);

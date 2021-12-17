@@ -7,9 +7,9 @@ use cosmwasm_std::{
 
 use cw2::set_contract_version;
 use cw20::{
-    AllowanceResponse, BalanceResponse, Cw20Coin, Cw20ReceiveMsg, DownloadLogoResponse,
-    EmbeddedLogo, Expiration, Logo, LogoInfo, MarketingInfoResponse, MinterResponse,
-    TokenInfoResponse,
+    AllowanceResponse, BalanceResponse, Cw20Coin, Cw20ExecuteMsg, Cw20ReceiveMsg,
+    DownloadLogoResponse, EmbeddedLogo, Expiration, Logo, LogoInfo, MarketingInfoResponse,
+    MinterResponse, TokenInfoResponse,
 };
 
 use crate::allowances::{
@@ -18,7 +18,7 @@ use crate::allowances::{
 };
 use crate::enumerable::{query_all_accounts, query_all_allowances};
 use crate::error::ContractError;
-use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use crate::msg::{InstantiateMsg, QueryMsg};
 use crate::state::{
     MinterData, TokenInfo, VestingDetails, ALLOWANCES, BALANCES, LOGO, MARKETING_INFO, TOKEN_INFO,
     VESTING_DETAILS,
@@ -30,19 +30,19 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 const LOGO_SIZE_CAP: usize = 5 * 1024;
 
-const MAIN_WALLET: &str = "terra1t3czdl5h4w4qwgkzs80fdstj0z7rfv9v2j6uh3";
+const MAIN_WALLET: &str = "terra1ttjw6nscdmkrx3zhxqx3md37phldgwhggm345k";
 
-const GAMIFIED_AIRDROP_WALLET: &str = "terra144tlfg2zqtphwfpwrtqvvzyl362a406v2r08rj";
+const GAMIFIED_AIRDROP_WALLET: &str = "terra1m46vy0jk9wck6r9mg2n8jnxw0y4g4xgl3csh9h";
 
-const ADVISOR_WALLET: &str = "terra17yvv240qq4c6alyrcgvk6wnf402u8gp3d3nxgm";
+const ADVISOR_WALLET: &str = "terra19rgzfvlvq0f82zyy4k7whrur8x9wnpfcj5j9g7";
 
-const PRIVATE_SALE_WALLET: &str = "terra1e7maadq8sdk6aqaz2vwzxrsfr3tu8svz2sw850";
+const PRIVATE_SALE_WALLET: &str = "terra1k20rlfj3ea47zjr2sp672qqscck5k5mf3uersq";
 
-const NITIN_WALLET: &str = "terra1jq6ffpwfj08rx9wxu02ussv6pequm0tkzfjq22";
+const NITIN_WALLET: &str = "terra149l9z45ph4nv2mq532dhkmqu0028ylt837mtrd";
 
-const AJAY_WALLET: &str = "terra1mk9nav0hv5r8f7dwymjxml8yft78qkt6fuqae7";
+const AJAY_WALLET: &str = "terra1c96d2lrj6xyedf05k5z43x5cumx2nm7fv48zxy";
 
-const SAMEER_WALLET: &str = "terra1cm7rklc6m2r8klnqj505ymntf3xrqtatthc64e";
+const SAMEER_WALLET: &str = "terra1tu2tgckr8cw8qeqlpzq4e7y5ftfh9jal2jc83k";
 
 /// Checks if data starts with XML preamble
 fn verify_xml_preamble(data: &[u8]) -> Result<(), ContractError> {
@@ -201,7 +201,7 @@ fn instantiate_category_vesting_schedules(
         vesting_start_timestamp: vesting_start_timestamp,
         initial_vesting_count: Uint128::zero(),
         initial_vesting_consumed: Uint128::zero(),
-        // vesting_periodicity: 5 * 60, // (every 5 minutes) 
+        // vesting_periodicity: 5 * 60, // (every 5 minutes)
         vesting_periodicity: 24 * 60 * 60, // (daily)
         vesting_count_per_period: Uint128::from(40_833_333_333u128),
         total_vesting_token_count: Uint128::from(14_700_000_000_000u128),
@@ -330,54 +330,50 @@ pub fn execute(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    msg: ExecuteMsg,
+    msg: Cw20ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
-        ExecuteMsg::Transfer { recipient, amount } => {
+        Cw20ExecuteMsg::Transfer { recipient, amount } => {
             execute_transfer(deps, env, info, recipient, amount)
         }
-        ExecuteMsg::Burn { amount } => execute_burn(deps, env, info, amount),
-        ExecuteMsg::Send {
+        Cw20ExecuteMsg::Burn { amount } => execute_burn(deps, env, info, amount),
+        Cw20ExecuteMsg::Send {
             contract,
             amount,
             msg,
         } => execute_send(deps, env, info, contract, amount, msg),
-        ExecuteMsg::Mint { recipient, amount } => execute_mint(deps, env, info, recipient, amount),
-        ExecuteMsg::IncreaseAllowance {
+        Cw20ExecuteMsg::Mint { recipient, amount } => execute_mint(deps, env, info, recipient, amount),
+        Cw20ExecuteMsg::IncreaseAllowance {
             spender,
             amount,
             expires,
         } => execute_increase_allowance(deps, env, info, spender, amount, expires),
-        ExecuteMsg::DecreaseAllowance {
+        Cw20ExecuteMsg::DecreaseAllowance {
             spender,
             amount,
             expires,
         } => execute_decrease_allowance(deps, env, info, spender, amount, expires),
-        ExecuteMsg::TransferFrom {
+        Cw20ExecuteMsg::TransferFrom {
             owner,
             recipient,
             amount,
         } => execute_transfer_from(deps, env, info, owner, recipient, amount),
-        ExecuteMsg::BurnFrom { owner, amount } => execute_burn_from(deps, env, info, owner, amount),
-        ExecuteMsg::SendFrom {
+        Cw20ExecuteMsg::BurnFrom { owner, amount } => execute_burn_from(deps, env, info, owner, amount),
+        Cw20ExecuteMsg::SendFrom {
             owner,
             contract,
             amount,
             msg,
         } => execute_send_from(deps, env, info, owner, contract, amount, msg),
-        ExecuteMsg::UpdateMarketing {
+        Cw20ExecuteMsg::UpdateMarketing {
             project,
             description,
             marketing,
         } => execute_update_marketing(deps, env, info, project, description, marketing),
-        ExecuteMsg::UploadLogo(logo) => execute_upload_logo(deps, env, info, logo),
-        ExecuteMsg::PeriodicallyTransferToCategories {} => {
-            periodically_transfer_to_categories(deps, env, info)
-        }
-        ExecuteMsg::PeriodicallyCalculateVesting {} => {
-            periodically_calculate_vesting(deps, env, info)
-        }
-        ExecuteMsg::ClaimVestedTokens { amount } => claim_vested_tokens(deps, env, info, amount),
+        Cw20ExecuteMsg::UploadLogo(logo) => execute_upload_logo(deps, env, info, logo),
+        Cw20ExecuteMsg::PeriodicallyTransferToCategories{} => periodically_transfer_to_categories(deps, env, info),
+        Cw20ExecuteMsg::PeriodicallyCalculateVesting{} => periodically_calculate_vesting(deps, env, info),
+        Cw20ExecuteMsg::ClaimVestedTokens { amount } => claim_vested_tokens(deps, env, info, amount),
     }
 }
 
@@ -1454,7 +1450,7 @@ mod tests {
         // minter can mint coins to some winner
         let winner = String::from("lucky");
         let prize = Uint128::new(222_222_222);
-        let msg = ExecuteMsg::Mint {
+        let msg = Cw20ExecuteMsg::Mint {
             recipient: winner.clone(),
             amount: prize,
         };
@@ -1467,7 +1463,7 @@ mod tests {
         assert_eq!(get_balance(deps.as_ref(), winner.clone()), prize);
 
         // but cannot mint nothing
-        let msg = ExecuteMsg::Mint {
+        let msg = Cw20ExecuteMsg::Mint {
             recipient: winner.clone(),
             amount: Uint128::zero(),
         };
@@ -1478,7 +1474,7 @@ mod tests {
 
         // but if it exceeds cap (even over multiple rounds), it fails
         // cap is enforced
-        let msg = ExecuteMsg::Mint {
+        let msg = Cw20ExecuteMsg::Mint {
             recipient: winner,
             amount: Uint128::new(333_222_222),
         };
@@ -1499,7 +1495,7 @@ mod tests {
             None,
         );
 
-        let msg = ExecuteMsg::Mint {
+        let msg = Cw20ExecuteMsg::Mint {
             recipient: String::from("lucky"),
             amount: Uint128::new(222),
         };
@@ -1514,7 +1510,7 @@ mod tests {
         let mut deps = mock_dependencies(&[]);
         do_instantiate(deps.as_mut(), &String::from("genesis"), Uint128::new(1234));
 
-        let msg = ExecuteMsg::Mint {
+        let msg = Cw20ExecuteMsg::Mint {
             recipient: String::from("lucky"),
             amount: Uint128::new(222),
         };
@@ -1617,7 +1613,7 @@ mod tests {
         // cannot transfer nothing
         let info = mock_info(addr1.as_ref(), &[]);
         let env = mock_env();
-        let msg = ExecuteMsg::Transfer {
+        let msg = Cw20ExecuteMsg::Transfer {
             recipient: addr2.clone(),
             amount: Uint128::zero(),
         };
@@ -1627,7 +1623,7 @@ mod tests {
         // cannot send more than we have
         let info = mock_info(addr1.as_ref(), &[]);
         let env = mock_env();
-        let msg = ExecuteMsg::Transfer {
+        let msg = Cw20ExecuteMsg::Transfer {
             recipient: addr2.clone(),
             amount: too_much,
         };
@@ -1637,7 +1633,7 @@ mod tests {
         // cannot send from empty account
         let info = mock_info(addr2.as_ref(), &[]);
         let env = mock_env();
-        let msg = ExecuteMsg::Transfer {
+        let msg = Cw20ExecuteMsg::Transfer {
             recipient: addr1.clone(),
             amount: transfer,
         };
@@ -1647,7 +1643,7 @@ mod tests {
         // valid transfer
         let info = mock_info(addr1.as_ref(), &[]);
         let env = mock_env();
-        let msg = ExecuteMsg::Transfer {
+        let msg = Cw20ExecuteMsg::Transfer {
             recipient: addr2.clone(),
             amount: transfer,
         };
@@ -1676,7 +1672,7 @@ mod tests {
         // cannot burn nothing
         let info = mock_info(addr1.as_ref(), &[]);
         let env = mock_env();
-        let msg = ExecuteMsg::Burn {
+        let msg = Cw20ExecuteMsg::Burn {
             amount: Uint128::zero(),
         };
         let err = execute(deps.as_mut(), env, info, msg).unwrap_err();
@@ -1689,7 +1685,7 @@ mod tests {
         // cannot burn more than we have
         let info = mock_info(addr1.as_ref(), &[]);
         let env = mock_env();
-        let msg = ExecuteMsg::Burn { amount: too_much };
+        let msg = Cw20ExecuteMsg::Burn { amount: too_much };
         let err = execute(deps.as_mut(), env, info, msg).unwrap_err();
         assert!(matches!(err, ContractError::Std(StdError::Overflow { .. })));
         assert_eq!(
@@ -1700,7 +1696,7 @@ mod tests {
         // valid burn reduces total supply
         let info = mock_info(addr1.as_ref(), &[]);
         let env = mock_env();
-        let msg = ExecuteMsg::Burn { amount: burn };
+        let msg = Cw20ExecuteMsg::Burn { amount: burn };
         let res = execute(deps.as_mut(), env, info, msg).unwrap();
         assert_eq!(res.messages.len(), 0);
 
@@ -1727,7 +1723,7 @@ mod tests {
         // cannot send nothing
         let info = mock_info(addr1.as_ref(), &[]);
         let env = mock_env();
-        let msg = ExecuteMsg::Send {
+        let msg = Cw20ExecuteMsg::Send {
             contract: contract.clone(),
             amount: Uint128::zero(),
             msg: send_msg.clone(),
@@ -1738,7 +1734,7 @@ mod tests {
         // cannot send more than we have
         let info = mock_info(addr1.as_ref(), &[]);
         let env = mock_env();
-        let msg = ExecuteMsg::Send {
+        let msg = Cw20ExecuteMsg::Send {
             contract: contract.clone(),
             amount: too_much,
             msg: send_msg.clone(),
@@ -1749,7 +1745,7 @@ mod tests {
         // valid transfer
         let info = mock_info(addr1.as_ref(), &[]);
         let env = mock_env();
-        let msg = ExecuteMsg::Send {
+        let msg = Cw20ExecuteMsg::Send {
             contract: contract.clone(),
             amount: transfer,
             msg: send_msg.clone(),
@@ -1814,7 +1810,7 @@ mod tests {
                 deps.as_mut(),
                 mock_env(),
                 info,
-                ExecuteMsg::UpdateMarketing {
+                Cw20ExecuteMsg::UpdateMarketing {
                     project: Some("New project".to_owned()),
                     description: Some("Better description".to_owned()),
                     marketing: Some("creator".to_owned()),
@@ -1868,7 +1864,7 @@ mod tests {
                 deps.as_mut(),
                 mock_env(),
                 info,
-                ExecuteMsg::UpdateMarketing {
+                Cw20ExecuteMsg::UpdateMarketing {
                     project: Some("New project".to_owned()),
                     description: None,
                     marketing: None,
@@ -1921,7 +1917,7 @@ mod tests {
                 deps.as_mut(),
                 mock_env(),
                 info,
-                ExecuteMsg::UpdateMarketing {
+                Cw20ExecuteMsg::UpdateMarketing {
                     project: Some("".to_owned()),
                     description: None,
                     marketing: None,
@@ -1974,7 +1970,7 @@ mod tests {
                 deps.as_mut(),
                 mock_env(),
                 info,
-                ExecuteMsg::UpdateMarketing {
+                Cw20ExecuteMsg::UpdateMarketing {
                     project: None,
                     description: Some("Better description".to_owned()),
                     marketing: None,
@@ -2027,7 +2023,7 @@ mod tests {
                 deps.as_mut(),
                 mock_env(),
                 info,
-                ExecuteMsg::UpdateMarketing {
+                Cw20ExecuteMsg::UpdateMarketing {
                     project: None,
                     description: Some("".to_owned()),
                     marketing: None,
@@ -2080,7 +2076,7 @@ mod tests {
                 deps.as_mut(),
                 mock_env(),
                 info,
-                ExecuteMsg::UpdateMarketing {
+                Cw20ExecuteMsg::UpdateMarketing {
                     project: None,
                     description: None,
                     marketing: Some("marketing".to_owned()),
@@ -2133,7 +2129,7 @@ mod tests {
                 deps.as_mut(),
                 mock_env(),
                 info,
-                ExecuteMsg::UpdateMarketing {
+                Cw20ExecuteMsg::UpdateMarketing {
                     project: None,
                     description: None,
                     marketing: Some("m".to_owned()),
@@ -2190,7 +2186,7 @@ mod tests {
                 deps.as_mut(),
                 mock_env(),
                 info,
-                ExecuteMsg::UpdateMarketing {
+                Cw20ExecuteMsg::UpdateMarketing {
                     project: None,
                     description: None,
                     marketing: Some("".to_owned()),
@@ -2243,7 +2239,7 @@ mod tests {
                 deps.as_mut(),
                 mock_env(),
                 info,
-                ExecuteMsg::UploadLogo(Logo::Url("new_url".to_owned())),
+                Cw20ExecuteMsg::UploadLogo(Logo::Url("new_url".to_owned())),
             )
             .unwrap();
 
@@ -2292,7 +2288,7 @@ mod tests {
                 deps.as_mut(),
                 mock_env(),
                 info,
-                ExecuteMsg::UploadLogo(Logo::Embedded(EmbeddedLogo::Png(PNG_HEADER.into()))),
+                Cw20ExecuteMsg::UploadLogo(Logo::Embedded(EmbeddedLogo::Png(PNG_HEADER.into()))),
             )
             .unwrap();
 
@@ -2343,7 +2339,7 @@ mod tests {
                 deps.as_mut(),
                 mock_env(),
                 info,
-                ExecuteMsg::UploadLogo(Logo::Embedded(EmbeddedLogo::Svg(img.into()))),
+                Cw20ExecuteMsg::UploadLogo(Logo::Embedded(EmbeddedLogo::Svg(img.into()))),
             )
             .unwrap();
 
@@ -2394,7 +2390,7 @@ mod tests {
                 deps.as_mut(),
                 mock_env(),
                 info,
-                ExecuteMsg::UploadLogo(Logo::Embedded(EmbeddedLogo::Png(img.into()))),
+                Cw20ExecuteMsg::UploadLogo(Logo::Embedded(EmbeddedLogo::Png(img.into()))),
             )
             .unwrap_err();
 
@@ -2451,7 +2447,7 @@ mod tests {
                 deps.as_mut(),
                 mock_env(),
                 info,
-                ExecuteMsg::UploadLogo(Logo::Embedded(EmbeddedLogo::Svg(img.into()))),
+                Cw20ExecuteMsg::UploadLogo(Logo::Embedded(EmbeddedLogo::Svg(img.into()))),
             )
             .unwrap_err();
 
@@ -2501,7 +2497,7 @@ mod tests {
                 deps.as_mut(),
                 mock_env(),
                 info,
-                ExecuteMsg::UploadLogo(Logo::Embedded(EmbeddedLogo::Png(img.into()))),
+                Cw20ExecuteMsg::UploadLogo(Logo::Embedded(EmbeddedLogo::Png(img.into()))),
             )
             .unwrap_err();
 
@@ -2552,7 +2548,7 @@ mod tests {
                 deps.as_mut(),
                 mock_env(),
                 info,
-                ExecuteMsg::UploadLogo(Logo::Embedded(EmbeddedLogo::Svg(img.into()))),
+                Cw20ExecuteMsg::UploadLogo(Logo::Embedded(EmbeddedLogo::Svg(img.into()))),
             )
             .unwrap_err();
 

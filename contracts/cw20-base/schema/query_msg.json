@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "QueryMsg",
-  "anyOf": [
+  "oneOf": [
     {
       "description": "Returns the current balance of the given address, 0 if unset. Return type: BalanceResponse.",
       "type": "object",
@@ -160,6 +160,27 @@
       "properties": {
         "download_logo": {
           "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Returns the current state of vesting information for the given address. Return type: VestingDetails.",
+      "type": "object",
+      "required": [
+        "vesting_details"
+      ],
+      "properties": {
+        "vesting_details": {
+          "type": "object",
+          "required": [
+            "address"
+          ],
+          "properties": {
+            "address": {
+              "type": "string"
+            }
+          }
         }
       },
       "additionalProperties": false

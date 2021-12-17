@@ -78,6 +78,9 @@ pub enum QueryMsg {
     QueryReward {
         gamer: String
     },
+    QueryRefund {
+        gamer: String
+    },
     QueryGameResult {
         gamer: String,
         game_id: String,

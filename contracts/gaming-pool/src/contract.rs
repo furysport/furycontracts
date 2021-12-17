@@ -1123,6 +1123,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         }
         QueryMsg::AllTeams {} => to_binary(&query_all_teams(deps.storage)?),
         QueryMsg::QueryReward { gamer } => to_binary(&query_reward(deps.storage, gamer)?),
+        QueryMsg::QueryRefund { gamer } => to_binary(&query_refund(deps.storage, gamer)?),
         QueryMsg::QueryGameResult {
             gamer,
             game_id,
@@ -1195,6 +1196,32 @@ fn query_reward(storage: &dyn Storage, gamer: String) -> StdResult<Uint128> {
         for team in teams {
             if gamer == team.gamer_address && team.claimed_reward == UNCLAIMED_REWARD {
                 user_reward += team.reward_amount;
+            }
+        }
+    }
+    return Ok(user_reward);
+}
+
+fn query_refund(storage: &dyn Storage, gamer: String) -> StdResult<Uint128> {
+    let mut user_reward = Uint128::zero();
+    // Get all pools
+    let all_pools: Vec<String> = POOL_DETAILS
+        .keys(storage, None, None, Order::Ascending)
+        .map(|k| String::from_utf8(k).unwrap())
+        .collect();
+    for pool_id in all_pools {
+        // Get the existing teams for this pool
+        let mut teams = Vec::new();
+        let all_teams = POOL_TEAM_DETAILS.may_load(storage, pool_id.clone())?;
+        match all_teams {
+            Some(some_teams) => {
+                teams = some_teams;
+            }
+            None => {}
+        }
+        for team in teams {
+            if gamer == team.gamer_address && team.claimed_refund == UNCLAIMED_REFUND {
+                user_reward += team.refund_amount;
             }
         }
     }
@@ -3122,7 +3149,7 @@ mod tests {
             team_id: "Team001".to_string(),
             team_rank: 1u64,
             team_points: 100u64,
-            reward_amount: Uint128::from(100u128),
+            reward_amount: Uint128::from(500u128),
             refund_amount: Uint128::from(INITIAL_REFUND_AMOUNT),
         };
         let game_result_2 = GameResult {
@@ -3199,7 +3226,7 @@ mod tests {
         }
         let team_details = POOL_TEAM_DETAILS.load(&mut deps.storage, pool_id_1.clone());
         for team in team_details {
-            assert_eq!(team[0].reward_amount, Uint128::from(100u128));
+            assert_eq!(team[0].reward_amount, Uint128::from(500u128));
             assert_eq!(team[1].reward_amount, Uint128::from(200u128));
             assert_eq!(team[2].reward_amount, Uint128::from(300u128));
         }
@@ -3210,10 +3237,7 @@ mod tests {
             Ok(claim_reward_rsp) => {
                 //Since max allowed team for gamer under this pooltype is 2 so it will not allow 3rd team creation under this pooltype.
                 //assert_eq!(pool_detail_1.current_teams_count, 3u32);
-                assert_eq!(
-                    claim_reward_rsp.attributes[0].value.clone(),
-                    "600".to_string()
-                );
+                assert_eq!(claim_reward_rsp.attributes[0].value.clone(), "1000".to_string());
             }
             Err(e) => {
                 println!("error parsing header: {:?}", e);
@@ -3233,7 +3257,7 @@ mod tests {
 
         let team_details = POOL_TEAM_DETAILS.load(&mut deps.storage, pool_id_1.clone());
         for team in team_details {
-            assert_eq!(team[0].reward_amount, Uint128::from(100u128)); // TODO This reward should be 0 after full functionality working.
+            assert_eq!(team[0].reward_amount, Uint128::from(500u128)); // TODO This reward should be 0 after full functionality working.
             assert_eq!(team[1].reward_amount, Uint128::from(200u128)); // TODO This reward should be 0 after full functionality working.
             assert_eq!(team[2].reward_amount, Uint128::from(300u128)); // TODO This reward should be 0 after full functionality working.
             assert_eq!(team[0].claimed_reward, CLAIMED_REWARD);
