@@ -74,6 +74,8 @@ pub enum QueryMsg {
     PoolTypeDetails {
         pool_type: String,
     },
+    AllPoolTypeDetails {
+    },
     AllTeams {},
     QueryReward {
         gamer: String

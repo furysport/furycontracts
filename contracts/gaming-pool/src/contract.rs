@@ -1121,6 +1121,9 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::PoolTypeDetails { pool_type } => {
             to_binary(&query_pool_type_details(deps.storage, pool_type)?)
         }
+        QueryMsg::AllPoolTypeDetails { } => {
+            to_binary(&query_all_pool_type_details(deps.storage)?)
+        }
         QueryMsg::AllTeams {} => to_binary(&query_all_teams(deps.storage)?),
         QueryMsg::QueryReward { gamer } => to_binary(&query_reward(deps.storage, gamer)?),
         QueryMsg::QueryRefund { gamer } => to_binary(&query_refund(deps.storage, gamer)?),
@@ -1148,6 +1151,21 @@ pub fn query_pool_type_details(
         Some(ptd) => return Ok(ptd),
         None => return Err(StdError::generic_err("No pool type details found")),
     };
+}
+
+pub fn query_all_pool_type_details(
+    storage: &dyn Storage,
+) -> StdResult<Vec<PoolTypeDetails>> {
+    let mut all_pool_types = Vec::new();
+    let all_pool_type_names: Vec<String> = POOL_TYPE_DETAILS
+        .keys(storage, None, None, Order::Ascending)
+        .map(|k| String::from_utf8(k).unwrap())
+        .collect();
+	for ptn in all_pool_type_names {
+		let pool_type = POOL_TYPE_DETAILS.load(storage, ptn)?;
+		all_pool_types.push(pool_type);
+	}
+    return Ok(all_pool_types);
 }
 
 pub fn query_pool_team_details(
