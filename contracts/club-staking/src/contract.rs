@@ -602,6 +602,7 @@ fn withdraw_stake_from_a_club(
     withdrawal_amount: Uint128,
     immediate_withdrawal: bool,
 ) -> Result<Response, ContractError> {
+    let config = CONFIG.load(deps.storage)?;
     let staker_addr = deps.api.addr_validate(&staker)?;
     //Check if withdrawer is same as invoker
     if staker_addr != info.sender {
@@ -621,37 +622,103 @@ fn withdraw_stake_from_a_club(
     }
 
     let mut transfer_confirmed = false;
+    let mut action = "withdraw_stake".to_string();
+    let mut burn_amount = Uint128::zero();
     if ownership_details.is_some() {
-        // update funds in contract wallet
-        STAKING_FUNDS.update(
-            deps.storage,
-            &staker_addr,
-            |balance: Option<Uint128>| -> StdResult<_> {
-                Ok(balance.unwrap_or_default() - withdrawal_amount)
-            },
-        )?;
+        let mut unbonded_amount = Uint128::zero();
+        let mut bonded_amount = Uint128::zero();
+        let mut amount_remaining = withdrawal_amount.clone();
+
         if immediate_withdrawal == IMMEDIATE_WITHDRAWAL {
+
+
+            // update funds for staker
+            // TODO : checking for amount > stake
+            STAKING_FUNDS.update(
+                deps.storage,
+                &staker_addr,
+                |balance: Option<Uint128>| -> StdResult<_> {
+                    Ok(balance.unwrap_or_default() - withdrawal_amount)
+                },
+            )?;
+            // parse bonding to check maturity and 
+            let mut bonds = Vec::new();
+            let all_bonds = CLUB_BONDING_DETAILS.may_load(deps.storage, club_name.clone())?;
+            match all_bonds {
+                Some(some_bonds) => {
+                    bonds = some_bonds;
+                }
+                None => {}
+            }
+
+            let existing_bonds = bonds.clone();
+            let mut updated_bonds = Vec::new();
+            let mut bonded_bonds = Vec::new();
+            for bond in existing_bonds {
+                let mut updated_bond = bond.clone();
+                if staker_addr == bond.bonder_address {
+                    println!("staker {:?} timestamp  {:?} amount {:?}", staker_addr, bond.bonding_start_timestamp, bond.bonded_amount);
+                    if bond.bonding_start_timestamp < env.block.time.minus_seconds(bond.bonding_duration) {
+                        if amount_remaining > Uint128::zero() {
+                            if bond.bonded_amount > amount_remaining {
+                                unbonded_amount = amount_remaining;
+                                updated_bond.bonded_amount -= amount_remaining;
+                                amount_remaining = Uint128::zero();
+                                updated_bonds.push(updated_bond);
+                            } else {
+                                unbonded_amount += bond.bonded_amount;
+                                amount_remaining -= bond.bonded_amount;
+                            }
+                        } else {
+                            updated_bonds.push(updated_bond);
+                        }
+                    } else {
+                        bonded_bonds.push(updated_bond);
+                    }
+                } else {
+                    updated_bonds.push(updated_bond);
+                }
+            }
+            for bond in bonded_bonds {
+                let mut updated_bond = bond.clone();
+                if amount_remaining > Uint128::zero() {
+                    if bond.bonded_amount > amount_remaining {
+                        bonded_amount = amount_remaining;
+                        updated_bond.bonded_amount -= amount_remaining;
+                        amount_remaining = Uint128::zero();
+                        updated_bonds.push(updated_bond);
+                    } else {
+                        bonded_amount += bond.bonded_amount;
+                        amount_remaining -= bond.bonded_amount;
+                    }
+                } else {
+                    updated_bonds.push(updated_bond);
+                }
+            }
+            CLUB_BONDING_DETAILS.save(deps.storage, club_name.clone(), &updated_bonds)?;
+
             // update the staking details
             save_staking_details(
                 deps.storage,
                 env,
                 staker.clone(),
                 club_name.clone(),
-                withdrawal_amount,
+                (withdrawal_amount-unbonded_amount)-bonded_amount,
                 DECREASE_STAKE,
             )?;
 
             // Deduct 10% and burn it
-            let burn_amount = withdrawal_amount
+            burn_amount = (withdrawal_amount - unbonded_amount)
                 .checked_mul(Uint128::from(10u128))
                 .unwrap_or_default()
                 .checked_div(Uint128::from(100u128))
                 .unwrap_or_default();
-            burn_funds(deps.storage, burn_amount);
 
             // Remaining 90% transfer to staker wallet
             transfer_confirmed = true;
+
         } else {
+            let action = "withdrawn_stake_bonded".to_string();
             // update the staking details
             save_staking_details(
                 deps.storage,
@@ -677,16 +744,55 @@ fn withdraw_stake_from_a_club(
         }
     } else {
         return Err(ContractError::Std(StdError::GenericErr {
-            msg: String::from("The club is not available for unstaking"),
+            msg: String::from("Invalid club"),
         }));
     }
 
     if transfer_confirmed == false{
         return Err(ContractError::Std(StdError::GenericErr {
-            msg: String::from("Not a valid owner for the club"),
+            msg: String::from("Not a valid staker for the club"),
         }));
     }
-    transfer_from_contract_to_wallet(deps.storage, staker.clone(), withdrawal_amount, "staking_withdraw".to_string())
+    // transfer_with_burn(deps.storage, staker.clone(), withdrawal_amount, burn_amount, "staking_withdraw".to_string())
+    let burn_msg = Cw20ExecuteMsg::Burn {
+        amount: burn_amount.clone(),
+    };
+    let exec_burn = WasmMsg::Execute {
+        contract_addr: config.minting_contract_address.to_string(),
+        msg: to_binary(&burn_msg).unwrap(),
+        funds: vec![
+            // Coin {
+            //     denom: token_info.name.to_string(),
+            //     amount: price,
+            // },
+        ],
+    };
+    let burn : SubMsg = SubMsg::new(exec_burn);
+    
+    let transfer_msg = Cw20ExecuteMsg::Transfer {
+        recipient: staker,
+        amount: withdrawal_amount-burn_amount,
+    };
+    let exec = WasmMsg::Execute {
+        contract_addr: config.minting_contract_address.to_string(),
+        msg: to_binary(&transfer_msg).unwrap(),
+        funds: vec![
+            // Coin {
+            //     denom: token_info.name.to_string(),
+            //     amount: price,
+            // },
+        ],
+    };
+    let send : SubMsg = SubMsg::new(exec);
+    let data_msg = format!("Amount {} transferred", withdrawal_amount).into_bytes();
+
+    return Ok(Response::new()
+        .add_submessage(burn)
+        .add_submessage(send)
+        .add_attribute("action", action)
+        .add_attribute("withdrawn", withdrawal_amount.clone().to_string())
+        .add_attribute("burnt", burn_amount.to_string())
+        .set_data(data_msg));
 }
 
 fn save_staking_details(
@@ -720,7 +826,9 @@ fn save_staking_details(
                 if updated_stake.staked_amount >= amount {
                     updated_stake.staked_amount -= amount;
                 } else {
-                    updated_stake.staked_amount = Uint128::from(0u128);
+                    return Err(ContractError::Std(StdError::GenericErr {
+                        msg: String::from("Excess amount demaded for withdrawal"),
+                    }));
                 }
             }
             already_staked = true;
