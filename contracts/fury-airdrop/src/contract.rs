@@ -225,15 +225,19 @@ fn claim_user_rewards (
   USER_ACTIVITY_DETAILS.save(deps.storage, user_name.clone(), &updated_activities)?;
 
   // transfer total amount to user wallet
-  transfer_from_contract_to_wallet(deps.storage, user_name.clone(), total_amount);
-
-  return Ok(Response::new().add_attribute("reward", total_amount));
+  transfer_from_contract_to_wallet(
+    deps.storage, 
+    user_name.clone(), 
+    total_amount,
+    "reward".to_string()
+  ) 
 }
 
 fn transfer_from_contract_to_wallet(
     store: &dyn Storage,
     wallet_owner: String,
     amount: Uint128,
+    action: String,
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(store)?;
 
@@ -251,14 +255,16 @@ fn transfer_from_contract_to_wallet(
             // },
         ],
     };
-    let send : SubMsg = SubMsg::new(exec);
+    let send: SubMsg = SubMsg::new(exec);
     let data_msg = format!("Amount {} transferred", amount).into_bytes();
     return Ok(Response::new()
         .add_submessage(send)
-        .add_attribute("action", "reward")
         .add_attribute("amount", amount.to_string())
+        .add_attribute("action", action)
         .set_data(data_msg));
 }
+
+
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
@@ -433,7 +439,7 @@ mod tests {
           let rsp1 = claim_user_rewards(deps.as_mut(), mock_env(), user1Info.clone(), "LunaUser_1".to_string());
           match rsp1 {
               Ok(rsp1) => {
-                  assert_eq!(rsp1, Response::new().add_attribute("reward", Uint128::from(200u128)));
+                  assert_eq!(rsp1.attributes[0].value.clone(), "200");
               }
               Err(e) => {
                   println!("error parsing header: {:?}", e);
