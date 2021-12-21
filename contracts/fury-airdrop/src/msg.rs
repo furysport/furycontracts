@@ -29,6 +29,9 @@ pub enum QueryMsg {
     UserActivityDetails {
         user_name: String,
     },
+    QueryUserRewards {
+        user_name: String,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

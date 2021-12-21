@@ -224,6 +224,16 @@ fn claim_user_rewards (
   }
   USER_ACTIVITY_DETAILS.save(deps.storage, user_name.clone(), &updated_activities)?;
 
+
+  println!("reward amount is {:?}", total_amount);
+
+  if total_amount == Uint128::zero() {
+    return Err(ContractError::Std(StdError::GenericErr {
+        msg: String::from("No reward for this user"),
+      }));
+  }
+  
+
   // transfer total amount to user wallet
   transfer_from_contract_to_wallet(
     deps.storage, 
@@ -272,8 +282,31 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     QueryMsg::UserActivityDetails { user_name } => {
         to_binary(&query_airdrop_activity_details(deps.storage, user_name)?)
     }
+    QueryMsg::QueryUserRewards { user_name } => {
+        to_binary(&query_user_rewards(deps.storage, user_name)?)
+    }
+  }
 }
+
+
+fn query_user_rewards(storage: &dyn Storage, user_name: String) -> StdResult<Uint128> {
+  let mut total_amount = Uint128::zero();
+  let mut activities = Vec::new();
+  let all_activities = USER_ACTIVITY_DETAILS.may_load(storage, user_name.clone())?;
+  match all_activities {
+      Some(some_activities) => {
+          activities = some_activities;
+      }
+      None => {}
+  }
+  for activity in activities {
+      if activity.activity_reward_amount_accrued > Uint128::zero() {
+          total_amount += activity.activity_reward_amount_accrued;
+      }
+  }
+  return Ok(total_amount);
 }
+
 
 fn query_luna_user_details(storage: &dyn Storage, user_name: String) -> StdResult<LunaUserDetails> {
   let lud = LUNA_USER_DETAILS.may_load(storage, user_name)?;
