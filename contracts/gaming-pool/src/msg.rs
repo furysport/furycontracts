@@ -17,6 +17,7 @@ pub struct InstantiateMsg {
     pub admin_address: String,
     pub minting_contract_address: String,
     pub platform_fee: Uint128,
+    pub game_id: String,
 }
 
 use crate::state::{ GameResult, WalletPercentage };
@@ -36,17 +37,11 @@ pub enum ExecuteMsg {
         max_teams_for_gamer: u32,
         wallet_percentages: Vec<WalletPercentage>,
     },
-    CreateGame {
-        game_id: String
-    },
     CancelGame {
-        game_id: String,
     },
     LockGame {
-        game_id: String
     },
     CreatePool {
-        game_id: String,
         pool_type: String
     },
     ClaimReward {
@@ -56,7 +51,6 @@ pub enum ExecuteMsg {
         gamer: String
     },
     GamePoolRewardDistribute {
-        game_id: String,
         pool_id: String,
         game_winners: Vec<GameResult>
     },    
@@ -85,22 +79,18 @@ pub enum QueryMsg {
     },
     QueryGameResult {
         gamer: String,
-        game_id: String,
         pool_id: String,
         team_id: String
     },
     GameDetails {
-        game_id: String,
     },
     PoolTeamDetailsWithTeamId {
         pool_id: String,
         team_id: String,
     },
     AllPoolsInGame {
-        game_id: String,
     },
     PoolCollection {
-        game_id: String,
         pool_id: String,
     },
 }
@@ -117,6 +107,5 @@ pub struct GamePoolBidSubmitCommand {
     pub gamer: String,
     pub pool_type: String,
     pub pool_id: String,
-    pub game_id: String,
     pub team_id: String,
 }

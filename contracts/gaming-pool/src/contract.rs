@@ -54,7 +54,6 @@ const GAME_POOL_CLOSED: u64 = 2u64;
 const GAME_CANCELLED: u64 = 3u64;
 const GAME_COMPLETED: u64 = 4u64;
 
-const DUMMY_GAME_ID: &str = "DUMMY_GAME_ID";
 const DUMMY_TEAM_ID: &str = "DUMMY_TEAM_ID";
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -70,6 +69,7 @@ pub fn instantiate(
         admin_address: deps.api.addr_validate(&msg.admin_address)?,
         minting_contract_address: deps.api.addr_validate(&msg.minting_contract_address)?,
         platform_fee: msg.platform_fee,
+        game_id: msg.game_id.clone(),
     };
     CONFIG.save(deps.storage, &config)?;
 
@@ -80,12 +80,21 @@ pub fn instantiate(
         &main_address,
         &GameResult {
             gamer_address: DUMMY_WALLET.to_string(),
-            game_id: DUMMY_GAME_ID.to_string(),
+            game_id: msg.game_id.clone(),
             team_id: DUMMY_TEAM_ID.to_string(),
             team_rank: INITIAL_TEAM_RANK,
             team_points: INITIAL_TEAM_POINTS,
             reward_amount: Uint128::from(INITIAL_REWARD_AMOUNT),
             refund_amount: Uint128::from(INITIAL_REFUND_AMOUNT),
+        },
+    )?;
+
+    GAME_DETAILS.save(
+        deps.storage,
+        msg.game_id.clone(),
+        &GameDetails {
+            game_id: msg.game_id.clone(),
+            game_status: GAME_POOL_OPEN,
         },
     )?;
     Ok(Response::default())
@@ -121,19 +130,17 @@ pub fn execute(
             max_teams_for_gamer,
             wallet_percentages,
         ),
-        ExecuteMsg::CreateGame { game_id } => create_game(deps, env, info, game_id),
-        ExecuteMsg::CancelGame { game_id } => cancel_game(deps, env, info, game_id),
-        ExecuteMsg::LockGame { game_id } => lock_game(deps, env, info, game_id),
-        ExecuteMsg::CreatePool { game_id, pool_type } => {
-            create_pool(deps, env, info, game_id, pool_type)
+        ExecuteMsg::CancelGame { } => cancel_game(deps, env, info),
+        ExecuteMsg::LockGame { } => lock_game(deps, env, info),
+        ExecuteMsg::CreatePool { pool_type } => {
+            create_pool(deps, env, info, pool_type)
         }
         ExecuteMsg::ClaimReward { gamer } => claim_reward(deps, info, gamer),
         ExecuteMsg::ClaimRefund { gamer } => claim_refund(deps, info, gamer),
         ExecuteMsg::GamePoolRewardDistribute {
-            game_id,
             pool_id,
             game_winners,
-        } => game_pool_reward_distribute(deps, env, info, game_id, pool_id, game_winners),
+        } => game_pool_reward_distribute(deps, env, info, pool_id, game_winners),
     }
 }
 
@@ -153,7 +160,6 @@ fn received_message(
             gpbsc.gamer,
             gpbsc.pool_type,
             gpbsc.pool_id,
-            gpbsc.game_id,
             gpbsc.team_id,
             amount,
         ),
@@ -223,37 +229,10 @@ fn set_pool_type_params(
     return Ok(Response::default());
 }
 
-fn create_game(
-    deps: DepsMut,
-    env: Env,
-    info: MessageInfo,
-    game_id: String,
-) -> Result<Response, ContractError> {
-    let config = CONFIG.load(deps.storage)?;
-    if info.sender != config.admin_address {
-        return Err(ContractError::Unauthorized {
-            invoker: info.sender.to_string(),
-        });
-    }
-
-    GAME_DETAILS.save(
-        deps.storage,
-        game_id.clone(),
-        &GameDetails {
-            game_id: game_id.clone(),
-            game_status: GAME_POOL_OPEN,
-        },
-    )?;
-    return Ok(Response::new()
-        .add_attribute("game_id", game_id.clone())
-        .add_attribute("game_status", "GAME_POOL_OPEN".to_string()));
-}
-
 fn cancel_game(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    game_id: String,
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
     if info.sender != config.admin_address {
@@ -262,6 +241,7 @@ fn cancel_game(
         });
     }
     let platform_fee = config.platform_fee;
+    let game_id = config.game_id;
 
     let gd = GAME_DETAILS.may_load(deps.storage, game_id.clone())?;
     let mut game;
@@ -371,7 +351,6 @@ fn lock_game(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    game_id: String,
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
     if info.sender != config.admin_address {
@@ -380,6 +359,7 @@ fn lock_game(
         });
     }
     let platform_fee = config.platform_fee;
+	let game_id = config.game_id;
 
     let gd = GAME_DETAILS.may_load(deps.storage, game_id.clone())?;
     let mut game;
@@ -488,7 +468,6 @@ fn create_pool(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    game_id: String,
     pool_type: String,
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
@@ -497,6 +476,7 @@ fn create_pool(
             invoker: info.sender.to_string(),
         });
     }
+	let game_id = config.game_id;
 
     let gd = GAME_DETAILS.may_load(deps.storage, game_id.clone())?;
     let mut game;
@@ -560,7 +540,6 @@ fn game_pool_bid_submit(
     gamer: String,
     pool_type: String,
     pool_id: String,
-    game_id: String,
     team_id: String,
     amount: Uint128,
 ) -> Result<Response, ContractError> {
@@ -571,6 +550,7 @@ fn game_pool_bid_submit(
         });
     }
     let platform_fee = config.platform_fee;
+    let game_id = config.game_id;
 
     let gd = GAME_DETAILS.may_load(deps.storage, game_id.clone())?;
     let game;
@@ -773,13 +753,13 @@ fn claim_reward(
         POOL_TEAM_DETAILS.save(deps.storage, pool_id.clone(), &updated_teams)?;
     }
 
-	println!("reward amount is {:?}", user_reward);
+    println!("reward amount is {:?}", user_reward);
 
-	if user_reward == Uint128::zero() {
-		return Err(ContractError::Std(StdError::GenericErr {
-			msg: String::from("No reward for this user"),
-		}));
-	}
+    if user_reward == Uint128::zero() {
+        return Err(ContractError::Std(StdError::GenericErr {
+            msg: String::from("No reward for this user"),
+        }));
+    }
 
     // Do the transfer of reward to the actual gamer_addr from the contract
     transfer_from_contract_to_wallet(
@@ -834,13 +814,13 @@ fn claim_refund(
         POOL_TEAM_DETAILS.save(deps.storage, pool_id.clone(), &updated_teams)?;
     }
 
-	println!("refund amount is {:?}", user_refund);
+    println!("refund amount is {:?}", user_refund);
 
-	if user_refund == Uint128::zero() {
-		return Err(ContractError::Std(StdError::GenericErr {
-			msg: String::from("No refund for this user"),
-		}));
-	}
+    if user_refund == Uint128::zero() {
+        return Err(ContractError::Std(StdError::GenericErr {
+            msg: String::from("No refund for this user"),
+        }));
+    }
 
     // Do the transfer of refund to the actual gamer_addr from the contract
     transfer_from_contract_to_wallet(
@@ -855,7 +835,6 @@ fn game_pool_reward_distribute(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    game_id: String,
     pool_id: String,
     game_winners: Vec<GameResult>,
 ) -> Result<Response, ContractError> {
@@ -866,6 +845,7 @@ fn game_pool_reward_distribute(
         });
     }
     let platform_fee = config.platform_fee;
+    let game_id = config.game_id;
 
     let gd = GAME_DETAILS.may_load(deps.storage, game_id.clone())?;
     let mut game;
@@ -899,11 +879,11 @@ fn game_pool_reward_distribute(
     )?;
 
     let pool_details = query_pool_details(deps.storage, pool_id.clone())?;
-	if pool_details.rewards_distributed == REWARDS_DISTRIBUTED {
+    if pool_details.rewards_distributed == REWARDS_DISTRIBUTED {
         return Err(ContractError::Std(StdError::GenericErr {
             msg: String::from("Rewards are already distributed for this pool"),
         }));
-	}	
+    }    
     let pool_count = pool_details.current_teams_count;
     let pool_type = pool_details.pool_type;
     POOL_DETAILS.save(
@@ -1129,16 +1109,15 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::QueryRefund { gamer } => to_binary(&query_refund(deps.storage, gamer)?),
         QueryMsg::QueryGameResult {
             gamer,
-            game_id,
             pool_id,
             team_id,
-        } => to_binary(&query_game_result(deps, gamer, game_id, pool_id, team_id)?),
-        QueryMsg::GameDetails { game_id } => to_binary(&query_game_details(deps.storage, game_id)?),
+        } => to_binary(&query_game_result(deps, gamer, pool_id, team_id)?),
+        QueryMsg::GameDetails { } => to_binary(&query_game_details(deps.storage)?),
         QueryMsg::PoolTeamDetailsWithTeamId { pool_id, team_id } => {
             to_binary(&query_team_details(deps.storage, pool_id, team_id)?)
         }
-        QueryMsg::AllPoolsInGame { game_id } => to_binary(&query_all_pools_in_game(deps.storage, game_id)?),
-        QueryMsg::PoolCollection { game_id, pool_id } => to_binary(&query_pool_collection(deps.storage, game_id, pool_id)?),
+        QueryMsg::AllPoolsInGame { } => to_binary(&query_all_pools_in_game(deps.storage)?),
+        QueryMsg::PoolCollection { pool_id } => to_binary(&query_pool_collection(deps.storage, pool_id)?),
     }
 }
 
@@ -1161,10 +1140,10 @@ pub fn query_all_pool_type_details(
         .keys(storage, None, None, Order::Ascending)
         .map(|k| String::from_utf8(k).unwrap())
         .collect();
-	for ptn in all_pool_type_names {
-		let pool_type = POOL_TYPE_DETAILS.load(storage, ptn)?;
-		all_pool_types.push(pool_type);
-	}
+    for ptn in all_pool_type_names {
+        let pool_type = POOL_TYPE_DETAILS.load(storage, ptn)?;
+        all_pool_types.push(pool_type);
+    }
     return Ok(all_pool_types);
 }
 
@@ -1249,10 +1228,12 @@ fn query_refund(storage: &dyn Storage, gamer: String) -> StdResult<Uint128> {
 fn query_game_result(
     deps: Deps,
     gamer: String,
-    game_id: String,
     pool_id: String,
     team_id: String,
 ) -> StdResult<GameResult> {
+    let config = CONFIG.load(deps.storage)?;
+	let game_id = config.game_id;
+
     let mut reward_amount = Uint128::zero();
     let mut refund_amount = Uint128::zero();
     let mut team_rank = INITIAL_TEAM_RANK;
@@ -1336,11 +1317,14 @@ fn get_team_count_for_user_in_pool_type(
     return Ok(count);
 }
 
-fn query_game_details(storage: &dyn Storage, game_id: String) -> StdResult<GameDetails> {
+fn query_game_details(storage: &dyn Storage) -> StdResult<GameDetails> {
+    let config = CONFIG.load(storage)?;
+	let game_id = config.game_id;
+
     let gameDetail = GAME_DETAILS.may_load(storage, game_id)?;
     match gameDetail {
         Some(gameDetail) => return Ok(gameDetail),
-        None => return Err(StdError::generic_err("Game detail found")),
+        None => return Err(StdError::generic_err("No Game detail found")),
     };
 }
 
@@ -1360,8 +1344,10 @@ fn query_team_details(
 
 fn query_all_pools_in_game(
     storage: &dyn Storage,
-    game_id: String,
 ) -> StdResult<Vec<PoolDetails>> {
+    let config = CONFIG.load(storage)?;
+	let game_id = config.game_id;
+
     let mut all_pool_details = Vec::new();
     let all_pools: Vec<String> = POOL_DETAILS
         .keys(storage, None, None, Order::Ascending)
@@ -1378,7 +1364,6 @@ fn query_all_pools_in_game(
 
 fn query_pool_collection(
     storage: &dyn Storage,
-    game_id: String,
     pool_id: String,
 ) -> StdResult<Uint128> {
     let pd = POOL_DETAILS.may_load(storage, pool_id.clone())?;
@@ -1423,6 +1408,7 @@ mod tests {
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
+            game_id: "Game001".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -1432,13 +1418,7 @@ mod tests {
             instantiate_msg,
         );
 
-        create_game(
-            deps.as_mut(),
-            mock_env(),
-            adminInfo.clone(),
-            "Game001".to_string(),
-        );
-        let queryRes = query_game_details(&mut deps.storage, "Game001".to_string());
+        let queryRes = query_game_details(&mut deps.storage);
         match queryRes {
             Ok(gameDetail) => {
                 assert_eq!(gameDetail.game_id, "Game001".to_string());
@@ -1460,6 +1440,7 @@ mod tests {
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
+            game_id: "Game001".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -1469,18 +1450,11 @@ mod tests {
             instantiate_msg,
         );
 
-        create_game(
-            deps.as_mut(),
-            mock_env(),
-            adminInfo.clone(),
-            "Game001".to_string(),
-        );
 
         let rsp = create_pool(
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Game001".to_string(),
             "oneToOne".to_string(),
         );
         let mut poolId = String::new();
@@ -1516,6 +1490,7 @@ mod tests {
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
+            game_id: "Game001".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -1525,18 +1500,11 @@ mod tests {
             instantiate_msg,
         );
 
-        create_game(
-            deps.as_mut(),
-            mock_env(),
-            adminInfo.clone(),
-            "Game001".to_string(),
-        );
 
         let rsp = create_pool(
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Game001".to_string(),
             "oneToOne".to_string(),
         );
         let mut poolId = String::new();
@@ -1602,6 +1570,7 @@ mod tests {
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
+            game_id: "Game001".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -1611,18 +1580,11 @@ mod tests {
             instantiate_msg,
         );
 
-        create_game(
-            deps.as_mut(),
-            mock_env(),
-            adminInfo.clone(),
-            "Game001".to_string(),
-        );
 
         let rsp = create_pool(
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Game001".to_string(),
             "oneToOne".to_string(),
         );
         let mut poolId = String::new();
@@ -1702,178 +1664,6 @@ mod tests {
     }
 
     #[test]
-    fn test_query_all_teams() {
-        let mut deps = mock_dependencies(&[]);
-        let owner1Info = mock_info("Owner001", &[coin(1000, "stake")]);
-        let platform_fee = Uint128::from(300000u128);
-        let instantiate_msg = InstantiateMsg {
-            minting_contract_address: "cwtoken11111".to_string(),
-            admin_address: "admin11111".to_string(),
-            platform_fee: platform_fee,
-        };
-        let adminInfo = mock_info("admin11111", &[]);
-        instantiate(
-            deps.as_mut(),
-            mock_env(),
-            adminInfo.clone(),
-            instantiate_msg,
-        );
-
-        create_game(
-            deps.as_mut(),
-            mock_env(),
-            adminInfo.clone(),
-            "Game001".to_string(),
-        );
-
-        let mut rsp = create_pool(
-            deps.as_mut(),
-            mock_env(),
-            adminInfo.clone(),
-            "Game001".to_string(),
-            "oneToOne".to_string(),
-        );
-        let mut poolId = String::new();
-
-        match rsp {
-            Ok(rsp) => {
-                poolId = rsp.attributes[0].value.clone();
-            }
-            Err(e) => {
-                println!("error parsing header: {:?}", e);
-                assert_eq!(1, 2);
-            }
-        }
-
-        let rsp_save_team_1 = save_team_details(
-            &mut deps.storage,
-            mock_env(),
-            "Gamer001".to_string(),
-            poolId.to_string(),
-            "Team001".to_string(),
-            "Game001".to_string(),
-            "oneToOne".to_string(),
-            Uint128::from(144262u128),
-            false,
-            Uint128::from(0u128),
-            false,
-            100,
-            2,
-        );
-        let rsp_save_team_2 = save_team_details(
-            &mut deps.storage,
-            mock_env(),
-            "Gamer001".to_string(),
-            poolId.to_string(),
-            "Team002".to_string(),
-            "Game001".to_string(),
-            "oneToOne".to_string(),
-            Uint128::from(144262u128),
-            false,
-            Uint128::from(0u128),
-            false,
-            100,
-            2,
-        );
-        let rsp_save_team_3 = save_team_details(
-            &mut deps.storage,
-            mock_env(),
-            "Gamer001".to_string(),
-            poolId.to_string(),
-            "Team003".to_string(),
-            "Game001".to_string(),
-            "oneToOne".to_string(),
-            Uint128::from(144262u128),
-            false,
-            Uint128::from(0u128),
-            false,
-            100,
-            2,
-        );
-
-        create_game(
-            deps.as_mut(),
-            mock_env(),
-            adminInfo.clone(),
-            "Game002".to_string(),
-        );
-        rsp = create_pool(
-            deps.as_mut(),
-            mock_env(),
-            adminInfo.clone(),
-            "Game002".to_string(),
-            "many".to_string(),
-        );
-        match rsp {
-            Ok(rsp) => {
-                poolId = rsp.attributes[0].value.clone();
-            }
-            Err(e) => {
-                println!("error parsing header: {:?}", e);
-                assert_eq!(1, 2);
-            }
-        }
-
-        let rsp_save_team_4 = save_team_details(
-            &mut deps.storage,
-            mock_env(),
-            "Gamer001".to_string(),
-            poolId.to_string(),
-            "Team004".to_string(),
-            "Game002".to_string(),
-            "many".to_string(),
-            Uint128::from(144262u128),
-            false,
-            Uint128::from(0u128),
-            false,
-            100,
-            2,
-        );
-        let rsp_save_team_5 = save_team_details(
-            &mut deps.storage,
-            mock_env(),
-            "Gamer001".to_string(),
-            poolId.to_string(),
-            "Team005".to_string(),
-            "Game002".to_string(),
-            "many".to_string(),
-            Uint128::from(144262u128),
-            false,
-            Uint128::from(0u128),
-            false,
-            100,
-            2,
-        );
-        let rsp_save_team_6 = save_team_details(
-            &mut deps.storage,
-            mock_env(),
-            "Gamer001".to_string(),
-            poolId.to_string(),
-            "Team006".to_string(),
-            "Game002".to_string(),
-            "many".to_string(),
-            Uint128::from(144262u128),
-            false,
-            Uint128::from(0u128),
-            false,
-            100,
-            2,
-        );
-
-        let team_count = query_all_teams(&mut deps.storage);
-
-        match team_count {
-            Ok(team_count) => {
-                assert_eq!(team_count.len(), 6);
-            }
-            Err(e) => {
-                println!("error parsing header: {:?}", e);
-                assert_eq!(1, 2);
-            }
-        }
-    }
-
-    #[test]
     fn test_game_pool_bid_submit_when_pool_team_in_range() {
         let mut deps = mock_dependencies(&[]);
         let owner1Info = mock_info("Gamer001", &[coin(1000, "stake")]);
@@ -1883,6 +1673,7 @@ mod tests {
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
+            game_id: "Game001".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -1926,18 +1717,11 @@ mod tests {
             rake_list,
         );
 
-        create_game(
-            deps.as_mut(),
-            mock_env(),
-            adminInfo.clone(),
-            "Game001".to_string(),
-        );
 
         let rsp = create_pool(
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Game001".to_string(),
             "oneToOne".to_string(),
         );
         let mut poolId = String::new();
@@ -1960,7 +1744,6 @@ mod tests {
             "Gamer001".to_string(),
             "oneToOne".to_string(),
             poolId.to_string(),
-            "Game001".to_string(),
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -1986,6 +1769,7 @@ mod tests {
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
+            game_id: "Game001".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -2029,18 +1813,11 @@ mod tests {
             rake_list,
         );
 
-        create_game(
-            deps.as_mut(),
-            mock_env(),
-            adminInfo.clone(),
-            "Game001".to_string(),
-        );
 
         let rsp = create_pool(
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Game001".to_string(),
             "oneToOne".to_string(),
         );
         let mut poolId = String::new();
@@ -2063,7 +1840,6 @@ mod tests {
             "Gamer001".to_string(),
             "oneToOne".to_string(),
             poolId.to_string(),
-            "Game001".to_string(),
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -2074,7 +1850,6 @@ mod tests {
             "Gamer001".to_string(),
             "oneToOne".to_string(),
             poolId.to_string(),
-            "Game001".to_string(),
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -2101,6 +1876,7 @@ mod tests {
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
+            game_id: "Game001".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -2155,12 +1931,6 @@ mod tests {
             rake_list.clone(),
         );
 
-        create_game(
-            deps.as_mut(),
-            mock_env(),
-            adminInfo.clone(),
-            "Game001".to_string(),
-        );
 
         // create multiple pool
         let mut pool_id_1 = String::new();
@@ -2168,7 +1938,6 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Game001".to_string(),
             "oneToOne".to_string(),
         );
         match rsp_1 {
@@ -2186,7 +1955,6 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Game001".to_string(),
             "multiple".to_string(),
         );
         match rsp_2 {
@@ -2205,7 +1973,6 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Game001".to_string(),
             "oneToOne".to_string(),
         );
         match rsp_3 {
@@ -2229,7 +1996,6 @@ mod tests {
             "Gamer001".to_string(),
             "oneToOne".to_string(),
             pool_id_1.to_string(),
-            "Game001".to_string(),
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -2240,7 +2006,6 @@ mod tests {
             "Gamer001".to_string(),
             "oneToOne".to_string(),
             pool_id_1.to_string(),
-            "Game001".to_string(),
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -2251,7 +2016,6 @@ mod tests {
             "Gamer001".to_string(),
             "oneToOne".to_string(),
             pool_id_1.to_string(),
-            "Game001".to_string(),
             "Team002".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -2262,7 +2026,6 @@ mod tests {
             "Gamer001".to_string(),
             "oneToOne".to_string(),
             pool_id_1.to_string(),
-            "Game001".to_string(),
             "Team003".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -2286,7 +2049,6 @@ mod tests {
             "Gamer001".to_string(),
             "multiple".to_string(),
             pool_id_2.to_string(),
-            "Game001".to_string(),
             "Team003".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -2297,7 +2059,6 @@ mod tests {
             "Gamer001".to_string(),
             "multiple".to_string(),
             pool_id_2.to_string(),
-            "Game001".to_string(),
             "Team004".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -2308,7 +2069,6 @@ mod tests {
             "Gamer001".to_string(),
             "multiple".to_string(),
             pool_id_2.to_string(),
-            "Game001".to_string(),
             "Team005".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -2332,7 +2092,6 @@ mod tests {
             "Gamer001".to_string(),
             "oneToOne".to_string(),
             pool_id_3.to_string(),
-            "Game001".to_string(),
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -2343,7 +2102,6 @@ mod tests {
             "Gamer001".to_string(),
             "multiple".to_string(),
             pool_id_3.to_string(),
-            "Game001".to_string(),
             "Team004".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -2369,6 +2127,7 @@ mod tests {
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
+            game_id: "Game001".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -2410,12 +2169,6 @@ mod tests {
             2,
             rake_list.clone(),
         );
-        create_game(
-            deps.as_mut(),
-            mock_env(),
-            adminInfo.clone(),
-            "Game001".to_string(),
-        );
 
         // create multiple pool
         let mut pool_id_1 = String::new();
@@ -2423,7 +2176,6 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Game001".to_string(),
             "oneToTwo".to_string(),
         );
         match rsp_1 {
@@ -2445,7 +2197,6 @@ mod tests {
             "Gamer002".to_string(),
             "oneToTwo".to_string(),
             pool_id_1.to_string(),
-            "Game001".to_string(),
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -2456,7 +2207,6 @@ mod tests {
             "Gamer002".to_string(),
             "oneToTwo".to_string(),
             pool_id_1.to_string(),
-            "Game001".to_string(),
             "Team002".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -2467,7 +2217,6 @@ mod tests {
             "Gamer002".to_string(),
             "oneToTwo".to_string(),
             pool_id_1.to_string(),
-            "Game001".to_string(),
             "Team003".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -2495,6 +2244,7 @@ mod tests {
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
+            game_id: "Game001".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -2536,12 +2286,6 @@ mod tests {
             5,
             rake_list.clone(),
         );
-        create_game(
-            deps.as_mut(),
-            mock_env(),
-            adminInfo.clone(),
-            "Game001".to_string(),
-        );
 
         // create multiple pool
         let mut pool_id_1 = String::new();
@@ -2549,7 +2293,6 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Game001".to_string(),
             "oneToTwo".to_string(),
         );
         match rsp_1 {
@@ -2571,7 +2314,6 @@ mod tests {
             "Gamer002".to_string(),
             "oneToTwo".to_string(),
             pool_id_1.to_string(),
-            "Game001".to_string(),
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -2582,7 +2324,6 @@ mod tests {
             "Gamer002".to_string(),
             "oneToTwo".to_string(),
             pool_id_1.to_string(),
-            "Game001".to_string(),
             "Team002".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -2593,7 +2334,6 @@ mod tests {
             "Gamer002".to_string(),
             "oneToTwo".to_string(),
             pool_id_1.to_string(),
-            "Game001".to_string(),
             "Team003".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -2646,7 +2386,6 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Game001".to_string(),
         );
         match lock_game_rsp {
             Ok(lock_game_rsp) => {
@@ -2667,7 +2406,6 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Game001".to_string(),
             pool_id_1.to_string(),
             game_results,
         );
@@ -2680,7 +2418,7 @@ mod tests {
             }
         }
 
-        let query_game_status_res = query_game_details(&mut deps.storage, "Game001".to_string());
+        let query_game_status_res = query_game_details(&mut deps.storage);
         match query_game_status_res {
             Ok(query_game_status_res) => {
                 assert_eq!(query_game_status_res.game_status, GAME_COMPLETED);
@@ -2708,6 +2446,7 @@ mod tests {
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
+            game_id: "Game001".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -2749,12 +2488,6 @@ mod tests {
             5,
             rake_list.clone(),
         );
-        create_game(
-            deps.as_mut(),
-            mock_env(),
-            adminInfo.clone(),
-            "Game001".to_string(),
-        );
 
         // create multiple pool
         let mut pool_id_1 = String::new();
@@ -2762,7 +2495,6 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Game001".to_string(),
             "oneToTwo".to_string(),
         );
         match rsp_1 {
@@ -2784,7 +2516,6 @@ mod tests {
             "Gamer002".to_string(),
             "oneToTwo".to_string(),
             pool_id_1.to_string(),
-            "Game001".to_string(),
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -2794,15 +2525,14 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Game001".to_string(),
         );
 
         let claim_refund_rsp = claim_refund(deps.as_mut(), owner1Info.clone(), "Gamer002".to_string());
         match claim_refund_rsp {
             Ok(claim_refund_rsp) => {
                 let amt = claim_refund_rsp.attributes[0].value.clone();
-				let expamt = Uint128::from(144262u128) + platform_fee;
-				let expamtStr = expamt.to_string();
+                let expamt = Uint128::from(144262u128) + platform_fee;
+                let expamtStr = expamt.to_string();
                 assert_eq!(amt, expamtStr);
             }
             Err(e) => {
@@ -2822,6 +2552,7 @@ mod tests {
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
+            game_id: "Game001".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -2863,12 +2594,6 @@ mod tests {
             5,
             rake_list.clone(),
         );
-        create_game(
-            deps.as_mut(),
-            mock_env(),
-            adminInfo.clone(),
-            "Game001".to_string(),
-        );
 
         // create multiple pool
         let mut pool_id_1 = String::new();
@@ -2876,7 +2601,6 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Game001".to_string(),
             "oneToTwo".to_string(),
         );
         match rsp_1 {
@@ -2898,7 +2622,6 @@ mod tests {
             "Gamer002".to_string(),
             "oneToTwo".to_string(),
             pool_id_1.to_string(),
-            "Game001".to_string(),
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -2909,7 +2632,6 @@ mod tests {
             "Gamer002".to_string(),
             "oneToTwo".to_string(),
             pool_id_1.to_string(),
-            "Game001".to_string(),
             "Team002".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -2920,7 +2642,6 @@ mod tests {
             "Gamer002".to_string(),
             "oneToTwo".to_string(),
             pool_id_1.to_string(),
-            "Game001".to_string(),
             "Team003".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -2973,7 +2694,6 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Game001".to_string(),
         );
         match lock_game_rsp {
             Ok(lock_game_rsp) => {
@@ -2995,7 +2715,6 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Game001".to_string(),
         );
 
         match game_pool_reward_distribute_rsp {
@@ -3006,7 +2725,7 @@ mod tests {
             }
         }
 
-        let query_game_status_res = query_game_details(&mut deps.storage, "Game001".to_string());
+        let query_game_status_res = query_game_details(&mut deps.storage);
         match query_game_status_res {
             Ok(query_game_status_res) => {
                 assert_eq!(query_game_status_res.game_status, GAME_CANCELLED);
@@ -3034,6 +2753,7 @@ mod tests {
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
+            game_id: "Game001".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -3075,12 +2795,6 @@ mod tests {
             5,
             rake_list.clone(),
         );
-        create_game(
-            deps.as_mut(),
-            mock_env(),
-            adminInfo.clone(),
-            "Game001".to_string(),
-        );
 
         // create multiple pool
         let mut pool_id_1 = String::new();
@@ -3088,7 +2802,6 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Game001".to_string(),
             "oneToTwo".to_string(),
         );
         match rsp_1 {
@@ -3105,6 +2818,7 @@ mod tests {
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
+            game_id: "Game001".to_string(),
         };
         let rewardInfo = mock_info("rewardInfo", &[]);
         instantiate(
@@ -3122,7 +2836,6 @@ mod tests {
             "Gamer002".to_string(),
             "oneToTwo".to_string(),
             pool_id_1.to_string(),
-            "Game001".to_string(),
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -3133,7 +2846,6 @@ mod tests {
             "Gamer002".to_string(),
             "oneToTwo".to_string(),
             pool_id_1.to_string(),
-            "Game001".to_string(),
             "Team002".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -3144,7 +2856,6 @@ mod tests {
             "Gamer002".to_string(),
             "oneToTwo".to_string(),
             pool_id_1.to_string(),
-            "Game001".to_string(),
             "Team003".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -3197,7 +2908,6 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Game001".to_string(),
         );
         match lock_game_rsp {
             Ok(lock_game_rsp) => {
@@ -3218,7 +2928,6 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Game001".to_string(),
             pool_id_1.to_string(),
             game_results,
         );
@@ -3231,8 +2940,7 @@ mod tests {
             }
         }
 
-        let mut query_game_status_res =
-            query_game_details(&mut deps.storage, "Game001".to_string());
+        let mut query_game_status_res = query_game_details(&mut deps.storage);
         match query_game_status_res {
             Ok(query_game_status_res) => {
                 assert_eq!(query_game_status_res.game_status, GAME_COMPLETED);
@@ -3262,7 +2970,7 @@ mod tests {
                 assert_eq!(6, 7);
             }
         }
-        query_game_status_res = query_game_details(&mut deps.storage, "Game001".to_string());
+        query_game_status_res = query_game_details(&mut deps.storage);
         match query_game_status_res {
             Ok(query_game_status_res) => {
                 assert_eq!(query_game_status_res.game_status, GAME_COMPLETED);
@@ -3294,6 +3002,7 @@ mod tests {
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
+            game_id: "Game001".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -3335,12 +3044,6 @@ mod tests {
             5,
             rake_list.clone(),
         );
-        create_game(
-            deps.as_mut(),
-            mock_env(),
-            adminInfo.clone(),
-            "Game001".to_string(),
-        );
 
         // create multiple pool
         let mut pool_id_1 = String::new();
@@ -3348,7 +3051,6 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Game001".to_string(),
             "oneToTwo".to_string(),
         );
         match rsp_1 {
@@ -3370,7 +3072,6 @@ mod tests {
             "Gamer002".to_string(),
             "oneToTwo".to_string(),
             pool_id_1.to_string(),
-            "Game001".to_string(),
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -3381,7 +3082,6 @@ mod tests {
             "Gamer002".to_string(),
             "oneToTwo".to_string(),
             pool_id_1.to_string(),
-            "Game001".to_string(),
             "Team002".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -3392,7 +3092,6 @@ mod tests {
             "Gamer002".to_string(),
             "oneToTwo".to_string(),
             pool_id_1.to_string(),
-            "Game001".to_string(),
             "Team003".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -3445,7 +3144,6 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Game001".to_string(),
         );
         match lock_game_rsp {
             Ok(lock_game_rsp) => {
@@ -3466,7 +3164,6 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Game001".to_string(),
             pool_id_1.to_string(),
             game_results,
         );
@@ -3479,8 +3176,7 @@ mod tests {
             }
         }
 
-        let mut query_game_status_res =
-            query_game_details(&mut deps.storage, "Game001".to_string());
+        let mut query_game_status_res = query_game_details(&mut deps.storage);
         match query_game_status_res {
             Ok(query_game_status_res) => {
                 assert_eq!(query_game_status_res.game_status, GAME_COMPLETED);
@@ -3513,7 +3209,7 @@ mod tests {
                 assert_eq!(6, 7);
             }
         }
-        query_game_status_res = query_game_details(&mut deps.storage, "Game001".to_string());
+        query_game_status_res = query_game_details(&mut deps.storage);
         match query_game_status_res {
             Ok(query_game_status_res) => {
                 assert_eq!(query_game_status_res.game_status, GAME_COMPLETED);
@@ -3538,13 +3234,13 @@ mod tests {
             claim_reward(deps.as_mut(), owner1Info.clone(), "Gamer002".to_string());
         match claim_reward_rsp_2 {
             Ok(claim_reward_rsp_2) => {
-				// IT should not come here
-				assert_eq!(1,2);
+                // IT should not come here
+                assert_eq!(1,2);
             }
             Err(e) => {
                 let outstr = format!("error parsing header: {:?}", e);
-				println!("{:?}", outstr);
-				assert_eq!(outstr, "error parsing header: Std(GenericErr { msg: \"No reward for this user\" })");
+                println!("{:?}", outstr);
+                assert_eq!(outstr, "error parsing header: Std(GenericErr { msg: \"No reward for this user\" })");
             }
         }
     }
@@ -3559,6 +3255,7 @@ mod tests {
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
+            game_id: "Game001".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -3600,12 +3297,6 @@ mod tests {
             5,
             rake_list.clone(),
         );
-        create_game(
-            deps.as_mut(),
-            mock_env(),
-            adminInfo.clone(),
-            "Game001".to_string(),
-        );
 
         // create multiple pool
         let mut pool_id_1 = String::new();
@@ -3613,7 +3304,6 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Game001".to_string(),
             "oneToTwo".to_string(),
         );
         match rsp_1 {
@@ -3630,6 +3320,7 @@ mod tests {
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
+            game_id: "Game001".to_string(),
         };
         let rewardInfo = mock_info("rewardInfo", &[]);
         let ownerXInfo = mock_info("cwtoken11111", &[coin(1000, "stake")]);
@@ -3641,7 +3332,6 @@ mod tests {
             "Gamer002".to_string(),
             "oneToTwo".to_string(),
             pool_id_1.to_string(),
-            "Game001".to_string(),
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -3652,7 +3342,6 @@ mod tests {
             "Gamer002".to_string(),
             "oneToTwo".to_string(),
             pool_id_1.to_string(),
-            "Game001".to_string(),
             "Team002".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -3663,7 +3352,6 @@ mod tests {
             "Gamer002".to_string(),
             "oneToTwo".to_string(),
             pool_id_1.to_string(),
-            "Game001".to_string(),
             "Team003".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -3716,7 +3404,6 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Game001".to_string(),
         );
         match lock_game_rsp {
             Ok(lock_game_rsp) => {
@@ -3762,6 +3449,7 @@ mod tests {
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
+            game_id: "Game001".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -3803,12 +3491,6 @@ mod tests {
             5,
             rake_list.clone(),
         );
-        create_game(
-            deps.as_mut(),
-            mock_env(),
-            adminInfo.clone(),
-            "Game001".to_string(),
-        );
 
         // create multiple pool
         let mut pool_id_1 = String::new();
@@ -3816,7 +3498,6 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Game001".to_string(),
             "oneToTwo".to_string(),
         );
         match rsp_1 {
@@ -3839,7 +3520,6 @@ mod tests {
             "Gamer002".to_string(),
             "oneToTwo".to_string(),
             pool_id_1.to_string(),
-            "Game001".to_string(),
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -3850,7 +3530,6 @@ mod tests {
             "Gamer002".to_string(),
             "oneToTwo".to_string(),
             pool_id_1.to_string(),
-            "Game001".to_string(),
             "Team002".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -3861,7 +3540,6 @@ mod tests {
             "Gamer002".to_string(),
             "oneToTwo".to_string(),
             pool_id_1.to_string(),
-            "Game001".to_string(),
             "Team003".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -3914,7 +3592,6 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Game001".to_string(),
         );
         match lock_game_rsp {
             Ok(lock_game_rsp) => {
@@ -3935,7 +3612,6 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Game001".to_string(),
             pool_id_1.to_string(),
             game_results,
         );
@@ -3949,7 +3625,7 @@ mod tests {
         }
 
         let mut query_game_status_res =
-            query_game_details(&mut deps.storage, "Game001".to_string());
+            query_game_details(&mut deps.storage);
         match query_game_status_res {
             Ok(query_game_status_res) => {
                 assert_eq!(query_game_status_res.game_status, GAME_COMPLETED);
@@ -3964,7 +3640,6 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Game001".to_string(),
         );
 
         match game_cancel_rsp {
@@ -3991,6 +3666,7 @@ mod tests {
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
+            game_id: "Game001".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -4032,12 +3708,6 @@ mod tests {
             5,
             rake_list.clone(),
         );
-        create_game(
-            deps.as_mut(),
-            mock_env(),
-            adminInfo.clone(),
-            "Game001".to_string(),
-        );
 
         // create multiple pool
         let mut pool_id_1 = String::new();
@@ -4045,7 +3715,6 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Game001".to_string(),
             "oneToTwo".to_string(),
         );
         match rsp_1 {
@@ -4094,7 +3763,6 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Game001".to_string(),
             pool_id_1.to_string(),
             game_results.clone(),
         );
@@ -4123,7 +3791,6 @@ mod tests {
             "Gamer002".to_string(),
             "oneToTwo".to_string(),
             pool_id_1.to_string(),
-            "Game001".to_string(),
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -4134,7 +3801,6 @@ mod tests {
             "Gamer002".to_string(),
             "oneToTwo".to_string(),
             pool_id_1.to_string(),
-            "Game001".to_string(),
             "Team002".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -4145,7 +3811,6 @@ mod tests {
             "Gamer002".to_string(),
             "oneToTwo".to_string(),
             pool_id_1.to_string(),
-            "Game001".to_string(),
             "Team003".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -4166,7 +3831,6 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Game001".to_string(),
             pool_id_1.to_string(),
             game_results,
         );
@@ -4196,6 +3860,7 @@ mod tests {
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
+            game_id: "Game001".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -4237,12 +3902,6 @@ mod tests {
             5,
             rake_list.clone(),
         );
-        create_game(
-            deps.as_mut(),
-            mock_env(),
-            adminInfo.clone(),
-            "Game001".to_string(),
-        );
 
         // create multiple pool
         let mut pool_id_1 = String::new();
@@ -4250,7 +3909,6 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Game001".to_string(),
             "oneToTwo".to_string(),
         );
         match rsp_1 {
@@ -4267,6 +3925,7 @@ mod tests {
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
+            game_id: "Game001".to_string(),
         };
         let rewardInfo = mock_info("rewardInfo", &[]);
         let ownerXInfo = mock_info("cwtoken11111", &[coin(1000, "stake")]);
@@ -4278,7 +3937,6 @@ mod tests {
             "Gamer002".to_string(),
             "oneToTwo".to_string(),
             pool_id_1.to_string(),
-            "Game001".to_string(),
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -4289,7 +3947,6 @@ mod tests {
             "Gamer002".to_string(),
             "oneToTwo".to_string(),
             pool_id_1.to_string(),
-            "Game001".to_string(),
             "Team002".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -4300,7 +3957,6 @@ mod tests {
             "Gamer002".to_string(),
             "oneToTwo".to_string(),
             pool_id_1.to_string(),
-            "Game001".to_string(),
             "Team003".to_string(),
             Uint128::from(144262u128) + platform_fee,
         );
@@ -4353,7 +4009,6 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Game001".to_string(),
         );
         match lock_game_rsp {
             Ok(lock_game_rsp) => {
@@ -4374,7 +4029,6 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Game001".to_string(),
             pool_id_1.to_string(),
             game_results.clone(),
         );
@@ -4387,7 +4041,7 @@ mod tests {
             }
         }
 
-        let query_game_status_res = query_game_details(&mut deps.storage, "Game001".to_string());
+        let query_game_status_res = query_game_details(&mut deps.storage);
         match query_game_status_res {
             Ok(query_game_status_res) => {
                 assert_eq!(query_game_status_res.game_status, GAME_COMPLETED);
@@ -4408,7 +4062,6 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Game001".to_string(),
             pool_id_1.to_string(),
             game_results,
         );
@@ -4436,6 +4089,7 @@ mod tests {
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
+            game_id: "Game001".to_string(),
         };
 
         let adminInfo = mock_info("admin11111", &[]);

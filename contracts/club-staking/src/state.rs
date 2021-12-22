@@ -11,6 +11,8 @@ pub struct Config {
     pub admin_address: Addr,
     pub minting_contract_address: Addr,
     pub club_fee_collector_wallet: Addr,
+    pub club_reward_next_timestamp: Timestamp,
+    pub reward_periodicity: u64,
 }
 
 pub const CONFIG_KEY: &str = "config";
@@ -120,3 +122,5 @@ pub const CLUB_PREVIOUS_OWNER_DETAILS: Map<String, ClubPreviousOwnerDetails> =
 pub const STAKING_FUNDS: Map<&Addr, Uint128> = Map::new("contract_wallet");
 
 pub const REWARD: Item<Uint128> = Item::new("staking_reward");
+
+pub const CLUB_REWARD_NEXT_TIMESTAMP: Item<Timestamp> = Item::new("club_reward_next_timestamp");

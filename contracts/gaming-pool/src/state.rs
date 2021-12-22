@@ -11,6 +11,7 @@ pub struct Config {
     pub admin_address: Addr,
     pub minting_contract_address: Addr,
     pub platform_fee: Uint128,
+    pub game_id: String,
 }
 
 pub const CONFIG_KEY: &str = "config";

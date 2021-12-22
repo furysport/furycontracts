@@ -3,6 +3,7 @@ use cw0::Expiration;
 use cw20::{Cw20ReceiveMsg, Logo};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use cosmwasm_std::{Coin, Timestamp};
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug, Clone, PartialEq)]
 pub struct InstantiateMarketingInfo {
@@ -17,6 +18,8 @@ pub struct InstantiateMsg {
     pub admin_address: String,
     pub minting_contract_address: String,
     pub club_fee_collector_wallet: String,
+    pub club_reward_next_timestamp: Timestamp,
+    pub reward_periodicity: u64,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
