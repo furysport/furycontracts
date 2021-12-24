@@ -20,6 +20,7 @@ pub struct InstantiateMsg {
     pub club_fee_collector_wallet: String,
     pub club_reward_next_timestamp: Timestamp,
     pub reward_periodicity: u64,
+    pub club_price: Uint128,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -33,12 +34,10 @@ pub enum ExecuteMsg {
     ClaimOwnerRewards {
         owner: String,
         club_name: String,
-        amount: Uint128,
     },
     ClaimPreviousOwnerRewards {
         previous_owner: String,
         club_name: String,
-        amount: Uint128,
     },
     StakeWithdrawFromAClub {
         staker: String,
@@ -51,7 +50,6 @@ pub enum ExecuteMsg {
     ClaimRewards {
         staker: String,
         club_name: String,
-        amount: Uint128,
     },
     IncreaseAllowance {
         spender: String,
@@ -112,7 +110,19 @@ pub enum QueryMsg {
     ClubOwnershipDetails {
         club_name: String,
     },
+    ClubPreviousOwnershipDetails {
+        club_name: String,
+    },
+    ClubOwnershipDetailsForOwner {
+        owner_address: String,
+    },
+    AllClubOwnershipDetails {
+    },
     AllStakes {},
+    AllStakesForUser { 
+		user_address: String,
+	},
+    AllBonds {},
     GetClubRankingByStakes {},
     RewardAmount {},
 }

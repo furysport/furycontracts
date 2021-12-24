@@ -27,17 +27,15 @@ use crate::state::{
 const CONTRACT_NAME: &str = "crates.io:club-staking";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
-const CLUB_PRICE: u128 = 1000000u128;
-
 const INCREASE_STAKE: bool = true;
 const DECREASE_STAKE: bool = false;
 const IMMEDIATE_WITHDRAWAL: bool = true;
 const NO_IMMEDIATE_WITHDRAWAL: bool = false;
 
-// Reward to club owner for buying - 100 tokens
+// Reward to club owner for buying - 0 tokens
 const CLUB_BUYING_REWARD_AMOUNT: u128 = 0u128;
 
-// Reward to club staker for staking
+// Reward to club staker for staking - 0 tokens
 const CLUB_STAKING_REWARD_AMOUNT: u128 = 0u128;
 
 // This is reduced to 0 day locking period in seconds, after buying a club, as no refund planned for Ownership Fee
@@ -68,6 +66,7 @@ pub fn instantiate(
         club_fee_collector_wallet: deps.api.addr_validate(&msg.club_fee_collector_wallet)?,
         club_reward_next_timestamp: msg.club_reward_next_timestamp,
         reward_periodicity: msg.reward_periodicity,
+        club_price: msg.club_price,
     };
     CONFIG.save(deps.storage, &config)?;
     Ok(Response::default())
@@ -88,20 +87,17 @@ pub fn execute(
         ExecuteMsg::ClaimOwnerRewards {
             owner,
             club_name,
-            amount,
         } => claim_owner_rewards(
             deps,
             env,
             info,
             owner,
             club_name,
-            amount,
         ),
         ExecuteMsg::ClaimPreviousOwnerRewards {
             previous_owner,
             club_name,
-            amount,
-        } => claim_previous_owner_rewards(deps, info, previous_owner, club_name, amount),
+        } => claim_previous_owner_rewards(deps, info, previous_owner, club_name),
         ExecuteMsg::StakeWithdrawFromAClub {
             staker,
             club_name,
@@ -122,8 +118,7 @@ pub fn execute(
         ExecuteMsg::ClaimRewards {
             staker,
             club_name,
-            amount,
-        } => claim_rewards(deps, info, staker, club_name, amount),
+        } => claim_rewards(deps, info, staker, club_name),
         ExecuteMsg::PeriodicallyRefundStakeouts {} => {
             periodically_refund_stakeouts(deps, env, info)
         }
@@ -196,8 +191,8 @@ fn claim_previous_owner_rewards(
     info: MessageInfo,
     previous_owner: String,
     club_name: String,
-    amount: Uint128,
 ) -> Result<Response, ContractError> {
+	let mut amount = Uint128::zero();
     let mut transfer_confirmed = false;
     let previous_owner_addr = deps.api.addr_validate(&previous_owner)?;
     //Check if withdrawer is same as invoker
@@ -220,11 +215,13 @@ fn claim_previous_owner_rewards(
     if !(previous_ownership_details.is_none()) {
         for previous_owner_detail in previous_ownership_details {
             if previous_owner_detail.previous_owner_address == previous_owner.clone() {
-                if amount > previous_owner_detail.reward_amount {
+                if Uint128::zero() == previous_owner_detail.reward_amount {
                     return Err(ContractError::Std(StdError::GenericErr {
-                        msg: String::from("Insufficient rewards"),
+                        msg: String::from("No rewards for this previous owner"),
                     }));
                 }
+
+				amount = previous_owner_detail.reward_amount;
 
                 // Now save the previous ownership details
                 CLUB_PREVIOUS_OWNER_DETAILS.save(
@@ -233,7 +230,7 @@ fn claim_previous_owner_rewards(
                     &ClubPreviousOwnerDetails {
                         club_name: previous_owner_detail.club_name,
                         previous_owner_address: previous_owner_detail.previous_owner_address,
-                        reward_amount: previous_owner_detail.reward_amount - amount,
+                        reward_amount: Uint128::zero(),
                     },
                 )?;
 
@@ -257,8 +254,8 @@ fn claim_owner_rewards(
     info: MessageInfo,
     owner: String,
     club_name: String,
-    amount: Uint128,
 ) -> Result<Response, ContractError> {
+	let mut amount = Uint128::zero();
     let mut transfer_confirmed = false;
     let owner_addr = deps.api.addr_validate(&owner)?;
     //Check if withdrawer is same as invoker
@@ -288,6 +285,8 @@ fn claim_owner_rewards(
 
                 transfer_confirmed = true;
 
+				amount = owner_detail.reward_amount;
+
                 // Now save the ownership details
                 CLUB_OWNERSHIP_DETAILS.save(
                     deps.storage,
@@ -298,7 +297,7 @@ fn claim_owner_rewards(
                         locking_period: owner_detail.locking_period,
                         owner_address: owner_detail.owner_address,
                         price_paid: owner_detail.price_paid,
-                        reward_amount: owner_detail.reward_amount - amount,
+                        reward_amount: Uint128::zero(),
                         owner_released: owner_detail.owner_released,
                     },
                 )?;
@@ -365,7 +364,8 @@ fn buy_a_club(
     if info.sender != config.minting_contract_address {
         return Err(ContractError::Unauthorized {});
     }
-    if price != Uint128::from(CLUB_PRICE) {
+    let club_price = config.club_price;
+    if price != club_price {
             return Err(ContractError::Std(StdError::GenericErr {
                 msg: String::from("Club price is not matching"),
             }));
@@ -933,9 +933,9 @@ fn claim_rewards(
     info: MessageInfo,
     staker: String,
     club_name: String,
-    amount: Uint128,
 ) -> Result<Response, ContractError> {
     let mut transfer_confirmed = false;
+    let mut amount = Uint128::zero();
     let staker_addr = deps.api.addr_validate(&staker)?;
     //Check if withdrawer is same as invoker
     if staker_addr != info.sender {
@@ -957,15 +957,10 @@ fn claim_rewards(
     for stake in existing_stakes {
         let mut updated_stake = stake.clone();
         if staker == stake.staker_address {
-            if amount <= updated_stake.reward_amount {
-                updated_stake.reward_amount -= amount;
-                // confirm transfer to staker wallet
-                transfer_confirmed = true;
-            } else {
-                return Err(ContractError::Std(StdError::GenericErr {
-                    msg: String::from("Insufficient rewards"),
-                }));
-            }
+			amount += updated_stake.reward_amount;
+			updated_stake.reward_amount = Uint128::zero();
+			// confirm transfer to staker wallet
+			transfer_confirmed = true;
         }
 
         updated_stakes.push(updated_stake);
@@ -975,6 +970,11 @@ fn claim_rewards(
     if transfer_confirmed == false {
         return Err(ContractError::Std(StdError::GenericErr {
             msg: String::from("Not a valid staker for the club"),
+        }));
+    }
+    if amount == Uint128::zero() {
+        return Err(ContractError::Std(StdError::GenericErr {
+            msg: String::from("No rewards for this user"),
         }));
     }
     transfer_from_contract_to_wallet(deps.storage, staker.clone(), amount, "staking_reward_claim".to_string())
@@ -1173,7 +1173,18 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::ClubOwnershipDetails { club_name } => {
             to_binary(&query_club_ownership_details(deps.storage, club_name)?)
         }
+        QueryMsg::ClubPreviousOwnershipDetails { club_name } => {
+            to_binary(&query_club_previous_owner_details(deps.storage, club_name)?)
+        }
+        QueryMsg::AllClubOwnershipDetails { } => {
+            to_binary(&query_all_club_ownership_details(deps.storage)?)
+        }
+        QueryMsg::ClubOwnershipDetailsForOwner { owner_address } => {
+            to_binary(&query_club_ownership_details_for_owner(deps.storage, owner_address)?)
+        }
         QueryMsg::AllStakes {} => to_binary(&query_all_stakes(deps.storage)?),
+        QueryMsg::AllStakesForUser { user_address } => to_binary(&query_all_stakes_for_user(deps.storage, user_address)?),
+        QueryMsg::AllBonds {} => to_binary(&query_all_bonds(deps.storage)?),
         QueryMsg::GetClubRankingByStakes {} => {
             to_binary(&get_clubs_ranking_by_stakes(deps.storage)?)
         }
@@ -1271,7 +1282,7 @@ fn query_club_ownership_details(
     };
 }
 
-fn query_club_previous_owner_details(
+pub fn query_club_previous_owner_details(
     storage: &dyn Storage,
     club_name: String,
 ) -> StdResult<ClubPreviousOwnerDetails> {
@@ -1281,6 +1292,62 @@ fn query_club_previous_owner_details(
         None => return Err(StdError::generic_err("No ownership details found")),
     };
 }
+
+
+pub fn query_all_stakes_for_user(
+	storage: &dyn Storage,
+	user_address: String,
+) 
+-> StdResult<Vec<ClubStakingDetails>> {
+    let mut all_stakes = Vec::new();
+    let all_clubs: Vec<String> = CLUB_STAKING_DETAILS
+        .keys(storage, None, None, Order::Ascending)
+        .map(|k| String::from_utf8(k).unwrap())
+        .collect();
+    for club_name in all_clubs {
+        let staking_details = CLUB_STAKING_DETAILS.load(storage, club_name)?;
+        for stake in staking_details {
+			if stake.staker_address == user_address {
+				all_stakes.push(stake);
+			}
+        }
+    }
+    return Ok(all_stakes);
+}
+
+pub fn query_all_club_ownership_details(
+	storage: &dyn Storage
+) -> StdResult<Vec<ClubOwnershipDetails>> {
+    let mut all_owners = Vec::new();
+    let all_clubs: Vec<String> = CLUB_OWNERSHIP_DETAILS
+        .keys(storage, None, None, Order::Ascending)
+        .map(|k| String::from_utf8(k).unwrap())
+        .collect();
+    for club_name in all_clubs {
+        let owner_details = CLUB_OWNERSHIP_DETAILS.load(storage, club_name)?;
+		all_owners.push(owner_details);
+    }
+    return Ok(all_owners);
+}
+
+pub fn query_club_ownership_details_for_owner(
+	storage: &dyn Storage,
+	owner_address: String,
+) -> StdResult<Vec<ClubOwnershipDetails>> {
+    let mut all_owners = Vec::new();
+    let all_clubs: Vec<String> = CLUB_OWNERSHIP_DETAILS
+        .keys(storage, None, None, Order::Ascending)
+        .map(|k| String::from_utf8(k).unwrap())
+        .collect();
+    for club_name in all_clubs {
+        let owner_details = CLUB_OWNERSHIP_DETAILS.load(storage, club_name)?;
+		if owner_details.owner_address == owner_address {
+			all_owners.push(owner_details);
+		}
+    }
+    return Ok(all_owners);
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -1303,6 +1370,7 @@ mod tests {
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
             club_reward_next_timestamp: now.minus_seconds(1*60*60),
             reward_periodicity: 24*60*60u64,
+            club_price: Uint128::from(1000000u128),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -1353,6 +1421,7 @@ mod tests {
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
             club_reward_next_timestamp: now.minus_seconds(1*60*60),
             reward_periodicity: 24*60*60u64,
+            club_price: Uint128::from(1000000u128),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -1395,7 +1464,6 @@ mod tests {
             owner1Info.clone(),
             "Owner001".to_string(),
             "CLUB001".to_string(),
-            Uint128::from(10000000u128),
         );
 
         let queryResAfter = query_club_ownership_details(&mut deps.storage, "CLUB001".to_string());
@@ -1424,6 +1492,7 @@ mod tests {
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
             club_reward_next_timestamp: now.minus_seconds(1*60*60),
             reward_periodicity: 24*60*60u64,
+            club_price: Uint128::from(1000000u128),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -1485,6 +1554,7 @@ mod tests {
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
             club_reward_next_timestamp: now.minus_seconds(1*60*60),
             reward_periodicity: 24*60*60u64,
+            club_price: Uint128::from(1000000u128),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -1528,6 +1598,7 @@ mod tests {
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
             club_reward_next_timestamp: now.minus_seconds(1*60*60),
             reward_periodicity: 24*60*60u64,
+            club_price: Uint128::from(1000000u128),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -1613,6 +1684,7 @@ mod tests {
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
             club_reward_next_timestamp: now.minus_seconds(1*60*60),
             reward_periodicity: 24*60*60u64,
+            club_price: Uint128::from(1000000u128),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -1718,6 +1790,7 @@ mod tests {
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
             club_reward_next_timestamp: now.minus_seconds(1*60*60),
             reward_periodicity: 24*60*60u64,
+            club_price: Uint128::from(1000000u128),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -1843,7 +1916,6 @@ mod tests {
             owner1Info.clone(),
             "Owner001".to_string(),
             "CLUB001".to_string(),
-            Uint128::from(10000u128),
         );
 
         let queryPrevOwnerDetailsAfterRewardClaim =
@@ -1872,6 +1944,7 @@ mod tests {
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
             club_reward_next_timestamp: now.minus_seconds(1*60*60),
             reward_periodicity: 24*60*60u64,
+            club_price: Uint128::from(1000000u128),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -1946,6 +2019,7 @@ mod tests {
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
             club_reward_next_timestamp: now.minus_seconds(1*60*60),
             reward_periodicity: 24*60*60u64,
+            club_price: Uint128::from(1000000u128),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -2042,6 +2116,7 @@ mod tests {
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
             club_reward_next_timestamp: now.minus_seconds(1*60*60),
             reward_periodicity: 24*60*60u64,
+            club_price: Uint128::from(1000000u128),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -2144,6 +2219,7 @@ mod tests {
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
             club_reward_next_timestamp: now.minus_seconds(1*60*60),
             reward_periodicity: 24*60*60u64,
+            club_price: Uint128::from(1000000u128),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -2256,6 +2332,7 @@ mod tests {
             club_fee_collector_wallet: "feecollector11111".to_string(),
             club_reward_next_timestamp: now.minus_seconds(1*60*60),
             reward_periodicity: 24*60*60u64,
+            club_price: Uint128::from(1000000u128),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -2394,6 +2471,7 @@ mod tests {
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
             club_reward_next_timestamp: now.minus_seconds(1*60*60),
             reward_periodicity: 24*60*60u64,
+            club_price: Uint128::from(1000000u128),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -2499,6 +2577,7 @@ mod tests {
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
             club_reward_next_timestamp: now.minus_seconds(1*60*60),
             reward_periodicity: 24*60*60u64,
+            club_price: Uint128::from(1000000u128),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -2608,6 +2687,7 @@ mod tests {
         //     club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
         //     club_reward_next_timestamp: now.minus_seconds(1*60*60),
         //     reward_periodicity: 24*60*60u64,
+        //     club_price: Uint128::from(1000000u128),
         // };
         // let adminInfo = mock_info("admin11111", &[]);
         // let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -2675,6 +2755,7 @@ mod tests {
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
             club_reward_next_timestamp: now.plus_seconds(1*60*60),
             reward_periodicity: 24*60*60u64,
+            club_price: Uint128::from(1000000u128),
         };
         instantiate(
             deps.as_mut(),
@@ -2713,14 +2794,14 @@ mod tests {
 
         /*
             winner club owner address = "Owner003"
-            winner club owner reward = Uint128(10000)
-            reward for "Staker0001" is Uint128(144262)
-            reward for "Staker0002" is Uint128(48087)
-            reward for "Staker0003" is Uint128(183606)
-            reward for "Staker0004" is Uint128(43715)
-            reward for "Staker0005" is Uint128(537549)
-            reward for "Staker0006" is Uint128(32776)
-            total reward given Uint128(999995) out of Uint128(1000000)
+            winner club owner reward = Uint128::from(10000)
+            reward for "Staker0001" is Uint128::from(144262)
+            reward for "Staker0002" is Uint128::from(48087)
+            reward for "Staker0003" is Uint128::from(183606)
+            reward for "Staker0004" is Uint128::from(43715)
+            reward for "Staker0005" is Uint128::from(537549)
+            reward for "Staker0006" is Uint128::from(32776)
+            total reward given Uint128::from(999995) out of Uint128::from(1000000)
         */
     }
 }

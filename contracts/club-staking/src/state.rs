@@ -13,6 +13,7 @@ pub struct Config {
     pub club_fee_collector_wallet: Addr,
     pub club_reward_next_timestamp: Timestamp,
     pub reward_periodicity: u64,
+    pub club_price: Uint128,
 }
 
 pub const CONFIG_KEY: &str = "config";
