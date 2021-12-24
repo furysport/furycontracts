@@ -1,0 +1,89 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ReceivedMsg",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": [
+        "buy_a_club"
+      ],
+      "properties": {
+        "buy_a_club": {
+          "$ref": "#/definitions/BuyClubCommand"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "stake_on_a_club"
+      ],
+      "properties": {
+        "stake_on_a_club": {
+          "$ref": "#/definitions/StakeOnAClubCommand"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "increase_reward_amount"
+      ],
+      "properties": {
+        "increase_reward_amount": {
+          "$ref": "#/definitions/IncreaseRewardAmountCommand"
+        }
+      },
+      "additionalProperties": false
+    }
+  ],
+  "definitions": {
+    "BuyClubCommand": {
+      "type": "object",
+      "required": [
+        "buyer",
+        "club_name",
+        "seller"
+      ],
+      "properties": {
+        "buyer": {
+          "type": "string"
+        },
+        "club_name": {
+          "type": "string"
+        },
+        "seller": {
+          "type": "string"
+        }
+      }
+    },
+    "IncreaseRewardAmountCommand": {
+      "type": "object",
+      "required": [
+        "reward_from"
+      ],
+      "properties": {
+        "reward_from": {
+          "type": "string"
+        }
+      }
+    },
+    "StakeOnAClubCommand": {
+      "type": "object",
+      "required": [
+        "club_name",
+        "staker"
+      ],
+      "properties": {
+        "club_name": {
+          "type": "string"
+        },
+        "staker": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
