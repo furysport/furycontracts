@@ -37,7 +37,6 @@ pub enum ExecuteMsg {
     },
     ClaimPreviousOwnerRewards {
         previous_owner: String,
-        club_name: String,
     },
     StakeWithdrawFromAClub {
         staker: String,
@@ -111,7 +110,7 @@ pub enum QueryMsg {
         club_name: String,
     },
     ClubPreviousOwnershipDetails {
-        club_name: String,
+        previous_owner: String,
     },
     ClubOwnershipDetailsForOwner {
         owner_address: String,

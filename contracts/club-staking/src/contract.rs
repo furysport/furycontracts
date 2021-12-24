@@ -96,8 +96,7 @@ pub fn execute(
         ),
         ExecuteMsg::ClaimPreviousOwnerRewards {
             previous_owner,
-            club_name,
-        } => claim_previous_owner_rewards(deps, info, previous_owner, club_name),
+        } => claim_previous_owner_rewards(deps, info, previous_owner),
         ExecuteMsg::StakeWithdrawFromAClub {
             staker,
             club_name,
@@ -190,7 +189,6 @@ fn claim_previous_owner_rewards(
     deps: DepsMut,
     info: MessageInfo,
     previous_owner: String,
-    club_name: String,
 ) -> Result<Response, ContractError> {
 	let mut amount = Uint128::zero();
     let mut transfer_confirmed = false;
@@ -202,7 +200,7 @@ fn claim_previous_owner_rewards(
 
     let previous_ownership_details;
     let previous_ownership_details_result =
-        CLUB_PREVIOUS_OWNER_DETAILS.may_load(deps.storage, club_name.clone());
+        CLUB_PREVIOUS_OWNER_DETAILS.may_load(deps.storage, previous_owner.clone());
     match previous_ownership_details_result {
         Ok(od) => {
             previous_ownership_details = od;
@@ -226,9 +224,8 @@ fn claim_previous_owner_rewards(
                 // Now save the previous ownership details
                 CLUB_PREVIOUS_OWNER_DETAILS.save(
                     deps.storage,
-                    club_name.clone(),
+                    previous_owner.clone(),
                     &ClubPreviousOwnerDetails {
-                        club_name: previous_owner_detail.club_name,
                         previous_owner_address: previous_owner_detail.previous_owner_address,
                         reward_amount: Uint128::zero(),
                     },
@@ -277,9 +274,9 @@ fn claim_owner_rewards(
     if !(ownership_details.is_none()) {
         for owner_detail in ownership_details {
             if owner_detail.owner_address == owner.clone() {
-                if amount > owner_detail.reward_amount {
+                if Uint128::zero() == owner_detail.reward_amount {
                     return Err(ContractError::Std(StdError::GenericErr {
-                        msg: String::from("Insufficient rewards"),
+                        msg: String::from("No rewards for this owner"),
                     }));
                 }
 
@@ -432,14 +429,22 @@ fn buy_a_club(
     )?;
 
     if seller != "".to_string() && previous_owners_reward_amount != Uint128::zero() {
+        let mut previous_reward = Uint128::zero();
+		let pod = CLUB_PREVIOUS_OWNER_DETAILS.may_load(deps.storage, seller.clone())?;
+		match pod {
+			Some(pod) => {
+				previous_reward = pod.reward_amount;
+			}
+			None => {} 
+		}
+
         // Now save the previous ownership details
         CLUB_PREVIOUS_OWNER_DETAILS.save(
             deps.storage,
-            club_name.clone(),
+            seller.clone(),
             &ClubPreviousOwnerDetails {
-                club_name: club_name.clone(),
                 previous_owner_address: seller.clone(),
-                reward_amount: previous_owners_reward_amount,
+                reward_amount: previous_reward + previous_owners_reward_amount,
             },
         )?;
     }
@@ -962,7 +967,6 @@ fn claim_rewards(
 			// confirm transfer to staker wallet
 			transfer_confirmed = true;
         }
-
         updated_stakes.push(updated_stake);
     }
     CLUB_STAKING_DETAILS.save(deps.storage, club_name, &updated_stakes)?;
@@ -1173,8 +1177,8 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::ClubOwnershipDetails { club_name } => {
             to_binary(&query_club_ownership_details(deps.storage, club_name)?)
         }
-        QueryMsg::ClubPreviousOwnershipDetails { club_name } => {
-            to_binary(&query_club_previous_owner_details(deps.storage, club_name)?)
+        QueryMsg::ClubPreviousOwnershipDetails { previous_owner } => {
+            to_binary(&query_club_previous_owner_details(deps.storage, previous_owner)?)
         }
         QueryMsg::AllClubOwnershipDetails { } => {
             to_binary(&query_all_club_ownership_details(deps.storage)?)
@@ -1284,12 +1288,12 @@ fn query_club_ownership_details(
 
 pub fn query_club_previous_owner_details(
     storage: &dyn Storage,
-    club_name: String,
+    previous_owner: String,
 ) -> StdResult<ClubPreviousOwnerDetails> {
-    let cod = CLUB_PREVIOUS_OWNER_DETAILS.may_load(storage, club_name)?;
+    let cod = CLUB_PREVIOUS_OWNER_DETAILS.may_load(storage, previous_owner)?;
     match cod {
         Some(cod) => return Ok(cod),
-        None => return Err(StdError::generic_err("No ownership details found")),
+        None => return Err(StdError::generic_err("No previous ownership details found")),
     };
 }
 
@@ -1915,14 +1919,12 @@ mod tests {
             deps.as_mut(),
             owner1Info.clone(),
             "Owner001".to_string(),
-            "CLUB001".to_string(),
         );
 
         let queryPrevOwnerDetailsAfterRewardClaim =
-            query_club_previous_owner_details(&mut deps.storage, "CLUB001".to_string());
+            query_club_previous_owner_details(&mut deps.storage, "Owner001".to_string());
         match queryPrevOwnerDetailsAfterRewardClaim {
             Ok(pod) => {
-                assert_eq!(pod.club_name, "CLUB001".to_string());
                 assert_eq!(pod.previous_owner_address, "Owner001".to_string());
                 assert_eq!(pod.reward_amount, Uint128::from(0u128));
             }

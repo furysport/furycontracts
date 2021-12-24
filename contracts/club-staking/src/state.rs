@@ -48,9 +48,6 @@ pub struct ClubOwnershipDetails {
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
 #[serde(rename_all = "snake_case")]
 pub struct ClubPreviousOwnerDetails { 
-    /// The club name
-    pub club_name: String,
-
     /// The previous owner name
     pub previous_owner_address: String,
 
@@ -114,7 +111,7 @@ pub const CLUB_STAKING_DETAILS: Map<String, Vec<ClubStakingDetails>> =
 pub const CLUB_BONDING_DETAILS: Map<String, Vec<ClubBondingDetails>> =
     Map::new("club_bonding_details");
 
-/// Map of clubs and its previous owners. the key is club name and the
+/// Map of previous owners and their reward points. the key is owner address and the
 /// ClubPreviousOwnerDetails will contain information about the 
 /// previous owner of the club and his reward points
 pub const CLUB_PREVIOUS_OWNER_DETAILS: Map<String, ClubPreviousOwnerDetails> =
