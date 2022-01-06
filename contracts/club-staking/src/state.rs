@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use cosmwasm_std::{Addr, Timestamp, Uint128};
 use cw_storage_plus::{Item, Map};
 
-use cw20::AllowanceResponse;
+// use cw20::AllowanceResponse;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Config {
@@ -14,6 +14,7 @@ pub struct Config {
     pub club_reward_next_timestamp: Timestamp,
     pub reward_periodicity: u64,
     pub club_price: Uint128,
+    pub bonding_duration: u64,
 }
 
 pub const CONFIG_KEY: &str = "config";
@@ -94,7 +95,7 @@ pub struct ClubBondingDetails {
     pub bonding_duration: u64,
 }
 
-pub const ALLOWANCES: Map<(&Addr, &Addr), AllowanceResponse> = Map::new("allowance");
+// pub const ALLOWANCES: Map<(&Addr, &Addr), AllowanceResponse> = Map::new("allowance");
 
 /// Map of clubs and its owners. the key is club name and the
 /// ClubOwnershipDetails will contain information about the owner

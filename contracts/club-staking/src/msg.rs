@@ -21,6 +21,7 @@ pub struct InstantiateMsg {
     pub club_reward_next_timestamp: Timestamp,
     pub reward_periodicity: u64,
     pub club_price: Uint128,
+    pub bonding_duration: u64,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -50,31 +51,31 @@ pub enum ExecuteMsg {
         staker: String,
         club_name: String,
     },
-    IncreaseAllowance {
-        spender: String,
-        amount: Uint128,
-        expires: Option<Expiration>,
-    },
-    DecreaseAllowance {
-        spender: String,
-        amount: Uint128,
-        expires: Option<Expiration>,
-    },
-    TransferFrom {
-        owner: String,
-        recipient: String,
-        amount: Uint128,
-    },
-    BurnFrom {
-        owner: String,
-        amount: Uint128,
-    },
-    SendFrom {
-        owner: String,
-        contract: String,
-        amount: Uint128,
-        msg: Binary,
-    },
+    // IncreaseAllowance {
+    //     spender: String,
+    //     amount: Uint128,
+    //     expires: Option<Expiration>,
+    // },
+    // DecreaseAllowance {
+    //     spender: String,
+    //     amount: Uint128,
+    //     expires: Option<Expiration>,
+    // },
+    // TransferFrom {
+    //     owner: String,
+    //     recipient: String,
+    //     amount: Uint128,
+    // },
+    // BurnFrom {
+    //     owner: String,
+    //     amount: Uint128,
+    // },
+    // SendFrom {
+    //     owner: String,
+    //     contract: String,
+    //     amount: Uint128,
+    //     msg: Binary,
+    // },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -83,18 +84,18 @@ pub enum QueryMsg {
     /// Only with "allowance" extension.
     /// Returns how much spender can use from owner account, 0 if unset.
     /// Return type: AllowanceResponse.
-    Allowance {
-        owner: String,
-        spender: String,
-    },
-    /// Only with "enumerable" extension (and "allowances")
-    /// Returns all allowances this owner has approved. Supports pagination.
-    /// Return type: AllAllowancesResponse.
-    AllAllowances {
-        owner: String,
-        start_after: Option<String>,
-        limit: Option<u32>,
-    },
+    // Allowance {
+    //     owner: String,
+    //     spender: String,
+    // },
+    // /// Only with "enumerable" extension (and "allowances")
+    // /// Returns all allowances this owner has approved. Supports pagination.
+    // /// Return type: AllAllowancesResponse.
+    // AllAllowances {
+    //     owner: String,
+    //     start_after: Option<String>,
+    //     limit: Option<u32>,
+    // },
     /// Returns the current state of vesting information for the given address.
     /// Return type: StakingDetails.
     ClubStakingDetails {
@@ -117,11 +118,16 @@ pub enum QueryMsg {
     },
     AllClubOwnershipDetails {
     },
+    AllPreviousClubOwnershipDetails {
+    },
     AllStakes {},
     AllStakesForUser { 
 		user_address: String,
 	},
     AllBonds {},
+    AllBondsForUser { 
+        user_address: String,
+    },
     GetClubRankingByStakes {},
     RewardAmount {},
 }

@@ -52,7 +52,7 @@ pub fn instantiate(
             code_id: msg.token_code_id,
             msg: to_binary(&TokenInstantiateMsg {
                 name: "terraswap liquidity token".to_string(),
-                symbol: "uLP-Fury-UST".to_string(),
+                symbol: "LP-Fury-UST".to_string(),
                 decimals: 6,
                 initial_balances: vec![],
                 mint: Some(MinterResponse {

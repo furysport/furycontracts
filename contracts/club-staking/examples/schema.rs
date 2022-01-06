@@ -3,10 +3,10 @@ use std::fs::create_dir_all;
 
 use cosmwasm_schema::{export_schema, remove_schemas, schema_for};
 
-use cw20::{
-    AllAccountsResponse, AllAllowancesResponse, AllowanceResponse, BalanceResponse,
-    TokenInfoResponse,
-};
+// use cw20::{
+//     AllAccountsResponse, AllAllowancesResponse, AllowanceResponse, BalanceResponse,
+//     TokenInfoResponse,
+// };
 
 //use cw20_base::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 

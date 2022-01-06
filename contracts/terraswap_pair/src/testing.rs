@@ -45,7 +45,7 @@ fn proper_initialization() {
                 code_id: 10u64,
                 msg: to_binary(&TokenInstantiateMsg {
                     name: "terraswap liquidity token".to_string(),
-                    symbol: "uLP-Fury-UST".to_string(),
+                    symbol: "LP-Fury-UST".to_string(),
                     decimals: 6,
                     initial_balances: vec![],
                     mint: Some(MinterResponse {
