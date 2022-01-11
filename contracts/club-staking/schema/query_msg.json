@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "QueryMsg",
-  "oneOf": [
+  "anyOf": [
     {
       "description": "Only with \"allowance\" extension. Returns how much spender can use from owner account, 0 if unset. Return type: AllowanceResponse. Returns the current state of vesting information for the given address. Return type: StakingDetails.",
       "type": "object",
@@ -119,6 +119,18 @@
     {
       "type": "object",
       "required": [
+        "all_previous_club_ownership_details"
+      ],
+      "properties": {
+        "all_previous_club_ownership_details": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
         "all_stakes"
       ],
       "properties": {
@@ -156,6 +168,30 @@
       "properties": {
         "all_bonds": {
           "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "club_bonding_details_for_user"
+      ],
+      "properties": {
+        "club_bonding_details_for_user": {
+          "type": "object",
+          "required": [
+            "club_name",
+            "user_address"
+          ],
+          "properties": {
+            "club_name": {
+              "type": "string"
+            },
+            "user_address": {
+              "type": "string"
+            }
+          }
         }
       },
       "additionalProperties": false

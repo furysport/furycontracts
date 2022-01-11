@@ -125,7 +125,8 @@ pub enum QueryMsg {
 		user_address: String,
 	},
     AllBonds {},
-    AllBondsForUser { 
+    ClubBondingDetailsForUser { 
+        club_name: String,
         user_address: String,
     },
     GetClubRankingByStakes {},

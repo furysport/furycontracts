@@ -18,7 +18,7 @@ use crate::allowances::{
 };
 use crate::enumerable::{query_all_accounts, query_all_allowances};
 use crate::error::ContractError;
-use crate::msg::{InstantiateMsg, QueryMsg};
+use crate::msg::{InstantiateMsg, InstantiateVestingSchedulesInfo, QueryMsg};
 use crate::state::{
     MinterData, TokenInfo, VestingDetails, ALLOWANCES, BALANCES, LOGO, MARKETING_INFO, TOKEN_INFO,
     VESTING_DETAILS,
@@ -167,7 +167,7 @@ pub fn instantiate(
         MARKETING_INFO.save(deps.storage, &data)?;
     }
 
-    instantiate_category_vesting_schedules(deps, env)?;
+    instantiate_category_vesting_schedules(deps, env, msg.vesting)?;
 
     Ok(Response::default())
 }
@@ -175,144 +175,38 @@ pub fn instantiate(
 fn instantiate_category_vesting_schedules(
     deps: DepsMut,
     env: Env,
+    vesting: Option<InstantiateVestingSchedulesInfo>,
 ) -> Result<Response, ContractError> {
-    let vesting_start_timestamp = env.block.time;
-    let ga_address = deps.api.addr_validate(GAMIFIED_AIRDROP_WALLET)?;
-    let ga_vesting_details = VestingDetails {
-        vesting_start_timestamp: vesting_start_timestamp,
-        initial_vesting_count: Uint128::from(3_950_000_000_000u128),
-        initial_vesting_consumed: Uint128::zero(),
-        // vesting_periodicity: 5 * 60, // (every 5 minutes)
-        vesting_periodicity: 24 * 60 * 60, // (daily)
-        vesting_count_per_period: Uint128::from(69_490_740_740u128),
-        total_vesting_token_count: Uint128::from(79_000_000_000_000u128),
-        total_claimed_tokens_till_now: Uint128::zero(),
-        last_claimed_timestamp: None,
-        tokens_available_to_claim: Uint128::zero(),
-        last_vesting_timestamp: None,
-        cliff_period: 0,
-        category_address: None,
-    };
-    VESTING_DETAILS.save(deps.storage, &ga_address, &ga_vesting_details)?;
-
-    //Save vesting details for advisors
-    let advisors_address = deps.api.addr_validate(ADVISOR_WALLET)?;
-    let advisors_vesting_details = VestingDetails {
-        vesting_start_timestamp: vesting_start_timestamp,
-        initial_vesting_count: Uint128::zero(),
-        initial_vesting_consumed: Uint128::zero(),
-        // vesting_periodicity: 5 * 60, // (every 5 minutes)
-        vesting_periodicity: 24 * 60 * 60, // (daily)
-        vesting_count_per_period: Uint128::from(40_833_333_333u128),
-        total_vesting_token_count: Uint128::from(14_700_000_000_000u128),
-        total_claimed_tokens_till_now: Uint128::zero(),
-        last_claimed_timestamp: None,
-        tokens_available_to_claim: Uint128::zero(),
-        last_vesting_timestamp: None,
-        cliff_period: 4,
-        category_address: None,
-    };
-    VESTING_DETAILS.save(deps.storage, &advisors_address, &advisors_vesting_details)?;
-
-    //Save vesting details for Private Sale
-    let priv_sale_address = deps.api.addr_validate(PRIVATE_SALE_WALLET)?;
-    let priv_sale_vesting_details = VestingDetails {
-        vesting_start_timestamp: vesting_start_timestamp,
-        initial_vesting_count: Uint128::from(4_200_000_000_000u128),
-        initial_vesting_consumed: Uint128::zero(),
-        // vesting_periodicity: 5 * 60, // (every 5 minutes)
-        vesting_periodicity: 24 * 60 * 60, //24 * 60 * 60, //daily
-        vesting_count_per_period: Uint128::from(210_000_000_000u128),
-        total_vesting_token_count: Uint128::from(42_000_000_000_000u128),
-        total_claimed_tokens_till_now: Uint128::zero(),
-        last_claimed_timestamp: None,
-        tokens_available_to_claim: Uint128::zero(),
-        last_vesting_timestamp: None,
-        cliff_period: 0,
-        category_address: None,
-    };
-    VESTING_DETAILS.save(deps.storage, &priv_sale_address, &priv_sale_vesting_details)?;
-
-    instantiate_sub_category_vesting_schedules(
-        deps,
-        env,
-        vec![
-            (
-                PRIVATE_SALE_WALLET, //private-sale
-                NITIN_WALLET,        //nitin-wallet
-                Uint128::from(16_800_000_000_000u128),
-            ),
-            (
-                PRIVATE_SALE_WALLET, //private-sale
-                AJAY_WALLET,         //ajay-wallet
-                Uint128::from(12_600_000_000_000u128),
-            ),
-            (
-                PRIVATE_SALE_WALLET, //private-sale
-                SAMEER_WALLET,       //sameer-wallet
-                Uint128::from(12_600_000_000_000u128),
-            ),
-        ],
-    )?;
-
-    Ok(Response::default())
-}
-
-fn instantiate_sub_category_vesting_schedules(
-    deps: DepsMut,
-    env: Env,
-    investors: Vec<(&str, &str, Uint128)>,
-) -> Result<Response, ContractError> {
-    for investor in investors {
-        //Check if the amount is greater than zero
-        if investor.2 > Uint128::zero() {
-            //Get the category address
-            let category_address = deps.api.addr_validate(investor.0)?;
-            //Get the category vesting details
-            let cat_vesting_details = VESTING_DETAILS.may_load(deps.storage, &category_address)?;
-            match cat_vesting_details {
-                Some(cvd) => {
-                    // Get the investor address.
-                    let address = deps.api.addr_validate(investor.1)?;
-                    let investment = investor.2;
-                    let category_max_amount = cvd.total_vesting_token_count;
-                    let sub_cat_vesting_details = VestingDetails {
-                        vesting_start_timestamp: cvd.vesting_start_timestamp,
-                        initial_vesting_count: cvd
-                            .initial_vesting_count
-                            .checked_mul(investment)
-                            .unwrap()
-                            .checked_div(category_max_amount)
-                            .unwrap(),
-                        initial_vesting_consumed: Uint128::zero(),
-                        vesting_periodicity: cvd.vesting_periodicity,
-                        vesting_count_per_period: cvd
-                            .vesting_count_per_period
-                            .checked_mul(investment)
-                            .unwrap()
-                            .checked_div(category_max_amount)
-                            .unwrap(),
-                        total_vesting_token_count: investment,
-                        total_claimed_tokens_till_now: Uint128::zero(),
-                        last_claimed_timestamp: None,
-                        tokens_available_to_claim: Uint128::zero(),
-                        last_vesting_timestamp: None,
-                        cliff_period: cvd.cliff_period,
-                        category_address: Some(String::from(investor.0)),
-                    };
-                    VESTING_DETAILS.save(deps.storage, &address, &sub_cat_vesting_details)?;
+    match vesting {
+        Some(vesting_info) => {
+            for schedule in vesting_info.vesting_schedules {
+                let mut parent_cat_addr = None;
+                if !schedule.parent_category_address.is_empty() {
+                    parent_cat_addr = Some(schedule.parent_category_address);
                 }
-                None => {
-                    let mut err_msg = String::from("No vesting details found for address ");
-                    err_msg.push_str(investor.0);
-                    return Err(ContractError::Std(StdError::NotFound {
-                        kind: String::from(err_msg),
-                    }));
-                }
-            };
-        };
+                let vesting_start_timestamp = env.block.time;
+                let address = deps.api.addr_validate(schedule.address.as_str())?;
+                let vesting_details = VestingDetails {
+                    vesting_start_timestamp: vesting_start_timestamp,
+                    initial_vesting_count: schedule.initial_vesting_count,
+                    initial_vesting_consumed: Uint128::zero(),
+                    vesting_periodicity: schedule.vesting_periodicity,
+                    vesting_count_per_period: schedule.vesting_count_per_period,
+                    total_vesting_token_count: schedule.total_vesting_token_count,
+                    total_claimed_tokens_till_now: Uint128::zero(),
+                    last_claimed_timestamp: None,
+                    tokens_available_to_claim: Uint128::zero(),
+                    last_vesting_timestamp: None,
+                    cliff_period: schedule.cliff_period,
+                    parent_category_address: parent_cat_addr,
+                    should_transfer: schedule.should_transfer,
+                };
+                VESTING_DETAILS.save(deps.storage, &address, &vesting_details)?;
+            }
+            Ok(Response::default())
+        }
+        None => Ok(Response::default()),
     }
-    Ok(Response::default())
 }
 
 pub fn create_accounts(deps: &mut DepsMut, accounts: &[Cw20Coin]) -> StdResult<Uint128> {
@@ -342,7 +236,9 @@ pub fn execute(
             amount,
             msg,
         } => execute_send(deps, env, info, contract, amount, msg),
-        Cw20ExecuteMsg::Mint { recipient, amount } => execute_mint(deps, env, info, recipient, amount),
+        Cw20ExecuteMsg::Mint { recipient, amount } => {
+            execute_mint(deps, env, info, recipient, amount)
+        }
         Cw20ExecuteMsg::IncreaseAllowance {
             spender,
             amount,
@@ -358,7 +254,9 @@ pub fn execute(
             recipient,
             amount,
         } => execute_transfer_from(deps, env, info, owner, recipient, amount),
-        Cw20ExecuteMsg::BurnFrom { owner, amount } => execute_burn_from(deps, env, info, owner, amount),
+        Cw20ExecuteMsg::BurnFrom { owner, amount } => {
+            execute_burn_from(deps, env, info, owner, amount)
+        }
         Cw20ExecuteMsg::SendFrom {
             owner,
             contract,
@@ -371,9 +269,15 @@ pub fn execute(
             marketing,
         } => execute_update_marketing(deps, env, info, project, description, marketing),
         Cw20ExecuteMsg::UploadLogo(logo) => execute_upload_logo(deps, env, info, logo),
-        Cw20ExecuteMsg::PeriodicallyTransferToCategories{} => periodically_transfer_to_categories(deps, env, info),
-        Cw20ExecuteMsg::PeriodicallyCalculateVesting{} => periodically_calculate_vesting(deps, env, info),
-        Cw20ExecuteMsg::ClaimVestedTokens { amount } => claim_vested_tokens(deps, env, info, amount),
+        Cw20ExecuteMsg::PeriodicallyTransferToCategories {} => {
+            periodically_transfer_to_categories(deps, env, info)
+        }
+        Cw20ExecuteMsg::PeriodicallyCalculateVesting {} => {
+            periodically_calculate_vesting(deps, env, info)
+        }
+        Cw20ExecuteMsg::ClaimVestedTokens { amount } => {
+            claim_vested_tokens(deps, env, info, amount)
+        }
     }
 }
 
@@ -621,14 +525,13 @@ fn periodically_transfer_to_categories(
 ) -> Result<Response, ContractError> {
     //capture the current system time
     let now = env.block.time;
-
-    let distribute_from = String::from(MAIN_WALLET);
-    let address = deps.api.addr_validate(distribute_from.clone().as_str())?;
-
-    //Check if the sender (one who is executing this contract) is main
-    if address != info.sender {
+    let config = TOKEN_INFO.load(deps.storage)?;
+    //Check if the sender (one who is executing this contract) is minter
+    if config.mint.is_none() || config.mint.as_ref().unwrap().minter != info.sender {
         return Err(ContractError::Unauthorized {});
     }
+
+    let address = config.mint.as_ref().unwrap().minter.clone();
 
     // Fetch all tokens that can be distributed as per vesting logic
     let distribution_details = populate_transfer_details(&deps, now)?;
@@ -649,6 +552,7 @@ fn periodically_transfer_to_categories(
             total_transfer_amount,
         ))));
     }
+    let distribute_from = address.into_string();
     let mut attribs: Vec<Attribute> = Vec::new();
     for elem in distribution_details {
         // Transfer the funds
@@ -721,7 +625,7 @@ fn claim_vested_tokens(
     let vd = VESTING_DETAILS.may_load(deps.storage, &info.sender)?;
     match vd {
         Some(vd) => {
-            let owner_addr_str = vd.category_address;
+            let owner_addr_str = vd.parent_category_address;
             match owner_addr_str {
                 Some(owner_addr_str) => {
                     let owner_addr = deps.api.addr_validate(&owner_addr_str)?;
@@ -791,13 +695,13 @@ fn periodically_calculate_vesting(
     info: MessageInfo,
 ) -> Result<Response, ContractError> {
     let now = env.block.time;
-    let invoker = String::from(MAIN_WALLET);
-    let address = deps.api.addr_validate(invoker.clone().as_str())?;
-
-    //Check if the sender (one who is executing this contract) is main
-    if address != info.sender {
+    let config = TOKEN_INFO.load(deps.storage)?;
+    //Check if the sender (one who is executing this contract) is minter
+    if config.mint.is_none() || config.mint.as_ref().unwrap().minter != info.sender {
         return Err(ContractError::Unauthorized {});
     }
+
+    let address = config.mint.as_ref().unwrap().minter.clone();
 
     // Fetch all tokens that can be vested as per vesting logic
     let vested_details = populate_vesting_details(&deps, now)?;
@@ -824,7 +728,8 @@ fn periodically_calculate_vesting(
             if spender_addr == info.sender {
                 return Err(ContractError::CannotSetOwnAccount {});
             }
-            let category_address = elem.clone().category_address.unwrap_or_default();
+            //TODO: Will fail here
+            let category_address = elem.clone().parent_category_address.unwrap_or_default();
             let owner_addr = deps.api.addr_validate(&category_address)?;
             let key = (&owner_addr, &spender_addr);
             let allowance = ALLOWANCES.load(deps.storage, key);
@@ -927,16 +832,38 @@ fn populate_transfer_details(
     deps: &DepsMut,
     now: Timestamp,
 ) -> Result<Vec<VestingInfo>, ContractError> {
+    let vester_addresses: Vec<String> = VESTING_DETAILS
+        .keys(deps.storage, None, None, cosmwasm_std::Order::Ascending)
+        .map(|k| String::from_utf8(k).unwrap())
+        .collect();
+
     let mut distribution_details: Vec<VestingInfo> = Vec::new();
 
-    let ga_address = String::from(GAMIFIED_AIRDROP_WALLET);
-    let ga_vesting_info = calculate_vesting_for_now(deps, ga_address, now)?;
-    distribution_details.push(ga_vesting_info);
+    for addr in vester_addresses {
+        let wallet_address = deps.api.addr_validate(&addr)?;
+        let vested_detais = VESTING_DETAILS.may_load(deps.storage, &wallet_address);
+        match vested_detais {
+            Ok(vested_detais) => {
+                let vd = vested_detais.unwrap();
+                if vd.should_transfer {
+                    let vesting_info = calculate_tokens_for_this_period(wallet_address, now, vd)?;
+                    if vesting_info.amount.u128() > 0 {
+                        distribution_details.push(vesting_info);
+                    }
+                }
+            }
+            Err(_) => {}
+        }
+    }
+
+    // let ga_address = String::from(GAMIFIED_AIRDROP_WALLET);
+    // let ga_vesting_info = calculate_vesting_for_now(deps, ga_address, now)?;
+    // distribution_details.push(ga_vesting_info);
 
     //Tokens to be transferred to Private Sale wallet
-    let ps_address = String::from(PRIVATE_SALE_WALLET);
-    let ps_vesting_info = calculate_vesting_for_now(deps, ps_address, now)?;
-    distribution_details.push(ps_vesting_info);
+    // let ps_address = String::from(PRIVATE_SALE_WALLET);
+    // let ps_vesting_info = calculate_vesting_for_now(deps, ps_address, now)?;
+    // distribution_details.push(ps_vesting_info);
     Ok(distribution_details)
 }
 
@@ -944,36 +871,57 @@ fn populate_vesting_details(
     deps: &DepsMut,
     now: Timestamp,
 ) -> Result<Vec<VestingInfo>, ContractError> {
+    let vester_addresses: Vec<String> = VESTING_DETAILS
+        .keys(deps.storage, None, None, cosmwasm_std::Order::Ascending)
+        .map(|k| String::from_utf8(k).unwrap())
+        .collect();
+
     let mut distribution_details: Vec<VestingInfo> = Vec::new();
 
-    // For Nitin
-    let nitin_address = String::from(NITIN_WALLET);
-    let nitin_vesting_info = calculate_vesting_for_now(deps, nitin_address, now)?;
-    if nitin_vesting_info.amount.u128() > 0 {
-        distribution_details.push(nitin_vesting_info);
+    for addr in vester_addresses {
+        let wallet_address = deps.api.addr_validate(&addr)?;
+        let vested_detais = VESTING_DETAILS.may_load(deps.storage, &wallet_address);
+        match vested_detais {
+            Ok(vested_detais) => {
+                let vd = vested_detais.unwrap();
+                if !vd.should_transfer {
+                    let vesting_info = calculate_tokens_for_this_period(wallet_address, now, vd)?;
+                    if vesting_info.amount.u128() > 0 {
+                        distribution_details.push(vesting_info);
+                    }
+                }
+            }
+            Err(_) => {}
+        }
     }
 
-    // For Ajay
-    let ajay_address = String::from(AJAY_WALLET);
-    let ajay_vesting_info = calculate_vesting_for_now(deps, ajay_address, now)?;
-    if ajay_vesting_info.amount.u128() > 0 {
-        distribution_details.push(ajay_vesting_info);
-    }
+    // // For Nitin
+    // let nitin_address = String::from(NITIN_WALLET);
+    // let nitin_vesting_info = calculate_vesting_for_now(deps, nitin_address, now)?;
+    // if nitin_vesting_info.amount.u128() > 0 {
+    //     distribution_details.push(nitin_vesting_info);
+    // }
 
-    // For Sameer
-    let sameer_address = String::from(SAMEER_WALLET);
-    let sameer_vesting_info = calculate_vesting_for_now(deps, sameer_address, now)?;
-    if sameer_vesting_info.amount.u128() > 0 {
-        distribution_details.push(sameer_vesting_info);
-    }
+    // // For Ajay
+    // let ajay_address = String::from(AJAY_WALLET);
+    // let ajay_vesting_info = calculate_vesting_for_now(deps, ajay_address, now)?;
+    // if ajay_vesting_info.amount.u128() > 0 {
+    //     distribution_details.push(ajay_vesting_info);
+    // }
 
+    // // For Sameer
+    // let sameer_address = String::from(SAMEER_WALLET);
+    // let sameer_vesting_info = calculate_vesting_for_now(deps, sameer_address, now)?;
+    // if sameer_vesting_info.amount.u128() > 0 {
+    //     distribution_details.push(sameer_vesting_info);
+    // }
     Ok(distribution_details)
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct VestingInfo {
     pub spender_address: String,
-    pub category_address: Option<String>,
+    pub parent_category_address: Option<String>,
     pub amount: Uint128,
 }
 
@@ -1067,7 +1015,7 @@ fn calculate_tokens_for_this_period(
         // println!("tokens_for_this_period = {}", tokens_for_this_period);
         //add the initial seed if cliff period is over
         if now_seconds >= (vesting_start_seconds + (vd.cliff_period * 30 * 24 * 60 * 60)) {
-            tokens_for_this_period += (vd.initial_vesting_count - vd.initial_vesting_consumed);
+            tokens_for_this_period += vd.initial_vesting_count - vd.initial_vesting_consumed;
             // println!(
             //     "tokens_for_this_period after adding= {}",
             //     tokens_for_this_period
@@ -1075,7 +1023,7 @@ fn calculate_tokens_for_this_period(
         }
         Ok(VestingInfo {
             spender_address: wallet_address.to_string(),
-            category_address: vd.category_address,
+            parent_category_address: vd.parent_category_address,
             amount: tokens_for_this_period,
         })
     } else {
@@ -1226,6 +1174,7 @@ mod tests {
             }],
             mint: mint.clone(),
             marketing: None,
+            vesting: None,
         };
         let info = mock_info("creator", &[]);
         let env = mock_env();
@@ -1266,6 +1215,7 @@ mod tests {
                 }],
                 mint: None,
                 marketing: None,
+                vesting: None,
             };
             let info = mock_info("creator", &[]);
             let env = mock_env();
@@ -1306,6 +1256,7 @@ mod tests {
                     cap: Some(limit),
                 }),
                 marketing: None,
+                vesting: None,
             };
             let info = mock_info("creator", &[]);
             let env = mock_env();
@@ -1353,6 +1304,7 @@ mod tests {
                     cap: Some(limit),
                 }),
                 marketing: None,
+                vesting: None,
             };
             let info = mock_info("creator", &[]);
             let env = mock_env();
@@ -1381,6 +1333,7 @@ mod tests {
                         marketing: Some("marketing".to_owned()),
                         logo: Some(Logo::Url("url".to_owned())),
                     }),
+                    vesting: None,
                 };
 
                 let info = mock_info("creator", &[]);
@@ -1421,6 +1374,7 @@ mod tests {
                         marketing: Some("m".to_owned()),
                         logo: Some(Logo::Url("url".to_owned())),
                     }),
+                    vesting: None,
                 };
 
                 let info = mock_info("creator", &[]);
@@ -1543,6 +1497,7 @@ mod tests {
             ],
             mint: None,
             marketing: None,
+            vesting: None,
         };
         let info = mock_info("creator", &[]);
         let env = mock_env();
@@ -1800,6 +1755,7 @@ mod tests {
                     marketing: Some("marketing".to_owned()),
                     logo: Some(Logo::Url("url".to_owned())),
                 }),
+                vesting: None,
             };
 
             let info = mock_info("creator", &[]);
@@ -1854,6 +1810,7 @@ mod tests {
                     marketing: Some("creator".to_owned()),
                     logo: Some(Logo::Url("url".to_owned())),
                 }),
+                vesting: None,
             };
 
             let info = mock_info("creator", &[]);
@@ -1907,6 +1864,7 @@ mod tests {
                     marketing: Some("creator".to_owned()),
                     logo: Some(Logo::Url("url".to_owned())),
                 }),
+                vesting: None,
             };
 
             let info = mock_info("creator", &[]);
@@ -1960,6 +1918,7 @@ mod tests {
                     marketing: Some("creator".to_owned()),
                     logo: Some(Logo::Url("url".to_owned())),
                 }),
+                vesting: None,
             };
 
             let info = mock_info("creator", &[]);
@@ -2013,6 +1972,7 @@ mod tests {
                     marketing: Some("creator".to_owned()),
                     logo: Some(Logo::Url("url".to_owned())),
                 }),
+                vesting: None,
             };
 
             let info = mock_info("creator", &[]);
@@ -2066,6 +2026,7 @@ mod tests {
                     marketing: Some("creator".to_owned()),
                     logo: Some(Logo::Url("url".to_owned())),
                 }),
+                vesting: None,
             };
 
             let info = mock_info("creator", &[]);
@@ -2119,6 +2080,7 @@ mod tests {
                     marketing: Some("creator".to_owned()),
                     logo: Some(Logo::Url("url".to_owned())),
                 }),
+                vesting: None,
             };
 
             let info = mock_info("creator", &[]);
@@ -2176,6 +2138,7 @@ mod tests {
                     marketing: Some("creator".to_owned()),
                     logo: Some(Logo::Url("url".to_owned())),
                 }),
+                vesting: None,
             };
 
             let info = mock_info("creator", &[]);
@@ -2229,6 +2192,7 @@ mod tests {
                     marketing: Some("creator".to_owned()),
                     logo: Some(Logo::Url("url".to_owned())),
                 }),
+                vesting: None,
             };
 
             let info = mock_info("creator", &[]);
@@ -2278,6 +2242,7 @@ mod tests {
                     marketing: Some("creator".to_owned()),
                     logo: Some(Logo::Url("url".to_owned())),
                 }),
+                vesting: None,
             };
 
             let info = mock_info("creator", &[]);
@@ -2328,6 +2293,7 @@ mod tests {
                     marketing: Some("creator".to_owned()),
                     logo: Some(Logo::Url("url".to_owned())),
                 }),
+                vesting: None,
             };
 
             let info = mock_info("creator", &[]);
@@ -2379,6 +2345,7 @@ mod tests {
                     marketing: Some("creator".to_owned()),
                     logo: Some(Logo::Url("url".to_owned())),
                 }),
+                vesting: None,
             };
 
             let info = mock_info("creator", &[]);
@@ -2429,6 +2396,7 @@ mod tests {
                     marketing: Some("creator".to_owned()),
                     logo: Some(Logo::Url("url".to_owned())),
                 }),
+                vesting: None,
             };
 
             let info = mock_info("creator", &[]);
@@ -2486,6 +2454,7 @@ mod tests {
                     marketing: Some("creator".to_owned()),
                     logo: Some(Logo::Url("url".to_owned())),
                 }),
+                vesting: None,
             };
 
             let info = mock_info("creator", &[]);
@@ -2536,6 +2505,7 @@ mod tests {
                     marketing: Some("creator".to_owned()),
                     logo: Some(Logo::Url("url".to_owned())),
                 }),
+                vesting: None,
             };
 
             let info = mock_info("creator", &[]);
@@ -2650,7 +2620,8 @@ mod tests {
             tokens_available_to_claim: Uint128::zero(),
             last_vesting_timestamp: None,
             cliff_period: 0, // in months
-            category_address: Some(category_address),
+            parent_category_address: Some(category_address),
+            should_transfer: true,
         };
     }
 

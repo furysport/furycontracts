@@ -210,7 +210,7 @@ fn claim_previous_owner_rewards(
     let previous_ownership_details;
     let previous_ownership_details_result =
         CLUB_PREVIOUS_OWNER_DETAILS.may_load(deps.storage, previous_owner.clone());
-    match previous_ownership_details_result {
+        match previous_ownership_details_result {
         Ok(od) => {
             previous_ownership_details = od;
         }
@@ -230,15 +230,11 @@ fn claim_previous_owner_rewards(
 
 				amount = previous_owner_detail.reward_amount;
 
-                // Now save the previous ownership details
-                CLUB_PREVIOUS_OWNER_DETAILS.save(
+                // Now remove the previous ownership details
+                CLUB_PREVIOUS_OWNER_DETAILS.remove(
                     deps.storage,
                     previous_owner.clone(),
-                    &ClubPreviousOwnerDetails {
-                        previous_owner_address: previous_owner_detail.previous_owner_address,
-                        reward_amount: Uint128::zero(),
-                    },
-                )?;
+                );
 
                 // Add amount to the owners wallet
                 transfer_confirmed = true;
@@ -377,6 +373,8 @@ fn buy_a_club(
             }));
     }
 
+    let buyer_addr = deps.api.addr_validate(&buyer)?;
+
     let ownership_details;
     let ownership_details_result = CLUB_OWNERSHIP_DETAILS.may_load(deps.storage, club_name.clone());
     match ownership_details_result {
@@ -411,16 +409,40 @@ fn buy_a_club(
                 return Err(ContractError::Std(StdError::GenericErr {
                     msg: String::from("Owner has not released the club"),
                 }));
-            } else if seller != "".to_string() && owner.owner_address != seller {
+            } else if owner.owner_address != "".to_string() && owner.owner_address != seller {
                 return Err(ContractError::Std(StdError::GenericErr {
                     msg: String::from("Seller is not the owner for the club"),
                 }));
             }
+
+            // Evaluate previous owner rewards
             previous_owners_reward_amount = owner.reward_amount;
+            println!("prv own amount picked {:?}",previous_owners_reward_amount);
+            let mut previous_reward = Uint128::zero();
+            println!("prv own amount avl {:?}",previous_owners_reward_amount);
+            if previous_owners_reward_amount != Uint128::zero() {
+                let pod = CLUB_PREVIOUS_OWNER_DETAILS.may_load(deps.storage, seller.clone())?;
+                match pod {
+                    Some(pod) => {
+                        previous_reward = pod.reward_amount;
+                        println!("prv own existing reward {:?}",previous_reward);
+                    }
+                    None => {} 
+                }
+
+                // Now save the previous ownership details
+                CLUB_PREVIOUS_OWNER_DETAILS.save(
+                    deps.storage,
+                    seller.clone(),
+                    &ClubPreviousOwnerDetails {
+                        previous_owner_address: seller.clone(),
+                        reward_amount: previous_reward + previous_owners_reward_amount,
+                    },
+                )?;
+            }
         }
     }
 
-    let buyer_addr = deps.api.addr_validate(&buyer)?;
 
     // Now save the ownership details
     CLUB_OWNERSHIP_DETAILS.save(
@@ -436,27 +458,6 @@ fn buy_a_club(
             owner_released: false,
         },
     )?;
-
-    if seller != "".to_string() && previous_owners_reward_amount != Uint128::zero() {
-        let mut previous_reward = Uint128::zero();
-		let pod = CLUB_PREVIOUS_OWNER_DETAILS.may_load(deps.storage, seller.clone())?;
-		match pod {
-			Some(pod) => {
-				previous_reward = pod.reward_amount;
-			}
-			None => {} 
-		}
-
-        // Now save the previous ownership details
-        CLUB_PREVIOUS_OWNER_DETAILS.save(
-            deps.storage,
-            seller.clone(),
-            &ClubPreviousOwnerDetails {
-                previous_owner_address: seller.clone(),
-                reward_amount: previous_reward + previous_owners_reward_amount,
-            },
-        )?;
-    }
 
     let config = CONFIG.load(deps.storage)?;
 
@@ -1228,9 +1229,13 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
             to_binary(&query_club_ownership_details_for_owner(deps.storage, owner_address)?)
         }
         QueryMsg::AllStakes {} => to_binary(&query_all_stakes(deps.storage)?),
-        QueryMsg::AllStakesForUser { user_address } => to_binary(&query_all_stakes_for_user(deps.storage, user_address)?),
+        QueryMsg::AllStakesForUser { user_address } => {
+            to_binary(&query_all_stakes_for_user(deps.storage, user_address)?)
+        }
         QueryMsg::AllBonds {} => to_binary(&query_all_bonds(deps.storage)?),
-        QueryMsg::AllBondsForUser { user_address } => to_binary(&query_all_bonds_for_user(deps.storage, user_address)?),
+        QueryMsg::ClubBondingDetailsForUser { user_address, club_name } => {
+            to_binary(&query_club_bonding_details_for_user(deps.storage, user_address, club_name)?)
+        }
         QueryMsg::GetClubRankingByStakes {} => {
             to_binary(&get_clubs_ranking_by_stakes(deps.storage)?)
         }
@@ -1253,6 +1258,7 @@ pub fn query_club_bonding_details(
     storage: &dyn Storage,
     club_name: String,
 ) -> StdResult<Vec<ClubBondingDetails>> {
+    println!("club {:?}", club_name);
     let csd = CLUB_BONDING_DETAILS.may_load(storage, club_name)?;
     match csd {
         Some(csd) => return Ok(csd),
@@ -1361,26 +1367,53 @@ pub fn query_all_stakes_for_user(
     return Ok(all_stakes);
 }
 
-pub fn query_all_bonds_for_user(
+pub fn query_club_bonding_details_for_user(
     storage: &dyn Storage,
+    club_name: String,
     user_address: String,
-) 
--> StdResult<Vec<ClubBondingDetails>> {
-    let mut all_bonds = Vec::new();
-    let all_clubs: Vec<String> = CLUB_BONDING_DETAILS
-        .keys(storage, None, None, Order::Ascending)
-        .map(|k| String::from_utf8(k).unwrap())
-        .collect();
-    for club_name in all_clubs {
-        let bonding_details = CLUB_BONDING_DETAILS.load(storage, club_name)?;
-        for bond in bonding_details {
-            if bond.bonder_address == user_address {
-                all_bonds.push(bond);
+) -> StdResult<Vec<ClubBondingDetails>> {
+    let mut bonds: Vec<ClubBondingDetails> = Vec::new();
+    let cbd = CLUB_BONDING_DETAILS.may_load(storage, club_name)?;
+    match cbd {
+        Some(cbd) => {
+                bonds = cbd;
             }
+        None => return Err(StdError::generic_err("No bonding details found")),
+    };
+    let mut all_bonds = Vec::new();
+    for bond in bonds {
+        if bond.bonder_address == user_address {
+            all_bonds.push(bond);
         }
     }
     return Ok(all_bonds);
 }
+
+// ) 
+// -> StdResult<Vec<ClubBondingDetails>> {
+//     let mut all_bonds = Vec::new();
+//     let all_clubs: Vec<String> = CLUB_BONDING_DETAILS
+//         .keys(storage, None, None, Order::Ascending)
+//         .map(|k| String::from_utf8(k).unwrap())
+//         .collect();
+//     for club_name in all_clubs {
+//         let bonding_details = CLUB_BONDING_DETAILS.load(storage, club_name)?;
+//         for bond in bonding_details {
+//             all_bonds.push(bond);
+//         }
+//     }
+//     return Ok(all_bonds);
+
+    // let mut all_bonds = Vec::new();
+    // let bonding_details = CLUB_BONDING_DETAILS.load(storage, club_name.to_string())?;
+    // for bond in bonding_details {
+    //     if true { //bond.bonder_address == user_address {
+    //         all_bonds.push(bond);
+    //     }
+    // }
+    // return Ok(all_bonds);
+// }
+
 
 pub fn query_all_club_ownership_details(
 	storage: &dyn Storage
@@ -1671,7 +1704,7 @@ mod tests {
             }
         }
     }
-    */
+    
 
     #[test]
     fn test_releasing_of_club_after_locking_period() {
@@ -1759,6 +1792,7 @@ mod tests {
             }
         }
     }
+    */
 
     #[test]
     fn test_buying_of_club_after_releasing_by_prev_owner() {
@@ -2029,19 +2063,12 @@ mod tests {
             "Owner001".to_string(),
         );
         let queryPrevOwnerDetailsAfterRewardClaim =
-            query_club_previous_owner_details(&mut deps.storage, "Owner001".to_string());
-        match queryPrevOwnerDetailsAfterRewardClaim {
-            Ok(pod) => {
-                println!("after - owner:{:?}, reward {:?}",pod.previous_owner_address,pod.reward_amount);
-                assert_eq!(pod.previous_owner_address, "Owner001".to_string());
-                assert_eq!(pod.reward_amount, Uint128::from(0u128));
-            }
-            Err(e) => {
-                println!("error parsing cpod header: {:?}", e);
-                assert_eq!(1, 2);
-            }
-        }
-        
+            query_club_previous_owner_details(&mut deps.storage, "Owner001".to_string())
+            .unwrap_err();
+        assert_eq!(queryPrevOwnerDetailsAfterRewardClaim, (StdError::GenericErr {
+            msg: String::from("No previous ownership details found")}));
+
+
         println!("pod:\n {:?}",query_all_previous_club_ownership_details(&mut deps.storage));
 
         //assert_eq!(1, 2);
@@ -2426,6 +2453,42 @@ mod tests {
                         && bond.bonded_amount != Uint128::from(12u128)
                         && bond.bonded_amount != Uint128::from(13u128)
                         && bond.bonded_amount != Uint128::from(63u128)
+                    {
+                        println!("bond is {:?} ", bond);
+                        assert_eq!(1, 2);
+                    }
+                }
+            }
+            Err(e) => {
+                println!("error parsing header: {:?}", e);
+                assert_eq!(1, 2);
+            }
+        }
+        let stakerInfo = mock_info("Staker0002", &[coin(10, "stake")]);
+        stake_on_a_club(
+            deps.as_mut(),
+            mock_env(),
+            mintingContractInfo.clone(),
+            "Staker0002".to_string(),
+            "CLUB001".to_string(),
+            Uint128::from(99u128),
+        );
+        withdraw_stake_from_a_club(
+            deps.as_mut(),
+            mock_env(),
+            stakerInfo.clone(),
+            "Staker0002".to_string(),
+            "CLUB001".to_string(),
+            Uint128::from(11u128),
+            NO_IMMEDIATE_WITHDRAWAL,
+        );
+        
+        let queryBonds = query_club_bonding_details_for_user(&mut deps.storage, "CLUB001".to_string(), "Staker0002".to_string());
+        match queryBonds {
+            Ok(all_bonds) => {
+                assert_eq!(all_bonds.len(), 1);
+                for bond in all_bonds {
+                    if bond.bonded_amount != Uint128::from(11u128)
                     {
                         println!("bond is {:?} ", bond);
                         assert_eq!(1, 2);
