@@ -7,9 +7,9 @@ use cosmwasm_std::{
 
 use cw2::set_contract_version;
 use cw20::{
-    AllowanceResponse, BalanceResponse, Cw20Coin, Cw20ReceiveMsg, DownloadLogoResponse,
-    EmbeddedLogo, Expiration, Logo, LogoInfo, MarketingInfoResponse, MinterResponse,
-    TokenInfoResponse,
+    AllowanceResponse, BalanceResponse, Cw20Coin, Cw20ExecuteMsg, Cw20ReceiveMsg,
+    DownloadLogoResponse, EmbeddedLogo, Expiration, Logo, LogoInfo, MarketingInfoResponse,
+    MinterResponse, TokenInfoResponse,
 };
 
 use crate::allowances::{
@@ -18,7 +18,7 @@ use crate::allowances::{
 };
 use crate::enumerable::{query_all_accounts, query_all_allowances};
 use crate::error::ContractError;
-use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use crate::msg::{InstantiateMsg, InstantiateVestingSchedulesInfo, QueryMsg};
 use crate::state::{
     MinterData, TokenInfo, VestingDetails, ALLOWANCES, BALANCES, LOGO, MARKETING_INFO, TOKEN_INFO,
     VESTING_DETAILS,
@@ -38,11 +38,11 @@ const ADVISOR_WALLET: &str = "terra19rgzfvlvq0f82zyy4k7whrur8x9wnpfcj5j9g7";
 
 const PRIVATE_SALE_WALLET: &str = "terra1k20rlfj3ea47zjr2sp672qqscck5k5mf3uersq";
 
-const NITIN_WALLET: &str = "terra193c5g5u7s8kvdkzsn4rdkkyfgnp95rv9tcsvqt";
+const NITIN_WALLET: &str = "terra149l9z45ph4nv2mq532dhkmqu0028ylt837mtrd";
 
-const AJAY_WALLET: &str = "terra1jlzr5wgfswz965ppwaqvlqazhyhechk27d3hka";
+const AJAY_WALLET: &str = "terra1c96d2lrj6xyedf05k5z43x5cumx2nm7fv48zxy";
 
-const SAMEER_WALLET: &str = "terra1fyjvuhnndqemuv0mw0ry85lz9ku9dydgcd7ju0";
+const SAMEER_WALLET: &str = "terra1tu2tgckr8cw8qeqlpzq4e7y5ftfh9jal2jc83k";
 
 /// Checks if data starts with XML preamble
 fn verify_xml_preamble(data: &[u8]) -> Result<(), ContractError> {
@@ -167,7 +167,7 @@ pub fn instantiate(
         MARKETING_INFO.save(deps.storage, &data)?;
     }
 
-    instantiate_category_vesting_schedules(deps, env)?;
+    instantiate_category_vesting_schedules(deps, env, msg.vesting)?;
 
     Ok(Response::default())
 }
@@ -175,144 +175,38 @@ pub fn instantiate(
 fn instantiate_category_vesting_schedules(
     deps: DepsMut,
     env: Env,
+    vesting: Option<InstantiateVestingSchedulesInfo>,
 ) -> Result<Response, ContractError> {
-    let vesting_start_timestamp = env.block.time;
-    let ga_address = deps.api.addr_validate(GAMIFIED_AIRDROP_WALLET)?;
-    let ga_vesting_details = VestingDetails {
-        vesting_start_timestamp: vesting_start_timestamp,
-        initial_vesting_count: Uint128::from(3_950_000_000_000u128),
-        initial_vesting_consumed: Uint128::zero(),
-        // vesting_periodicity: 5 * 60, // (every 5 minutes)
-        vesting_periodicity: 24 * 60 * 60, // (daily)
-        vesting_count_per_period: Uint128::from(69_490_740_740u128),
-        total_vesting_token_count: Uint128::from(79_000_000_000_000u128),
-        total_claimed_tokens_till_now: Uint128::zero(),
-        last_claimed_timestamp: None,
-        tokens_available_to_claim: Uint128::zero(),
-        last_vesting_timestamp: None,
-        cliff_period: 0,
-        category_address: None,
-    };
-    VESTING_DETAILS.save(deps.storage, &ga_address, &ga_vesting_details)?;
-
-    //Save vesting details for advisors
-    let advisors_address = deps.api.addr_validate(ADVISOR_WALLET)?;
-    let advisors_vesting_details = VestingDetails {
-        vesting_start_timestamp: vesting_start_timestamp,
-        initial_vesting_count: Uint128::zero(),
-        initial_vesting_consumed: Uint128::zero(),
-        // vesting_periodicity: 5 * 60, // (every 5 minutes) 
-        vesting_periodicity: 24 * 60 * 60, // (daily)
-        vesting_count_per_period: Uint128::from(40_833_333_333u128),
-        total_vesting_token_count: Uint128::from(14_700_000_000_000u128),
-        total_claimed_tokens_till_now: Uint128::zero(),
-        last_claimed_timestamp: None,
-        tokens_available_to_claim: Uint128::zero(),
-        last_vesting_timestamp: None,
-        cliff_period: 4,
-        category_address: None,
-    };
-    VESTING_DETAILS.save(deps.storage, &advisors_address, &advisors_vesting_details)?;
-
-    //Save vesting details for Private Sale
-    let priv_sale_address = deps.api.addr_validate(PRIVATE_SALE_WALLET)?;
-    let priv_sale_vesting_details = VestingDetails {
-        vesting_start_timestamp: vesting_start_timestamp,
-        initial_vesting_count: Uint128::from(4_200_000_000_000u128),
-        initial_vesting_consumed: Uint128::zero(),
-        // vesting_periodicity: 5 * 60, // (every 5 minutes)
-        vesting_periodicity: 24 * 60 * 60, //24 * 60 * 60, //daily
-        vesting_count_per_period: Uint128::from(210_000_000_000u128),
-        total_vesting_token_count: Uint128::from(42_000_000_000_000u128),
-        total_claimed_tokens_till_now: Uint128::zero(),
-        last_claimed_timestamp: None,
-        tokens_available_to_claim: Uint128::zero(),
-        last_vesting_timestamp: None,
-        cliff_period: 0,
-        category_address: None,
-    };
-    VESTING_DETAILS.save(deps.storage, &priv_sale_address, &priv_sale_vesting_details)?;
-
-    instantiate_sub_category_vesting_schedules(
-        deps,
-        env,
-        vec![
-            (
-                PRIVATE_SALE_WALLET, //private-sale
-                NITIN_WALLET,        //nitin-wallet
-                Uint128::from(16_800_000_000_000u128),
-            ),
-            (
-                PRIVATE_SALE_WALLET, //private-sale
-                AJAY_WALLET,         //ajay-wallet
-                Uint128::from(12_600_000_000_000u128),
-            ),
-            (
-                PRIVATE_SALE_WALLET, //private-sale
-                SAMEER_WALLET,       //sameer-wallet
-                Uint128::from(12_600_000_000_000u128),
-            ),
-        ],
-    )?;
-
-    Ok(Response::default())
-}
-
-fn instantiate_sub_category_vesting_schedules(
-    deps: DepsMut,
-    env: Env,
-    investors: Vec<(&str, &str, Uint128)>,
-) -> Result<Response, ContractError> {
-    for investor in investors {
-        //Check if the amount is greater than zero
-        if investor.2 > Uint128::zero() {
-            //Get the category address
-            let category_address = deps.api.addr_validate(investor.0)?;
-            //Get the category vesting details
-            let cat_vesting_details = VESTING_DETAILS.may_load(deps.storage, &category_address)?;
-            match cat_vesting_details {
-                Some(cvd) => {
-                    // Get the investor address.
-                    let address = deps.api.addr_validate(investor.1)?;
-                    let investment = investor.2;
-                    let category_max_amount = cvd.total_vesting_token_count;
-                    let sub_cat_vesting_details = VestingDetails {
-                        vesting_start_timestamp: cvd.vesting_start_timestamp,
-                        initial_vesting_count: cvd
-                            .initial_vesting_count
-                            .checked_mul(investment)
-                            .unwrap()
-                            .checked_div(category_max_amount)
-                            .unwrap(),
-                        initial_vesting_consumed: Uint128::zero(),
-                        vesting_periodicity: cvd.vesting_periodicity,
-                        vesting_count_per_period: cvd
-                            .vesting_count_per_period
-                            .checked_mul(investment)
-                            .unwrap()
-                            .checked_div(category_max_amount)
-                            .unwrap(),
-                        total_vesting_token_count: investment,
-                        total_claimed_tokens_till_now: Uint128::zero(),
-                        last_claimed_timestamp: None,
-                        tokens_available_to_claim: Uint128::zero(),
-                        last_vesting_timestamp: None,
-                        cliff_period: cvd.cliff_period,
-                        category_address: Some(String::from(investor.0)),
-                    };
-                    VESTING_DETAILS.save(deps.storage, &address, &sub_cat_vesting_details)?;
+    match vesting {
+        Some(vesting_info) => {
+            for schedule in vesting_info.vesting_schedules {
+                let mut parent_cat_addr = None;
+                if !schedule.parent_category_address.is_empty() {
+                    parent_cat_addr = Some(schedule.parent_category_address);
                 }
-                None => {
-                    let mut err_msg = String::from("No vesting details found for address ");
-                    err_msg.push_str(investor.0);
-                    return Err(ContractError::Std(StdError::NotFound {
-                        kind: String::from(err_msg),
-                    }));
-                }
-            };
-        };
+                let vesting_start_timestamp = env.block.time;
+                let address = deps.api.addr_validate(schedule.address.as_str())?;
+                let vesting_details = VestingDetails {
+                    vesting_start_timestamp: vesting_start_timestamp,
+                    initial_vesting_count: schedule.initial_vesting_count,
+                    initial_vesting_consumed: Uint128::zero(),
+                    vesting_periodicity: schedule.vesting_periodicity,
+                    vesting_count_per_period: schedule.vesting_count_per_period,
+                    total_vesting_token_count: schedule.total_vesting_token_count,
+                    total_claimed_tokens_till_now: Uint128::zero(),
+                    last_claimed_timestamp: None,
+                    tokens_available_to_claim: Uint128::zero(),
+                    last_vesting_timestamp: None,
+                    cliff_period: schedule.cliff_period,
+                    parent_category_address: parent_cat_addr,
+                    should_transfer: schedule.should_transfer,
+                };
+                VESTING_DETAILS.save(deps.storage, &address, &vesting_details)?;
+            }
+            Ok(Response::default())
+        }
+        None => Ok(Response::default()),
     }
-    Ok(Response::default())
 }
 
 pub fn create_accounts(deps: &mut DepsMut, accounts: &[Cw20Coin]) -> StdResult<Uint128> {
@@ -330,54 +224,60 @@ pub fn execute(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    msg: ExecuteMsg,
+    msg: Cw20ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
-        ExecuteMsg::Transfer { recipient, amount } => {
+        Cw20ExecuteMsg::Transfer { recipient, amount } => {
             execute_transfer(deps, env, info, recipient, amount)
         }
-        ExecuteMsg::Burn { amount } => execute_burn(deps, env, info, amount),
-        ExecuteMsg::Send {
+        Cw20ExecuteMsg::Burn { amount } => execute_burn(deps, env, info, amount),
+        Cw20ExecuteMsg::Send {
             contract,
             amount,
             msg,
         } => execute_send(deps, env, info, contract, amount, msg),
-        ExecuteMsg::Mint { recipient, amount } => execute_mint(deps, env, info, recipient, amount),
-        ExecuteMsg::IncreaseAllowance {
+        Cw20ExecuteMsg::Mint { recipient, amount } => {
+            execute_mint(deps, env, info, recipient, amount)
+        }
+        Cw20ExecuteMsg::IncreaseAllowance {
             spender,
             amount,
             expires,
         } => execute_increase_allowance(deps, env, info, spender, amount, expires),
-        ExecuteMsg::DecreaseAllowance {
+        Cw20ExecuteMsg::DecreaseAllowance {
             spender,
             amount,
             expires,
         } => execute_decrease_allowance(deps, env, info, spender, amount, expires),
-        ExecuteMsg::TransferFrom {
+        Cw20ExecuteMsg::TransferFrom {
             owner,
             recipient,
             amount,
         } => execute_transfer_from(deps, env, info, owner, recipient, amount),
-        ExecuteMsg::BurnFrom { owner, amount } => execute_burn_from(deps, env, info, owner, amount),
-        ExecuteMsg::SendFrom {
+        Cw20ExecuteMsg::BurnFrom { owner, amount } => {
+            execute_burn_from(deps, env, info, owner, amount)
+        }
+        Cw20ExecuteMsg::SendFrom {
             owner,
             contract,
             amount,
             msg,
         } => execute_send_from(deps, env, info, owner, contract, amount, msg),
-        ExecuteMsg::UpdateMarketing {
+        Cw20ExecuteMsg::UpdateMarketing {
             project,
             description,
             marketing,
         } => execute_update_marketing(deps, env, info, project, description, marketing),
-        ExecuteMsg::UploadLogo(logo) => execute_upload_logo(deps, env, info, logo),
-        ExecuteMsg::PeriodicallyTransferToCategories {} => {
+        Cw20ExecuteMsg::UploadLogo(logo) => execute_upload_logo(deps, env, info, logo),
+        Cw20ExecuteMsg::PeriodicallyTransferToCategories {} => {
             periodically_transfer_to_categories(deps, env, info)
         }
-        ExecuteMsg::PeriodicallyCalculateVesting {} => {
+        Cw20ExecuteMsg::PeriodicallyCalculateVesting {} => {
             periodically_calculate_vesting(deps, env, info)
         }
-        ExecuteMsg::ClaimVestedTokens { amount } => claim_vested_tokens(deps, env, info, amount),
+        Cw20ExecuteMsg::ClaimVestedTokens { amount } => {
+            claim_vested_tokens(deps, env, info, amount)
+        }
     }
 }
 
@@ -625,14 +525,13 @@ fn periodically_transfer_to_categories(
 ) -> Result<Response, ContractError> {
     //capture the current system time
     let now = env.block.time;
-
-    let distribute_from = String::from(MAIN_WALLET);
-    let address = deps.api.addr_validate(distribute_from.clone().as_str())?;
-
-    //Check if the sender (one who is executing this contract) is main
-    if address != info.sender {
+    let config = TOKEN_INFO.load(deps.storage)?;
+    //Check if the sender (one who is executing this contract) is minter
+    if config.mint.is_none() || config.mint.as_ref().unwrap().minter != info.sender {
         return Err(ContractError::Unauthorized {});
     }
+
+    let address = config.mint.as_ref().unwrap().minter.clone();
 
     // Fetch all tokens that can be distributed as per vesting logic
     let distribution_details = populate_transfer_details(&deps, now)?;
@@ -653,6 +552,7 @@ fn periodically_transfer_to_categories(
             total_transfer_amount,
         ))));
     }
+    let distribute_from = address.into_string();
     let mut attribs: Vec<Attribute> = Vec::new();
     for elem in distribution_details {
         // Transfer the funds
@@ -725,7 +625,7 @@ fn claim_vested_tokens(
     let vd = VESTING_DETAILS.may_load(deps.storage, &info.sender)?;
     match vd {
         Some(vd) => {
-            let owner_addr_str = vd.category_address;
+            let owner_addr_str = vd.parent_category_address;
             match owner_addr_str {
                 Some(owner_addr_str) => {
                     let owner_addr = deps.api.addr_validate(&owner_addr_str)?;
@@ -795,13 +695,13 @@ fn periodically_calculate_vesting(
     info: MessageInfo,
 ) -> Result<Response, ContractError> {
     let now = env.block.time;
-    let invoker = String::from(MAIN_WALLET);
-    let address = deps.api.addr_validate(invoker.clone().as_str())?;
-
-    //Check if the sender (one who is executing this contract) is main
-    if address != info.sender {
+    let config = TOKEN_INFO.load(deps.storage)?;
+    //Check if the sender (one who is executing this contract) is minter
+    if config.mint.is_none() || config.mint.as_ref().unwrap().minter != info.sender {
         return Err(ContractError::Unauthorized {});
     }
+
+    let address = config.mint.as_ref().unwrap().minter.clone();
 
     // Fetch all tokens that can be vested as per vesting logic
     let vested_details = populate_vesting_details(&deps, now)?;
@@ -828,7 +728,8 @@ fn periodically_calculate_vesting(
             if spender_addr == info.sender {
                 return Err(ContractError::CannotSetOwnAccount {});
             }
-            let category_address = elem.clone().category_address.unwrap_or_default();
+            //TODO: Will fail here
+            let category_address = elem.clone().parent_category_address.unwrap_or_default();
             let owner_addr = deps.api.addr_validate(&category_address)?;
             let key = (&owner_addr, &spender_addr);
             let allowance = ALLOWANCES.load(deps.storage, key);
@@ -931,16 +832,38 @@ fn populate_transfer_details(
     deps: &DepsMut,
     now: Timestamp,
 ) -> Result<Vec<VestingInfo>, ContractError> {
+    let vester_addresses: Vec<String> = VESTING_DETAILS
+        .keys(deps.storage, None, None, cosmwasm_std::Order::Ascending)
+        .map(|k| String::from_utf8(k).unwrap())
+        .collect();
+
     let mut distribution_details: Vec<VestingInfo> = Vec::new();
 
-    let ga_address = String::from(GAMIFIED_AIRDROP_WALLET);
-    let ga_vesting_info = calculate_vesting_for_now(deps, ga_address, now)?;
-    distribution_details.push(ga_vesting_info);
+    for addr in vester_addresses {
+        let wallet_address = deps.api.addr_validate(&addr)?;
+        let vested_detais = VESTING_DETAILS.may_load(deps.storage, &wallet_address);
+        match vested_detais {
+            Ok(vested_detais) => {
+                let vd = vested_detais.unwrap();
+                if vd.should_transfer {
+                    let vesting_info = calculate_tokens_for_this_period(wallet_address, now, vd)?;
+                    if vesting_info.amount.u128() > 0 {
+                        distribution_details.push(vesting_info);
+                    }
+                }
+            }
+            Err(_) => {}
+        }
+    }
+
+    // let ga_address = String::from(GAMIFIED_AIRDROP_WALLET);
+    // let ga_vesting_info = calculate_vesting_for_now(deps, ga_address, now)?;
+    // distribution_details.push(ga_vesting_info);
 
     //Tokens to be transferred to Private Sale wallet
-    let ps_address = String::from(PRIVATE_SALE_WALLET);
-    let ps_vesting_info = calculate_vesting_for_now(deps, ps_address, now)?;
-    distribution_details.push(ps_vesting_info);
+    // let ps_address = String::from(PRIVATE_SALE_WALLET);
+    // let ps_vesting_info = calculate_vesting_for_now(deps, ps_address, now)?;
+    // distribution_details.push(ps_vesting_info);
     Ok(distribution_details)
 }
 
@@ -948,36 +871,57 @@ fn populate_vesting_details(
     deps: &DepsMut,
     now: Timestamp,
 ) -> Result<Vec<VestingInfo>, ContractError> {
+    let vester_addresses: Vec<String> = VESTING_DETAILS
+        .keys(deps.storage, None, None, cosmwasm_std::Order::Ascending)
+        .map(|k| String::from_utf8(k).unwrap())
+        .collect();
+
     let mut distribution_details: Vec<VestingInfo> = Vec::new();
 
-    // For Nitin
-    let nitin_address = String::from(NITIN_WALLET);
-    let nitin_vesting_info = calculate_vesting_for_now(deps, nitin_address, now)?;
-    if nitin_vesting_info.amount.u128() > 0 {
-        distribution_details.push(nitin_vesting_info);
+    for addr in vester_addresses {
+        let wallet_address = deps.api.addr_validate(&addr)?;
+        let vested_detais = VESTING_DETAILS.may_load(deps.storage, &wallet_address);
+        match vested_detais {
+            Ok(vested_detais) => {
+                let vd = vested_detais.unwrap();
+                if !vd.should_transfer {
+                    let vesting_info = calculate_tokens_for_this_period(wallet_address, now, vd)?;
+                    if vesting_info.amount.u128() > 0 {
+                        distribution_details.push(vesting_info);
+                    }
+                }
+            }
+            Err(_) => {}
+        }
     }
 
-    // For Ajay
-    let ajay_address = String::from(AJAY_WALLET);
-    let ajay_vesting_info = calculate_vesting_for_now(deps, ajay_address, now)?;
-    if ajay_vesting_info.amount.u128() > 0 {
-        distribution_details.push(ajay_vesting_info);
-    }
+    // // For Nitin
+    // let nitin_address = String::from(NITIN_WALLET);
+    // let nitin_vesting_info = calculate_vesting_for_now(deps, nitin_address, now)?;
+    // if nitin_vesting_info.amount.u128() > 0 {
+    //     distribution_details.push(nitin_vesting_info);
+    // }
 
-    // For Sameer
-    let sameer_address = String::from(SAMEER_WALLET);
-    let sameer_vesting_info = calculate_vesting_for_now(deps, sameer_address, now)?;
-    if sameer_vesting_info.amount.u128() > 0 {
-        distribution_details.push(sameer_vesting_info);
-    }
+    // // For Ajay
+    // let ajay_address = String::from(AJAY_WALLET);
+    // let ajay_vesting_info = calculate_vesting_for_now(deps, ajay_address, now)?;
+    // if ajay_vesting_info.amount.u128() > 0 {
+    //     distribution_details.push(ajay_vesting_info);
+    // }
 
+    // // For Sameer
+    // let sameer_address = String::from(SAMEER_WALLET);
+    // let sameer_vesting_info = calculate_vesting_for_now(deps, sameer_address, now)?;
+    // if sameer_vesting_info.amount.u128() > 0 {
+    //     distribution_details.push(sameer_vesting_info);
+    // }
     Ok(distribution_details)
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct VestingInfo {
     pub spender_address: String,
-    pub category_address: Option<String>,
+    pub parent_category_address: Option<String>,
     pub amount: Uint128,
 }
 
@@ -1071,7 +1015,7 @@ fn calculate_tokens_for_this_period(
         // println!("tokens_for_this_period = {}", tokens_for_this_period);
         //add the initial seed if cliff period is over
         if now_seconds >= (vesting_start_seconds + (vd.cliff_period * 30 * 24 * 60 * 60)) {
-            tokens_for_this_period += (vd.initial_vesting_count - vd.initial_vesting_consumed);
+            tokens_for_this_period += vd.initial_vesting_count - vd.initial_vesting_consumed;
             // println!(
             //     "tokens_for_this_period after adding= {}",
             //     tokens_for_this_period
@@ -1079,7 +1023,7 @@ fn calculate_tokens_for_this_period(
         }
         Ok(VestingInfo {
             spender_address: wallet_address.to_string(),
-            category_address: vd.category_address,
+            parent_category_address: vd.parent_category_address,
             amount: tokens_for_this_period,
         })
     } else {
@@ -1230,6 +1174,7 @@ mod tests {
             }],
             mint: mint.clone(),
             marketing: None,
+            vesting: None,
         };
         let info = mock_info("creator", &[]);
         let env = mock_env();
@@ -1270,6 +1215,7 @@ mod tests {
                 }],
                 mint: None,
                 marketing: None,
+                vesting: None,
             };
             let info = mock_info("creator", &[]);
             let env = mock_env();
@@ -1310,6 +1256,7 @@ mod tests {
                     cap: Some(limit),
                 }),
                 marketing: None,
+                vesting: None,
             };
             let info = mock_info("creator", &[]);
             let env = mock_env();
@@ -1357,6 +1304,7 @@ mod tests {
                     cap: Some(limit),
                 }),
                 marketing: None,
+                vesting: None,
             };
             let info = mock_info("creator", &[]);
             let env = mock_env();
@@ -1385,6 +1333,7 @@ mod tests {
                         marketing: Some("marketing".to_owned()),
                         logo: Some(Logo::Url("url".to_owned())),
                     }),
+                    vesting: None,
                 };
 
                 let info = mock_info("creator", &[]);
@@ -1425,6 +1374,7 @@ mod tests {
                         marketing: Some("m".to_owned()),
                         logo: Some(Logo::Url("url".to_owned())),
                     }),
+                    vesting: None,
                 };
 
                 let info = mock_info("creator", &[]);
@@ -1454,7 +1404,7 @@ mod tests {
         // minter can mint coins to some winner
         let winner = String::from("lucky");
         let prize = Uint128::new(222_222_222);
-        let msg = ExecuteMsg::Mint {
+        let msg = Cw20ExecuteMsg::Mint {
             recipient: winner.clone(),
             amount: prize,
         };
@@ -1467,7 +1417,7 @@ mod tests {
         assert_eq!(get_balance(deps.as_ref(), winner.clone()), prize);
 
         // but cannot mint nothing
-        let msg = ExecuteMsg::Mint {
+        let msg = Cw20ExecuteMsg::Mint {
             recipient: winner.clone(),
             amount: Uint128::zero(),
         };
@@ -1478,7 +1428,7 @@ mod tests {
 
         // but if it exceeds cap (even over multiple rounds), it fails
         // cap is enforced
-        let msg = ExecuteMsg::Mint {
+        let msg = Cw20ExecuteMsg::Mint {
             recipient: winner,
             amount: Uint128::new(333_222_222),
         };
@@ -1499,7 +1449,7 @@ mod tests {
             None,
         );
 
-        let msg = ExecuteMsg::Mint {
+        let msg = Cw20ExecuteMsg::Mint {
             recipient: String::from("lucky"),
             amount: Uint128::new(222),
         };
@@ -1514,7 +1464,7 @@ mod tests {
         let mut deps = mock_dependencies(&[]);
         do_instantiate(deps.as_mut(), &String::from("genesis"), Uint128::new(1234));
 
-        let msg = ExecuteMsg::Mint {
+        let msg = Cw20ExecuteMsg::Mint {
             recipient: String::from("lucky"),
             amount: Uint128::new(222),
         };
@@ -1547,6 +1497,7 @@ mod tests {
             ],
             mint: None,
             marketing: None,
+            vesting: None,
         };
         let info = mock_info("creator", &[]);
         let env = mock_env();
@@ -1617,7 +1568,7 @@ mod tests {
         // cannot transfer nothing
         let info = mock_info(addr1.as_ref(), &[]);
         let env = mock_env();
-        let msg = ExecuteMsg::Transfer {
+        let msg = Cw20ExecuteMsg::Transfer {
             recipient: addr2.clone(),
             amount: Uint128::zero(),
         };
@@ -1627,7 +1578,7 @@ mod tests {
         // cannot send more than we have
         let info = mock_info(addr1.as_ref(), &[]);
         let env = mock_env();
-        let msg = ExecuteMsg::Transfer {
+        let msg = Cw20ExecuteMsg::Transfer {
             recipient: addr2.clone(),
             amount: too_much,
         };
@@ -1637,7 +1588,7 @@ mod tests {
         // cannot send from empty account
         let info = mock_info(addr2.as_ref(), &[]);
         let env = mock_env();
-        let msg = ExecuteMsg::Transfer {
+        let msg = Cw20ExecuteMsg::Transfer {
             recipient: addr1.clone(),
             amount: transfer,
         };
@@ -1647,7 +1598,7 @@ mod tests {
         // valid transfer
         let info = mock_info(addr1.as_ref(), &[]);
         let env = mock_env();
-        let msg = ExecuteMsg::Transfer {
+        let msg = Cw20ExecuteMsg::Transfer {
             recipient: addr2.clone(),
             amount: transfer,
         };
@@ -1676,7 +1627,7 @@ mod tests {
         // cannot burn nothing
         let info = mock_info(addr1.as_ref(), &[]);
         let env = mock_env();
-        let msg = ExecuteMsg::Burn {
+        let msg = Cw20ExecuteMsg::Burn {
             amount: Uint128::zero(),
         };
         let err = execute(deps.as_mut(), env, info, msg).unwrap_err();
@@ -1689,7 +1640,7 @@ mod tests {
         // cannot burn more than we have
         let info = mock_info(addr1.as_ref(), &[]);
         let env = mock_env();
-        let msg = ExecuteMsg::Burn { amount: too_much };
+        let msg = Cw20ExecuteMsg::Burn { amount: too_much };
         let err = execute(deps.as_mut(), env, info, msg).unwrap_err();
         assert!(matches!(err, ContractError::Std(StdError::Overflow { .. })));
         assert_eq!(
@@ -1700,7 +1651,7 @@ mod tests {
         // valid burn reduces total supply
         let info = mock_info(addr1.as_ref(), &[]);
         let env = mock_env();
-        let msg = ExecuteMsg::Burn { amount: burn };
+        let msg = Cw20ExecuteMsg::Burn { amount: burn };
         let res = execute(deps.as_mut(), env, info, msg).unwrap();
         assert_eq!(res.messages.len(), 0);
 
@@ -1727,7 +1678,7 @@ mod tests {
         // cannot send nothing
         let info = mock_info(addr1.as_ref(), &[]);
         let env = mock_env();
-        let msg = ExecuteMsg::Send {
+        let msg = Cw20ExecuteMsg::Send {
             contract: contract.clone(),
             amount: Uint128::zero(),
             msg: send_msg.clone(),
@@ -1738,7 +1689,7 @@ mod tests {
         // cannot send more than we have
         let info = mock_info(addr1.as_ref(), &[]);
         let env = mock_env();
-        let msg = ExecuteMsg::Send {
+        let msg = Cw20ExecuteMsg::Send {
             contract: contract.clone(),
             amount: too_much,
             msg: send_msg.clone(),
@@ -1749,7 +1700,7 @@ mod tests {
         // valid transfer
         let info = mock_info(addr1.as_ref(), &[]);
         let env = mock_env();
-        let msg = ExecuteMsg::Send {
+        let msg = Cw20ExecuteMsg::Send {
             contract: contract.clone(),
             amount: transfer,
             msg: send_msg.clone(),
@@ -1804,6 +1755,7 @@ mod tests {
                     marketing: Some("marketing".to_owned()),
                     logo: Some(Logo::Url("url".to_owned())),
                 }),
+                vesting: None,
             };
 
             let info = mock_info("creator", &[]);
@@ -1814,7 +1766,7 @@ mod tests {
                 deps.as_mut(),
                 mock_env(),
                 info,
-                ExecuteMsg::UpdateMarketing {
+                Cw20ExecuteMsg::UpdateMarketing {
                     project: Some("New project".to_owned()),
                     description: Some("Better description".to_owned()),
                     marketing: Some("creator".to_owned()),
@@ -1858,6 +1810,7 @@ mod tests {
                     marketing: Some("creator".to_owned()),
                     logo: Some(Logo::Url("url".to_owned())),
                 }),
+                vesting: None,
             };
 
             let info = mock_info("creator", &[]);
@@ -1868,7 +1821,7 @@ mod tests {
                 deps.as_mut(),
                 mock_env(),
                 info,
-                ExecuteMsg::UpdateMarketing {
+                Cw20ExecuteMsg::UpdateMarketing {
                     project: Some("New project".to_owned()),
                     description: None,
                     marketing: None,
@@ -1911,6 +1864,7 @@ mod tests {
                     marketing: Some("creator".to_owned()),
                     logo: Some(Logo::Url("url".to_owned())),
                 }),
+                vesting: None,
             };
 
             let info = mock_info("creator", &[]);
@@ -1921,7 +1875,7 @@ mod tests {
                 deps.as_mut(),
                 mock_env(),
                 info,
-                ExecuteMsg::UpdateMarketing {
+                Cw20ExecuteMsg::UpdateMarketing {
                     project: Some("".to_owned()),
                     description: None,
                     marketing: None,
@@ -1964,6 +1918,7 @@ mod tests {
                     marketing: Some("creator".to_owned()),
                     logo: Some(Logo::Url("url".to_owned())),
                 }),
+                vesting: None,
             };
 
             let info = mock_info("creator", &[]);
@@ -1974,7 +1929,7 @@ mod tests {
                 deps.as_mut(),
                 mock_env(),
                 info,
-                ExecuteMsg::UpdateMarketing {
+                Cw20ExecuteMsg::UpdateMarketing {
                     project: None,
                     description: Some("Better description".to_owned()),
                     marketing: None,
@@ -2017,6 +1972,7 @@ mod tests {
                     marketing: Some("creator".to_owned()),
                     logo: Some(Logo::Url("url".to_owned())),
                 }),
+                vesting: None,
             };
 
             let info = mock_info("creator", &[]);
@@ -2027,7 +1983,7 @@ mod tests {
                 deps.as_mut(),
                 mock_env(),
                 info,
-                ExecuteMsg::UpdateMarketing {
+                Cw20ExecuteMsg::UpdateMarketing {
                     project: None,
                     description: Some("".to_owned()),
                     marketing: None,
@@ -2070,6 +2026,7 @@ mod tests {
                     marketing: Some("creator".to_owned()),
                     logo: Some(Logo::Url("url".to_owned())),
                 }),
+                vesting: None,
             };
 
             let info = mock_info("creator", &[]);
@@ -2080,7 +2037,7 @@ mod tests {
                 deps.as_mut(),
                 mock_env(),
                 info,
-                ExecuteMsg::UpdateMarketing {
+                Cw20ExecuteMsg::UpdateMarketing {
                     project: None,
                     description: None,
                     marketing: Some("marketing".to_owned()),
@@ -2123,6 +2080,7 @@ mod tests {
                     marketing: Some("creator".to_owned()),
                     logo: Some(Logo::Url("url".to_owned())),
                 }),
+                vesting: None,
             };
 
             let info = mock_info("creator", &[]);
@@ -2133,7 +2091,7 @@ mod tests {
                 deps.as_mut(),
                 mock_env(),
                 info,
-                ExecuteMsg::UpdateMarketing {
+                Cw20ExecuteMsg::UpdateMarketing {
                     project: None,
                     description: None,
                     marketing: Some("m".to_owned()),
@@ -2180,6 +2138,7 @@ mod tests {
                     marketing: Some("creator".to_owned()),
                     logo: Some(Logo::Url("url".to_owned())),
                 }),
+                vesting: None,
             };
 
             let info = mock_info("creator", &[]);
@@ -2190,7 +2149,7 @@ mod tests {
                 deps.as_mut(),
                 mock_env(),
                 info,
-                ExecuteMsg::UpdateMarketing {
+                Cw20ExecuteMsg::UpdateMarketing {
                     project: None,
                     description: None,
                     marketing: Some("".to_owned()),
@@ -2233,6 +2192,7 @@ mod tests {
                     marketing: Some("creator".to_owned()),
                     logo: Some(Logo::Url("url".to_owned())),
                 }),
+                vesting: None,
             };
 
             let info = mock_info("creator", &[]);
@@ -2243,7 +2203,7 @@ mod tests {
                 deps.as_mut(),
                 mock_env(),
                 info,
-                ExecuteMsg::UploadLogo(Logo::Url("new_url".to_owned())),
+                Cw20ExecuteMsg::UploadLogo(Logo::Url("new_url".to_owned())),
             )
             .unwrap();
 
@@ -2282,6 +2242,7 @@ mod tests {
                     marketing: Some("creator".to_owned()),
                     logo: Some(Logo::Url("url".to_owned())),
                 }),
+                vesting: None,
             };
 
             let info = mock_info("creator", &[]);
@@ -2292,7 +2253,7 @@ mod tests {
                 deps.as_mut(),
                 mock_env(),
                 info,
-                ExecuteMsg::UploadLogo(Logo::Embedded(EmbeddedLogo::Png(PNG_HEADER.into()))),
+                Cw20ExecuteMsg::UploadLogo(Logo::Embedded(EmbeddedLogo::Png(PNG_HEADER.into()))),
             )
             .unwrap();
 
@@ -2332,6 +2293,7 @@ mod tests {
                     marketing: Some("creator".to_owned()),
                     logo: Some(Logo::Url("url".to_owned())),
                 }),
+                vesting: None,
             };
 
             let info = mock_info("creator", &[]);
@@ -2343,7 +2305,7 @@ mod tests {
                 deps.as_mut(),
                 mock_env(),
                 info,
-                ExecuteMsg::UploadLogo(Logo::Embedded(EmbeddedLogo::Svg(img.into()))),
+                Cw20ExecuteMsg::UploadLogo(Logo::Embedded(EmbeddedLogo::Svg(img.into()))),
             )
             .unwrap();
 
@@ -2383,6 +2345,7 @@ mod tests {
                     marketing: Some("creator".to_owned()),
                     logo: Some(Logo::Url("url".to_owned())),
                 }),
+                vesting: None,
             };
 
             let info = mock_info("creator", &[]);
@@ -2394,7 +2357,7 @@ mod tests {
                 deps.as_mut(),
                 mock_env(),
                 info,
-                ExecuteMsg::UploadLogo(Logo::Embedded(EmbeddedLogo::Png(img.into()))),
+                Cw20ExecuteMsg::UploadLogo(Logo::Embedded(EmbeddedLogo::Png(img.into()))),
             )
             .unwrap_err();
 
@@ -2433,6 +2396,7 @@ mod tests {
                     marketing: Some("creator".to_owned()),
                     logo: Some(Logo::Url("url".to_owned())),
                 }),
+                vesting: None,
             };
 
             let info = mock_info("creator", &[]);
@@ -2451,7 +2415,7 @@ mod tests {
                 deps.as_mut(),
                 mock_env(),
                 info,
-                ExecuteMsg::UploadLogo(Logo::Embedded(EmbeddedLogo::Svg(img.into()))),
+                Cw20ExecuteMsg::UploadLogo(Logo::Embedded(EmbeddedLogo::Svg(img.into()))),
             )
             .unwrap_err();
 
@@ -2490,6 +2454,7 @@ mod tests {
                     marketing: Some("creator".to_owned()),
                     logo: Some(Logo::Url("url".to_owned())),
                 }),
+                vesting: None,
             };
 
             let info = mock_info("creator", &[]);
@@ -2501,7 +2466,7 @@ mod tests {
                 deps.as_mut(),
                 mock_env(),
                 info,
-                ExecuteMsg::UploadLogo(Logo::Embedded(EmbeddedLogo::Png(img.into()))),
+                Cw20ExecuteMsg::UploadLogo(Logo::Embedded(EmbeddedLogo::Png(img.into()))),
             )
             .unwrap_err();
 
@@ -2540,6 +2505,7 @@ mod tests {
                     marketing: Some("creator".to_owned()),
                     logo: Some(Logo::Url("url".to_owned())),
                 }),
+                vesting: None,
             };
 
             let info = mock_info("creator", &[]);
@@ -2552,7 +2518,7 @@ mod tests {
                 deps.as_mut(),
                 mock_env(),
                 info,
-                ExecuteMsg::UploadLogo(Logo::Embedded(EmbeddedLogo::Svg(img.into()))),
+                Cw20ExecuteMsg::UploadLogo(Logo::Embedded(EmbeddedLogo::Svg(img.into()))),
             )
             .unwrap_err();
 
@@ -2654,7 +2620,8 @@ mod tests {
             tokens_available_to_claim: Uint128::zero(),
             last_vesting_timestamp: None,
             cliff_period: 0, // in months
-            category_address: Some(category_address),
+            parent_category_address: Some(category_address),
+            should_transfer: true,
         };
     }
 

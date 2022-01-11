@@ -163,6 +163,27 @@
         }
       },
       "additionalProperties": false
+    },
+    {
+      "description": "Returns the current state of vesting information for the given address. Return type: VestingDetails.",
+      "type": "object",
+      "required": [
+        "vesting_details"
+      ],
+      "properties": {
+        "vesting_details": {
+          "type": "object",
+          "required": [
+            "address"
+          ],
+          "properties": {
+            "address": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "additionalProperties": false
     }
   ]
 }
