@@ -307,50 +307,6 @@
         }
       },
       "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "required": [
-        "periodically_transfer_to_categories"
-      ],
-      "properties": {
-        "periodically_transfer_to_categories": {
-          "type": "object"
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "required": [
-        "periodically_calculate_vesting"
-      ],
-      "properties": {
-        "periodically_calculate_vesting": {
-          "type": "object"
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "required": [
-        "claim_vested_tokens"
-      ],
-      "properties": {
-        "claim_vested_tokens": {
-          "type": "object",
-          "required": [
-            "amount"
-          ],
-          "properties": {
-            "amount": {
-              "$ref": "#/definitions/Uint128"
-            }
-          }
-        }
-      },
-      "additionalProperties": false
     }
   ],
   "definitions": {
