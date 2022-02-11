@@ -19,6 +19,7 @@ library = []
 
 [dependencies]
 cw20 = { path = "../../packages/cw20", version = "0.9.1" }
+cw2 = { path = "../../packages/cw2", version = "0.9.1" }
 cw-storage-plus = { path = "../../packages/storage-plus", version = "0.9.1" }
 cosmwasm-std = { version = "0.16.0" }
 schemars = "0.8.1"
