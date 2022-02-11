@@ -1,4 +1,4 @@
-use cosmwasm_std::Uint128;
+use cosmwasm_std::{Addr, Uint128};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -30,9 +30,17 @@ pub struct InstantiateVestingSchedulesInfo {
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug, Clone, PartialEq)]
 pub struct InstantiateMsg {
-    pub vesting: Option<InstantiateVestingSchedulesInfo>,
+    pub main_wallet: Addr,
+    pub vesting: InstantiateVestingSchedulesInfo,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum ExecuteMsg {
+    PeriodicallyTransferToCategories {},
+    PeriodicallyCalculateVesting {},
+    ClaimVestedTokens { amount: Uint128 },
+}
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
