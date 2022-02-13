@@ -1,6 +1,5 @@
-use crate::allowances::deduct_allowance;
-use serde::{Deserialize, Serialize};
 use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 
 use cosmwasm_std::{
     attr, entry_point, to_binary, Addr, Attribute, Binary, Deps, DepsMut, Env, MessageInfo,
@@ -12,14 +11,14 @@ use cosmwasm_std::{
 // };
 
 use cw2::set_contract_version;
-use cw20::{AllowanceResponse, Expiration};
+use cw20::{AllowanceResponse, Expiration, Cw20QueryMsg};
 
 use crate::error::ContractError;
 use crate::msg::{
     ExecuteMsg, InstantiateMsg, InstantiateVestingSchedulesInfo, MigrateMsg, QueryMsg,
 };
 
-use crate::state::{Config, VestingDetails, BALANCES, CONFIG, TOKEN_INFO, ALLOWANCES, VESTING_DETAILS};
+use crate::state::{Config, VestingDetails, CONFIG, VESTING_DETAILS};
 
 const CONTRACT_NAME: &str = "crates.io:cw20-base";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -35,13 +34,13 @@ pub fn instantiate(
     //Save the main_wallet address into config
     let config: Config = Config {
         main_wallet: msg.main_wallet,
+        fury_token_address: msg.fury_token_contract,
     };
     CONFIG.save(deps.storage, &config)?;
     instantiate_category_vesting_schedules(deps, env, msg.vesting)?;
 
     Ok(Response::default())
 }
-
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct MinterData {
@@ -50,14 +49,12 @@ pub struct MinterData {
     pub cap: Option<Uint128>,
 }
 
-
 #[derive(Clone, Default, Debug)]
 pub struct VestingInfo {
     pub spender_address: String,
     pub parent_category_address: Option<String>,
     pub amount: Uint128,
 }
-
 
 // fn instantiate_category_vesting_schedules(
 //     deps: DepsMut,
@@ -97,7 +94,6 @@ pub struct VestingInfo {
 //             }),
 //             None => None,
 //         };
-    
 //     }
 //     Ok(Response::default())
 // }
@@ -107,36 +103,32 @@ fn instantiate_category_vesting_schedules(
     env: Env,
     vesting_info: InstantiateVestingSchedulesInfo,
 ) -> Result<Response, ContractError> {
-    //need to check if there are vesting schedules given as a input
-    if vesting_info != None  {
-        // Some(vesting_info) => {
-            for schedule in vesting_info.vesting_schedules {
-                let mut parent_cat_addr = None;
-                if !schedule.parent_category_address.is_empty() {
-                    parent_cat_addr = Some(schedule.parent_category_address);
-                }
-                let vesting_start_timestamp = env.block.time;
-                let address = deps.api.addr_validate(schedule.address.as_str())?;
-                let vesting_details = VestingDetails {
-                    vesting_start_timestamp: vesting_start_timestamp,
-                    initial_vesting_count: schedule.initial_vesting_count,
-                    initial_vesting_consumed: Uint128::zero(),
-                    vesting_periodicity: schedule.vesting_periodicity,
-                    vesting_count_per_period: schedule.vesting_count_per_period,
-                    total_vesting_token_count: schedule.total_vesting_token_count,
-                    total_claimed_tokens_till_now: Uint128::zero(),
-                    last_claimed_timestamp: None,
-                    tokens_available_to_claim: Uint128::zero(),
-                    last_vesting_timestamp: None,
-                    cliff_period: schedule.cliff_period,
-                    parent_category_address: parent_cat_addr,
-                    should_transfer: schedule.should_transfer,
-                };
-                VESTING_DETAILS.save(deps.storage, &address, &vesting_details)?;
-            }
-            Ok(Response::default())
-        None => Ok(Response::default()),
+    // Some(vesting_info) => {
+    for schedule in vesting_info.vesting_schedules {
+        let mut parent_cat_addr = None;
+        if !schedule.parent_category_address.is_empty() {
+            parent_cat_addr = Some(schedule.parent_category_address);
+        }
+        let vesting_start_timestamp = env.block.time;
+        let address = deps.api.addr_validate(schedule.address.as_str())?;
+        let vesting_details = VestingDetails {
+            vesting_start_timestamp: vesting_start_timestamp,
+            initial_vesting_count: schedule.initial_vesting_count,
+            initial_vesting_consumed: Uint128::zero(),
+            vesting_periodicity: schedule.vesting_periodicity,
+            vesting_count_per_period: schedule.vesting_count_per_period,
+            total_vesting_token_count: schedule.total_vesting_token_count,
+            total_claimed_tokens_till_now: Uint128::zero(),
+            last_claimed_timestamp: None,
+            tokens_available_to_claim: Uint128::zero(),
+            last_vesting_timestamp: None,
+            cliff_period: schedule.cliff_period,
+            parent_category_address: parent_cat_addr,
+            should_transfer: schedule.should_transfer,
+        };
+        VESTING_DETAILS.save(deps.storage, &address, &vesting_details)?;
     }
+    Ok(Response::default())
 }
 
 fn periodically_calculate_vesting(
@@ -145,22 +137,22 @@ fn periodically_calculate_vesting(
     info: MessageInfo,
 ) -> Result<Response, ContractError> {
     let now = env.block.time;
-    let config = TOKEN_INFO.load(deps.storage)?;
+    let config = CONFIG.load(deps.storage)?;
     //Check if the sender (one who is executing this contract) is minter
-    if config.mint.is_none() || config.mint.as_ref().unwrap().minter != info.sender {
+    if config.main_wallet  != info.sender {
         return Err(ContractError::Unauthorized {});
     }
 
-    let address = config.mint.as_ref().unwrap().minter.clone();
+    let address = config.main_wallet;
 
     // Fetch all tokens that can be vested as per vesting logic
     let vested_details = populate_vesting_details(&deps, now)?;
     // Calculate the total amount to be vested
     let total_vested_amount = calculate_total_distribution(&vested_details);
     //Get the balance available in main wallet
-    let balance = BALANCES
-        .may_load(deps.storage, &address)?
-        .unwrap_or_default();
+    let balanceMsg = Cw20QueryMsg::Balance{address: String::from(address.as_str())};
+    let balanceResponse: cw20::BalanceResponse = deps.querier.query_wasm_smart(config.fury_token_address, &balanceMsg)?;
+    let balance = balanceResponse.balance;
     //Check if there is sufficient balance with main wallet
     // return error otherwise
     if balance < total_vested_amount {
@@ -178,7 +170,7 @@ fn periodically_calculate_vesting(
             if spender_addr == info.sender {
                 return Err(ContractError::CannotSetOwnAccount {});
             }
-            //TODO: Will fail here
+            
             let category_address = elem.clone().parent_category_address.unwrap_or_default();
             let owner_addr = deps.api.addr_validate(&category_address)?;
             let key = (&owner_addr, &spender_addr);
@@ -596,7 +588,7 @@ fn periodically_transfer_to_categories(
     let now = env.block.time;
     let config = CONFIG.load(deps.storage)?;
 
-    let address = config.main_wallet.as_ref().clone();
+    let address = config.main_wallet;
 
     // Fetch all tokens that can be distributed as per vesting logic
     let distribution_details = populate_transfer_details(&deps, now)?;

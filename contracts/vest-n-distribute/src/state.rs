@@ -72,9 +72,7 @@ pub struct VestingDetails {
 #[serde(rename_all = "snake_case")]
 pub struct Config {
     pub main_wallet: Addr,
+    pub fury_token_address: Addr,
 }
 pub const VESTING_DETAILS: Map<&Addr, VestingDetails> = Map::new("vesting_details");
 pub const CONFIG: Item<Config> = Item::new("config");
-pub const BALANCES: Map<&Addr, Uint128> = Map::new("balance");
-pub const ALLOWANCES: Map<(&Addr, &Addr), AllowanceResponse> = Map::new("allowance");
-pub const TOKEN_INFO: Item<TokenInfo> = Item::new("token_info");
