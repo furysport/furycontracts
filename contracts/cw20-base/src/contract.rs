@@ -450,13 +450,6 @@ pub fn execute_upload_logo(
     Ok(res)
 }
 
-#[derive(Clone, Default, Debug)]
-pub struct VestingInfo {
-    pub spender_address: String,
-    pub parent_category_address: Option<String>,
-    pub amount: Uint128,
-}
-
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {

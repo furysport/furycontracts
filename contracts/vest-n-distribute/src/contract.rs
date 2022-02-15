@@ -3,11 +3,12 @@ use serde::{Deserialize, Serialize};
 
 use cosmwasm_std::{
     attr, entry_point, to_binary, Addr, Attribute, Binary, Deps, DepsMut, Env, MessageInfo,
-    OverflowError, OverflowOperation, Response, StdError, StdResult, Timestamp, Uint128,
+    OverflowError, OverflowOperation, Response, StdError, StdResult, SubMsg, Timestamp, Uint128,
+    WasmMsg,
 };
 
 use cw2::set_contract_version;
-use cw20::{AllowanceResponse, Cw20QueryMsg, Expiration};
+use cw20::{AllowanceResponse, BalanceResponse, Cw20ExecuteMsg, Cw20QueryMsg, Expiration};
 
 use crate::error::ContractError;
 use crate::msg::{
@@ -34,7 +35,6 @@ pub fn instantiate(
     };
     CONFIG.save(deps.storage, &config)?;
     instantiate_category_vesting_schedules(deps, env, msg.vesting)?;
-
     Ok(Response::default())
 }
 
@@ -97,26 +97,21 @@ fn periodically_calculate_vesting(
         return Err(ContractError::Unauthorized {});
     }
 
-    let address = config.main_wallet;
+    let address = env.contract.address;
 
     // Fetch all tokens that can be vested as per vesting logic
     let vested_details = populate_vesting_details(&deps, now)?;
     // Calculate the total amount to be vested
     let total_vested_amount = calculate_total_distribution(&vested_details);
     //Get the balance available in main wallet
-    let balanceMsg = Cw20QueryMsg::Balance {
+    let balance_msg = Cw20QueryMsg::Balance {
         address: String::from(address.as_str()),
     };
-    let balanceResponse: cw20::BalanceResponse = deps
+    let balance_response: cw20::BalanceResponse = deps
         .querier
-        .query_wasm_smart(config.fury_token_address, &balanceMsg)?;
-    let allowanceResponse: cw20::AllAllowancesResponse = deps
-        .querier
-        .query_wasm_smart(config.fury_token_address, &balanceMsg)?;
-    let balance = balanceResponse.balance;
-    let allowances = allowanceResponse.allowances;
-    //Check if there is sufficient balance with main wallet
-    // return error otherwise
+        .query_wasm_smart(config.fury_token_address.clone(), &balance_msg)?;
+
+    let balance = balance_response.balance;
     if balance < total_vested_amount {
         return Err(ContractError::Std(StdError::overflow(OverflowError::new(
             OverflowOperation::Sub,
@@ -124,51 +119,49 @@ fn periodically_calculate_vesting(
             total_vested_amount,
         ))));
     }
+    let mut sub_msgs: Vec<SubMsg> = Vec::new();
     let mut attribs: Vec<Attribute> = Vec::new();
     for elem in vested_details {
         if elem.amount.u128() > 0 {
             //Update the allowancs
             let spender_addr = deps.api.addr_validate(&elem.spender_address)?;
-            if spender_addr == info.sender {
+            if spender_addr == address {
                 return Err(ContractError::CannotSetOwnAccount {});
             }
             let category_address = elem.clone().parent_category_address.unwrap_or_default();
             let owner_addr = deps.api.addr_validate(&category_address)?;
             //assign this value to allowance
-
-            // let allowance = &allowances
-            match allowance {
-                Ok(mut a) => {
-                    // update the new amount
-                    a.allowance = a
-                        .allowance
-                        .checked_add(elem.amount)
-                        .map_err(StdError::overflow)?;
-                    ALLOWANCES.save(deps.storage, key, &a)?;
-                }
-                Err(_) => {
-                    // Add the new amount
-                    let allowance_response = AllowanceResponse {
-                        allowance: elem.amount,
-                        expires: Expiration::Never {},
-                    };
-                    ALLOWANCES.save(deps.storage, key, &allowance_response)?;
-                }
-            }
-            //Save the vesting details
-            let res = update_vesting_details(
-                &mut deps,
-                elem.clone().spender_address,
-                env.block.time,
-                None,
-                Some(elem),
-            )?;
-            for attrib in res.attributes {
-                attribs.push(attrib);
-            }
+            let set_allowance_msg = Cw20ExecuteMsg::IncreaseAllowance {
+                spender: elem.spender_address.clone(),
+                amount: elem.amount,
+                expires: None,
+            };
+            let exec_transfer_from = WasmMsg::Execute {
+                contract_addr: config.fury_token_address.to_string(),
+                msg: to_binary(&set_allowance_msg).unwrap(),
+                funds: vec![],
+            };
+            let send_transfer_from: SubMsg = SubMsg::new(exec_transfer_from);
+            sub_msgs.push(send_transfer_from);
+            attribs.push(Attribute::new("action", "increase allowance"));
+            attribs.push(Attribute::new("for", elem.spender_address.clone()));
+            attribs.push(Attribute::new("amount", elem.amount));
+        }
+        //Save the vesting details
+        let res = update_vesting_details(
+            &mut deps,
+            elem.clone().spender_address,
+            env.block.time,
+            None,
+            Some(elem),
+        )?;
+        for attrib in res.attributes {
+            attribs.push(attrib);
         }
     }
-    Ok(Response::new().add_attributes(attribs))
+    Ok(Response::new()
+        .add_submessages(sub_msgs)
+        .add_attributes(attribs))
 }
 
 fn calculate_total_distribution(distribution_details: &Vec<VestingInfo>) -> Uint128 {
@@ -393,9 +386,7 @@ pub fn execute(
         ExecuteMsg::PeriodicallyCalculateVesting {} => {
             periodically_calculate_vesting(deps, env, info)
         }
-        ExecuteMsg::ClaimVestedTokens { amount } => {
-            claim_vested_tokens(deps, env, info, amount)
-        }            
+        ExecuteMsg::ClaimVestedTokens { amount } => claim_vested_tokens(deps, env, info, amount),
     }
 }
 
@@ -418,24 +409,29 @@ fn claim_vested_tokens(
                     let owner_addr = deps.api.addr_validate(&owner_addr_str)?;
                     // deduct allowance before doing anything else have enough allowance
                     //in our case do we have to deduct?
-                    deduct_allowance(deps.storage, &owner_addr, &info.sender, &env.block, amount)?;
+                    // deduct_allowance(deps.storage, &owner_addr, &info.sender, &env.block, amount)?;
+                    let config = CONFIG.load(deps.storage)?;
 
-                    // deduct amount form category address
-                    BALANCES.update(
-                        deps.storage,
-                        &owner_addr,
-                        |balance: Option<Uint128>| -> StdResult<_> {
-                            Ok(balance.unwrap_or_default().checked_sub(amount)?)
-                        },
-                    )?;
-                    // add amount form sender address
-                    BALANCES.update(
-                        deps.storage,
-                        &info.sender,
-                        |balance: Option<Uint128>| -> StdResult<_> {
-                            Ok(balance.unwrap_or_default() + amount)
-                        },
-                    )?;
+                    let transfer_from_msg = Cw20ExecuteMsg::TransferFrom {
+                        owner: owner_addr_str.clone(),
+                        recipient: info.sender.clone().into_string(),
+                        amount: amount,
+                    };
+                
+                    let exec_transfer_from = WasmMsg::Execute {
+                        contract_addr: config.fury_token_address.to_string(),
+                        msg: to_binary(&transfer_from_msg).unwrap(),
+                        funds: vec![],
+                    };
+                
+                    let send_transfer_from: SubMsg = SubMsg::new(exec_transfer_from);
+                
+                    let res = Response::new()
+                        .add_submessage(send_transfer_from)
+                        .add_attribute("action", "transfer")
+                        .add_attribute("from", owner_addr_str)
+                        .add_attribute("to", info.sender.clone())
+                        .add_attribute("amount", amount);
 
                     //Update vesting info for sender
                     VESTING_DETAILS.update(deps.storage, &info.sender, |vd| -> StdResult<_> {
@@ -453,13 +449,13 @@ fn claim_vested_tokens(
                         }
                     })?;
 
-                    let res = Response::new().add_attributes(vec![
-                        attr("action", "transfer_from"),
-                        attr("from", owner_addr),
-                        attr("to", info.sender.to_string().clone()),
-                        attr("by", info.sender),
-                        attr("amount", amount),
-                    ]);
+                    // let res = Response::new().add_attributes(vec![
+                    //     attr("action", "transfer_from"),
+                    //     attr("from", owner_addr),
+                    //     attr("to", info.sender.to_string().clone()),
+                    //     attr("by", info.sender),
+                    //     attr("amount", amount),
+                    // ]);
                     return Ok(res);
                 }
                 None => {
@@ -525,24 +521,24 @@ fn distribute_vested(
     if amount == Uint128::zero() {
         return Err(ContractError::InvalidZeroAmount {});
     }
+    let config = CONFIG.load(deps.storage)?;
 
-    let rcpt_addr = deps.api.addr_validate(&recipient)?;
-    let sender_addr = deps.api.addr_validate(&sender)?;
+    let transfer_from_msg = Cw20ExecuteMsg::TransferFrom {
+        owner: sender.clone(),
+        recipient: recipient.clone(),
+        amount: amount,
+    };
 
-    BALANCES.update(
-        deps.storage,
-        &sender_addr,
-        |balance: Option<Uint128>| -> StdResult<_> {
-            Ok(balance.unwrap_or_default().checked_sub(amount)?)
-        },
-    )?;
-    BALANCES.update(
-        deps.storage,
-        &rcpt_addr,
-        |balance: Option<Uint128>| -> StdResult<_> { Ok(balance.unwrap_or_default() + amount) },
-    )?;
+    let exec_transfer_from = WasmMsg::Execute {
+        contract_addr: config.fury_token_address.to_string(),
+        msg: to_binary(&transfer_from_msg).unwrap(),
+        funds: vec![],
+    };
+
+    let send_transfer_from: SubMsg = SubMsg::new(exec_transfer_from);
 
     let res = Response::new()
+        .add_submessage(send_transfer_from)
         .add_attribute("action", "transfer")
         .add_attribute("from", sender)
         .add_attribute("to", recipient)
@@ -559,7 +555,7 @@ fn periodically_transfer_to_categories(
     let now = env.block.time;
     let config = CONFIG.load(deps.storage)?;
 
-    let address = config.main_wallet;
+    let address = env.contract.address;
 
     // Fetch all tokens that can be distributed as per vesting logic
     let distribution_details = populate_transfer_details(&deps, now)?;
@@ -568,16 +564,18 @@ fn periodically_transfer_to_categories(
     let total_transfer_amount = calculate_total_distribution(&distribution_details);
     //Get the balance available in main wallet
     //is it similar to querying on chain where we can query the contract BALANCE via address
-    let balance = BALANCES
-        .may_load(deps.storage, &address)?
-        .unwrap_or_default();
-
+    let balanceQueryMsg = Cw20QueryMsg::Balance {
+        address: address.clone().into_string(),
+    };
+    let balanceResponse: BalanceResponse = deps
+        .querier
+        .query_wasm_smart(config.fury_token_address, &balanceQueryMsg)?;
     //Check if there is sufficient balance with main wallet
     // return error otherwise
-    if balance < total_transfer_amount {
+    if balanceResponse.balance < total_transfer_amount {
         return Err(ContractError::Std(StdError::overflow(OverflowError::new(
             OverflowOperation::Sub,
-            balance,
+            balanceResponse.balance,
             total_transfer_amount,
         ))));
     }
@@ -607,7 +605,6 @@ fn periodically_transfer_to_categories(
         for attrib in res.attributes {
             attribs.push(attrib);
         }
-        attribs.push(Attribute::new("kuchha hua", "Pata nahi"));
     }
     Ok(Response::new().add_attributes(attribs))
 }
