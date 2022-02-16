@@ -2,13 +2,13 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use cosmwasm_std::{
-    entry_point, to_binary, Addr, Attribute, Binary, Deps, DepsMut, Env, MessageInfo,
+    attr, entry_point, to_binary, Addr, Attribute, Binary, Deps, DepsMut, Env, MessageInfo,
     OverflowError, OverflowOperation, Response, StdError, StdResult, SubMsg, Timestamp, Uint128,
     WasmMsg,
 };
 
 use cw2::set_contract_version;
-use cw20::{BalanceResponse, Cw20ExecuteMsg, Cw20QueryMsg};
+use cw20::{AllowanceResponse, BalanceResponse, Cw20ExecuteMsg, Cw20QueryMsg, Expiration};
 
 use crate::error::ContractError;
 use crate::msg::{
@@ -59,10 +59,6 @@ fn instantiate_category_vesting_schedules(
 ) -> Result<Response, ContractError> {
     // Some(vesting_info) => {
     for schedule in vesting_info.vesting_schedules {
-        let mut parent_cat_addr = None;
-        if !schedule.parent_category_address.is_empty() {
-            parent_cat_addr = Some(schedule.parent_category_address);
-        }
         let vesting_start_timestamp = env.block.time;
         let address = deps.api.addr_validate(schedule.address.as_str())?;
         let vesting_details = VestingDetails {
@@ -77,7 +73,7 @@ fn instantiate_category_vesting_schedules(
             tokens_available_to_claim: Uint128::zero(),
             last_vesting_timestamp: None,
             cliff_period: schedule.cliff_period,
-            parent_category_address: parent_cat_addr,
+            parent_category_address: schedule.parent_category_address,
             should_transfer: schedule.should_transfer,
         };
         VESTING_DETAILS.save(deps.storage, &address, &vesting_details)?;
@@ -128,8 +124,8 @@ fn periodically_calculate_vesting(
             if spender_addr == address {
                 return Err(ContractError::CannotSetOwnAccount {});
             }
-            // let category_address = elem.clone().parent_category_address.unwrap_or_default();
-            // let owner_addr = deps.api.addr_validate(&category_address)?;
+            let category_address = elem.clone().parent_category_address.unwrap_or_default();
+            let owner_addr = deps.api.addr_validate(&category_address)?;
             //assign this value to allowance
             let set_allowance_msg = Cw20ExecuteMsg::IncreaseAllowance {
                 spender: elem.spender_address.clone(),
@@ -240,8 +236,6 @@ fn populate_vesting_details(
     deps: &DepsMut,
     now: Timestamp,
 ) -> Result<Vec<VestingInfo>, ContractError> {
-
-    //here we are fetching all the vesting schedule from the STATE and assigning them into a string vector 
     let vester_addresses: Vec<String> = VESTING_DETAILS
         .keys(deps.storage, None, None, cosmwasm_std::Order::Ascending)
         .map(|k| String::from_utf8(k).unwrap())
@@ -249,10 +243,9 @@ fn populate_vesting_details(
 
     let mut distribution_details: Vec<VestingInfo> = Vec::new();
 
-    //vester_addressess is of a type string vector contains all the addresses 
     for addr in vester_addresses {
-        let wallet_address = deps.api.addr_validate(&addr)?;   //here we're validating the current addr
-        let vested_detais = VESTING_DETAILS.may_load(deps.storage, &wallet_address);    //now getting the complete vesting details from the address 
+        let wallet_address = deps.api.addr_validate(&addr)?;
+        let vested_detais = VESTING_DETAILS.may_load(deps.storage, &wallet_address);
         match vested_detais {
             Ok(vested_detais) => {
                 let vd = vested_detais.unwrap();
@@ -549,7 +542,7 @@ fn distribute_vested(
 fn periodically_transfer_to_categories(
     mut deps: DepsMut,
     env: Env,
-    _info: MessageInfo,
+    info: MessageInfo,
 ) -> Result<Response, ContractError> {
     //capture the current system time
     let now = env.block.time;
@@ -610,12 +603,19 @@ fn periodically_transfer_to_categories(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query(_deps: Deps, _env: Env, _msg: QueryMsg) -> StdResult<Binary> {
-    to_binary(&some_query()?)
+pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
+    match msg {
+        QueryMsg::VestingDetails { address } => to_binary(&query_vesting_details(deps, address)?),
+    }
 }
 
-fn some_query() -> StdResult<String> {
-    Err(StdError::not_found("Not yet implemented"))
+fn query_vesting_details(deps: Deps, address: String) -> StdResult<VestingDetails> {
+    let address = deps.api.addr_validate(&address)?;
+    let vd = VESTING_DETAILS.may_load(deps.storage, &address)?;
+    match vd {
+        Some(vd) => return Ok(vd),
+        None => return Err(StdError::generic_err("No vesting details found")),
+    };
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]

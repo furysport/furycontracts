@@ -1,11 +1,14 @@
 import {
     mintInitMessage,
     MintingContractPath,
-    PairContractPath,
+    VnDContractPath,
     walletTest1,
     walletTest2,
     walletTest3,
-    mint_wallet,
+    gamified_airdrop_wallet,
+    whitelist_airdrop_wallet,
+
+    minting_wallet,
     treasury_wallet,
     liquidity_wallet,
     marketing_wallet,
@@ -65,7 +68,7 @@ const proceedToSetup = async (deploymentDetails) => {
         deploymentDetails = {};
     }
     if (!deploymentDetails.adminWallet) {
-        deploymentDetails.adminWallet = mint_wallet.key.accAddress;
+        deploymentDetails.adminWallet = minting_wallet.key.accAddress;
     }
     if (!deploymentDetails.authLiquidityProvider) {
         deploymentDetails.authLiquidityProvider = treasury_wallet.key.accAddress;
@@ -75,38 +78,19 @@ const proceedToSetup = async (deploymentDetails) => {
     }
     uploadFuryTokenContract(deploymentDetails).then(() => {
         instantiateFuryTokenContract(deploymentDetails).then(() => {
-            // transferFuryToTreasury(deploymentDetails).then(() => {
-            //     transferFuryToMarketing(deploymentDetails).then(() => {
-            //         uploadPairContract(deploymentDetails).then(() => {
-            //             uploadStakingContract(deploymentDetails).then(() => {
-            //                 instantiateStaking(deploymentDetails).then(() => {
-            //                     uploadWhiteListContract(deploymentDetails).then(() => {
-            //                         uploadFactoryContract(deploymentDetails).then(() => {
-            //                             instantiateFactory(deploymentDetails).then(() => {
-            //                                 uploadProxyContract(deploymentDetails).then(() => {
-            //                                     instantiateProxyContract(deploymentDetails).then(() => {
-            //                                         queryPorxyConfiguration(deploymentDetails).then(() => {
-            //                                             createPoolPairs(deploymentDetails).then(() => {
-            //                                                 savePairAddressToProxy(deploymentDetails).then(() => {
-            //                                                     queryPorxyConfiguration(deploymentDetails).then(() => {
-            //                                                         console.log("deploymentDetails = " + JSON.stringify(deploymentDetails, null, ' '));
-            //                                                         rl.close();
-            //                                                         performOperations(deploymentDetails);
-            //                                                     });
-            //                                                 });
-            //                                             });
-            //                                         });
-            //                                     });
-            //                                 });
-            //                             });
-            //                         });
-            //                     });
-            //                 });
-            //             });
-            //         });
-            //     });
-            // });
-            
+            transferFuryToTreasury(deploymentDetails).then(() => {
+                transferFuryToMarketing(deploymentDetails).then(() => {
+                    uploadVestingNDistributionContract(deploymentDetails).then(() => {
+                        instantiateVnD(deploymentDetails).then(() => {
+                            queryVestingDetailsForGaming(deploymentDetails).then(() => {
+                                console.log("deploymentDetails = " + JSON.stringify(deploymentDetails, null, ' '));
+                                rl.close();
+                                // performOperations(deploymentDetails);
+                            });
+                        });
+                    });
+                });
+            });
         });
     });
 }
@@ -131,8 +115,8 @@ const uploadFuryTokenContract = async (deploymentDetails) => {
         }
         if (deployFury) {
             console.log("Uploading Fury token contract");
-            console.log(`mint_wallet = ${mint_wallet.key}`);
-            let contractId = await storeCode(mint_wallet, MintingContractPath); // Getting the contract id from local terra
+            console.log(`minting_wallet = ${minting_wallet.key}`);
+            let contractId = await storeCode(minting_wallet, MintingContractPath); // Getting the contract id from local terra
             console.log(`Fury Token Contract ID: ${contractId}`);
             deploymentDetails.furyTokenCodeId = contractId;
             writeArtifact(deploymentDetails, terraClient.chainID);
@@ -153,7 +137,7 @@ const instantiateFuryTokenContract = async (deploymentDetails) => {
         }
         if (instantiateFury) {
             console.log("Instantiating Fury token contract");
-            let initiate = await instantiateContract(mint_wallet, deploymentDetails.furyTokenCodeId, mintInitMessage)
+            let initiate = await instantiateContract(minting_wallet, deploymentDetails.furyTokenCodeId, mintInitMessage)
             // The order is very imp
             let contractAddress = initiate.logs[0].events[0].attributes[3].value;
             console.log(`Fury Token Contract ID: ${contractAddress}`)
@@ -171,7 +155,7 @@ const transferFuryToTreasury = async (deploymentDetails) => {
         }
     };
     console.log(`transferFuryToTreasuryMsg = ${JSON.stringify(transferFuryToTreasuryMsg)}`);
-    let response = await executeContract(mint_wallet, deploymentDetails.furyContractAddress, transferFuryToTreasuryMsg);
+    let response = await executeContract(minting_wallet, deploymentDetails.furyContractAddress, transferFuryToTreasuryMsg);
     console.log(`transferFuryToTreasuryMsg Response - ${response['txhash']}`);
 }
 
@@ -183,184 +167,53 @@ const transferFuryToMarketing = async (deploymentDetails) => {
         }
     };
     console.log(`transferFuryToMarketingMsg = ${JSON.stringify(transferFuryToMarketingMsg)}`);
-    let response = await executeContract(mint_wallet, deploymentDetails.furyContractAddress, transferFuryToMarketingMsg);
+    let response = await executeContract(minting_wallet, deploymentDetails.furyContractAddress, transferFuryToMarketingMsg);
     console.log(`transferFuryToMarketingMsg Response - ${response['txhash']}`);
 }
 
-const uploadPairContract = async (deploymentDetails) => {
-    if (!deploymentDetails.pairCodeId) {
-        console.log("Uploading pair contract (xyk)");
-        let contractId = await storeCode(mint_wallet, PairContractPath); // Getting the contract id from local terra
-        console.log(`Pair Contract ID: ${contractId}`);
-        deploymentDetails.pairCodeId = contractId;
+const uploadVestingNDistributionContract = async (deploymentDetails) => {
+    if (!deploymentDetails.vndCodeId) {
+        console.log("Uploading Vesting and Distribution contract");
+        let contractId = await storeCode(minting_wallet, VnDContractPath); // Getting the contract id from local terra
+        console.log(`VestNDistrib Contract ID: ${contractId}`);
+        deploymentDetails.vndCodeId = contractId;
         writeArtifact(deploymentDetails, terraClient.chainID);
     }
 }
 
-const uploadStakingContract = async (deploymentDetails) => {
-    if (!deploymentDetails.stakingCodeId) {
-        console.log("Uploading staking contract");
-        let contractId = await storeCode(mint_wallet, StakingContractPath); // Getting the contract id from local terra
-        console.log(`Staking Contract ID: ${contractId}`);
-        deploymentDetails.stakingCodeId = contractId;
-        writeArtifact(deploymentDetails, terraClient.chainID);
-    }
-}
-
-const instantiateStaking = async (deploymentDetails) => {
-    if (!deploymentDetails.stakingAddress || !deploymentDetails.xastroAddress) {
-        console.log("Instantiating staking contract");
-        let stakingInitMessage = {
-            owner: deploymentDetails.adminWallet,
-            token_code_id: deploymentDetails.furyTokenCodeId,
-            deposit_token_addr: deploymentDetails.furyContractAddress
-        }
-
-        let result = await instantiateContract(mint_wallet, deploymentDetails.stakingCodeId, stakingInitMessage)
-        // The order is very imp
-        let contractAddress = result.logs[0].events[0].attributes.filter(element => element.key == 'contract_address').map(x => x.value);
-        deploymentDetails.stakingAddress = contractAddress.shift()
-        deploymentDetails.xastroAddress = contractAddress.shift();
-        writeArtifact(deploymentDetails, terraClient.chainID);
-    }
-}
-
-const uploadWhiteListContract = async (deploymentDetails) => {
-    if (!deploymentDetails.whitelistCodeId) {
-        console.log("Uploading whitelist contract");
-        let contractId = await storeCode(mint_wallet, StakingContractPath); // Getting the contract id from local terra
-        console.log(`Whitelist Contract ID: ${contractId}`);
-        deploymentDetails.whitelistCodeId = contractId;
-        writeArtifact(deploymentDetails, terraClient.chainID);
-    }
-}
-
-const uploadFactoryContract = async (deploymentDetails) => {
-    if (!deploymentDetails.factoryCodeId) {
-        console.log("Uploading factory contract");
-        let contractId = await storeCode(mint_wallet, FactoryContractPath); // Getting the contract id from local terra
-        console.log(`Factory Contract ID: ${contractId}`);
-        deploymentDetails.factoryCodeId = contractId;
-        writeArtifact(deploymentDetails, terraClient.chainID);
-    }
-}
-
-const instantiateFactory = async (deploymentDetails) => {
-    if (!deploymentDetails.factoryAddress) {
-        console.log("Instantiating factory contract");
-        let factoryInitMessage = {
-            owner: deploymentDetails.adminWallet,
-            pair_configs: [
-                {
-                    code_id: deploymentDetails.pairCodeId,
-                    pair_type: { "xyk": {} },
-                    total_fee_bps: 0,
-                    maker_fee_bps: 0
-                }
-            ],
-            token_code_id: deploymentDetails.furyTokenCodeId,
-            whitelist_code_id: deploymentDetails.whitelistCodeId
-        }
-        console.log(JSON.stringify(factoryInitMessage, null, 2));
-        let result = await instantiateContract(mint_wallet, deploymentDetails.factoryCodeId, factoryInitMessage);
-        let contractAddresses = result.logs[0].events[0].attributes.filter(element => element.key == 'contract_address').map(x => x.value);
-        deploymentDetails.factoryAddress = contractAddresses.shift();
-        writeArtifact(deploymentDetails, terraClient.chainID);
-    }
-}
-
-const uploadProxyContract = async (deploymentDetails) => {
-    if (!deploymentDetails.proxyCodeId) {
-        console.log("Uploading proxy contract");
-        let contractId = await storeCode(mint_wallet, ProxyContractPath); // Getting the contract id from local terra
-        console.log(`Proxy Contract ID: ${contractId}`);
-        deploymentDetails.proxyCodeId = contractId;
-        writeArtifact(deploymentDetails, terraClient.chainID);
-    }
-}
-
-const instantiateProxyContract = async (deploymentDetails) => {
-    if (!deploymentDetails.proxyContractAddress) {
-        console.log("Instantiating proxy contract");
-        let proxyInitMessage = {
-            /// Pool pair contract address of astroport
-            pool_pair_address: deploymentDetails.poolPairContractAddress,
-            /// contract address of Fury token
-            custom_token_address: deploymentDetails.furyContractAddress,
-            authorized_liquidity_provider: deploymentDetails.authLiquidityProvider,
-            default_lp_tokens_holder: deploymentDetails.defaultLPTokenHolder,
-            swap_opening_date: "1644734115627110528",
-        }
-        console.log(JSON.stringify(proxyInitMessage, null, 2));
-        let result = await instantiateContract(mint_wallet, deploymentDetails.proxyCodeId, proxyInitMessage);
-        let contractAddresses = result.logs[0].events[0].attributes.filter(element => element.key == 'contract_address').map(x => x.value);
-        deploymentDetails.proxyContractAddress = contractAddresses.shift();
-        writeArtifact(deploymentDetails, terraClient.chainID);
-    }
-}
-
-const queryPorxyConfiguration = async (deploymentDetails) => {
-    //Fetch configuration
-    let configResponse = await queryContract(deploymentDetails.proxyContractAddress, {
-        configuration: {}
-    });
-    console.log(JSON.stringify(configResponse));
-}
-
-const createPoolPairs = async (deploymentDetails) => {
-    if (!deploymentDetails.poolPairContractAddress) {
-        let init_param = { proxy: deploymentDetails.proxyContractAddress };
-        console.log(`init_param = ${JSON.stringify(init_param)}`);
-        console.log(Buffer.from(JSON.stringify(init_param)).toString('base64'));
-        let executeMsg = {
-            create_pair: {
-                pair_type: { xyk: {} },
-                asset_infos: [
+const instantiateVnD = async (deploymentDetails) => {
+    if (!deploymentDetails.vndAddress) {
+        console.log("Instantiating Vesting and Distribute contract");
+        let vndInitMessage = {
+            main_wallet: deploymentDetails.adminWallet,
+            fury_token_contract: deploymentDetails.furyContractAddress,
+            vesting: {
+                vesting_schedules: [
                     {
-                        token: {
-                            contract_addr: deploymentDetails.furyContractAddress
-                        }
-                    },
-                    {
-                        native_token: { denom: "uusd" }
+                        address: gamified_airdrop_wallet.key.accAddress,
+                        initial_vesting_count: "3950000000000",
+                        vesting_periodicity: 86400,
+                        vesting_count_per_period: "69490740000",
+                        total_vesting_token_count: "79000000000000",
+                        cliff_period: 0,
+                        should_transfer: true,
                     }
-                ],
-                init_params: Buffer.from(JSON.stringify(init_param)).toString('base64')
+                ]
             }
-        };
-        console.log(`executeMsg = ${executeMsg}`);
-        let response = await executeContract(mint_wallet, deploymentDetails.factoryAddress, executeMsg);
+        }
 
-        deploymentDetails.poolPairContractAddress = response.logs[0].eventsByType.from_contract.pair_contract_addr[0]
-
-        let pool_info = await queryContract(deploymentDetails.poolPairContractAddress, {
-            pair: {}
-        })
-
-        deploymentDetails.poolLpTokenAddress = pool_info.liquidity_token
-
-        console.log(`Pair successfully created! Address: ${deploymentDetails.poolPairContractAddress}`)
-        writeArtifact(deploymentDetails, terraClient.chainID)
+        let result = await instantiateContract(minting_wallet, deploymentDetails.vndCodeId, vndInitMessage)
+        let contractAddress = result.logs[0].events[0].attributes.filter(element => element.key == 'contract_address').map(x => x.value);
+        deploymentDetails.vndAddress = contractAddress.shift()
+        writeArtifact(deploymentDetails, terraClient.chainID);
     }
 }
 
-const savePairAddressToProxy = async (deploymentDetails) => {
-    if (!deploymentDetails.poolpairSavedToProxy) {
-        //Fetch configuration
-        let configResponse = await queryContract(deploymentDetails.proxyContractAddress, {
-            configuration: {}
-        });
-        configResponse.pool_pair_address = deploymentDetails.poolPairContractAddress;
-        console.log(`Configuration = ${JSON.stringify(configResponse)}`);
-        let executeMsg = {
-            configure: configResponse
-        };
-        console.log(`executeMsg = ${executeMsg}`);
-        let response = await executeContract(mint_wallet, deploymentDetails.proxyContractAddress, executeMsg);
-        console.log(`Save Response - ${response['txhash']}`);
-        deploymentDetails.poolpairSavedToProxy = true;
-        writeArtifact(deploymentDetails, terraClient.chainID)
-    }
+const queryVestingDetailsForGaming = async (deploymentDetails) => {
+    let result = await queryContract(deploymentDetails.vndAddress, {
+        vesting_details: { address: gamified_airdrop_wallet.key.accAddress }
+    });
+    console.log(`vesting details of ${gamified_airdrop_wallet.key.accAddress} : ${JSON.stringify(result)}`);
 }
 
 const performOperations = async (deploymentDetails) => {
@@ -410,7 +263,7 @@ const checkLPTokenBalances = async (deploymentDetails) => {
                 console.log(`Balance of ${allAccounts.accounts[1]} : ${JSON.stringify(balance1)}`);
             });
         });
-    // allAccounts.accounts.forEach((account) => {
+        // allAccounts.accounts.forEach((account) => {
         //     let balance = await queryContract(deploymentDetails.poolLpTokenAddress, {
         //         balance: { address: account }
         //     });
@@ -420,7 +273,7 @@ const checkLPTokenBalances = async (deploymentDetails) => {
 }
 
 const provideLiquidityAuthorised = async (deploymentDetails) => {
-    //First increase allowance for proxy to spend from mint_wallet wallet
+    //First increase allowance for proxy to spend from minting_wallet wallet
     let increaseAllowanceMsg = {
         increase_allowance: {
             spender: deploymentDetails.proxyContractAddress,
@@ -530,7 +383,7 @@ const performSwap = async (deploymentDetails) => {
 const buyFuryTokens = async (deploymentDetails) => {
     let buyFuryMsg = {
         swap: {
-            sender: mint_wallet.key.accAddress,
+            sender: minting_wallet.key.accAddress,
             offer_asset: {
                 info: {
                     native_token: {
@@ -541,14 +394,14 @@ const buyFuryTokens = async (deploymentDetails) => {
             }
         }
     };
-    let buyFuryResp = await executeContract(mint_wallet, deploymentDetails.proxyContractAddress, buyFuryMsg, { 'uusd': 10010 });
+    let buyFuryResp = await executeContract(minting_wallet, deploymentDetails.proxyContractAddress, buyFuryMsg, { 'uusd': 10010 });
     console.log(`Buy Fury swap response tx hash = ${buyFuryResp['txhash']}`);
 }
 
 const sellFuryTokens = async (deploymentDetails) => {
     let swapMsg = {
         swap: {
-            sender: mint_wallet.key.accAddress,
+            sender: minting_wallet.key.accAddress,
             offer_asset: {
                 info: {
                     token: {
@@ -569,7 +422,7 @@ const sellFuryTokens = async (deploymentDetails) => {
             msg: base64Msg
         }
     };
-    let sellFuryResp = await executeContract(mint_wallet, deploymentDetails.furyContractAddress, sendMsg);
+    let sellFuryResp = await executeContract(minting_wallet, deploymentDetails.furyContractAddress, sendMsg);
     console.log(`Sell Fury swap response tx hash = ${sellFuryResp['txhash']}`);
 }
 

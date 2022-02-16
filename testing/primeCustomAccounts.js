@@ -3,10 +3,12 @@ import {
     walletTest2,
     walletTest3,
     walletTest4,
-    mint_wallet,
+    walletTest5,
+    minting_wallet,
     treasury_wallet,
     liquidity_wallet,
-    marketing_wallet
+    marketing_wallet,
+    gamified_airdrop_wallet
 } from './constants.js';
 
 import { MsgSend, LCDClient } from '@terra-money/terra.js';
@@ -23,17 +25,18 @@ export const primeAccountsWithFunds = async () => {
     txHash.push(await fundTreasuryWallet());
     txHash.push(await fundLiquidityWallet());
     txHash.push(await fundMarketingWallet());
+    txHash.push(await fundGamifiedAirdropWallet());
     console.log("leaving primeCustomAccounts");
     return txHash;
 }
 
 function fundMintingWallet() {
-    console.log(`Funding ${mint_wallet.key.accAddress}`);
+    console.log(`Funding ${minting_wallet.key.accAddress}`);
     return new Promise(resolve => {
         // create a simple message that moves coin balances
         const send1 = new MsgSend(
             walletTest1.key.accAddress,
-            mint_wallet.key.accAddress,
+            minting_wallet.key.accAddress,
             { uluna: 500000000000000, uusd: 500000000000000 }
         );
 
@@ -104,6 +107,28 @@ function fundMarketingWallet() {
         );
 
         walletTest4
+            .createAndSignTx({
+                msgs: [send],
+                memo: 'Initial Funding!',
+            })
+            .then(tx => terra.tx.broadcast(tx))
+            .then(result => {
+                console.log(result.txhash);
+                resolve(result.txhash);
+            });
+    })
+} 
+
+function fundGamifiedAirdropWallet() {
+    console.log(`Funding ${gamified_airdrop_wallet.key.accAddress}`);
+    return new Promise(resolve => {
+        const send = new MsgSend(
+            walletTest5.key.accAddress,
+            gamified_airdrop_wallet.key.accAddress,
+            { uluna: 500000000000, uusd: 500000000000 }
+        );
+
+        walletTest5
             .createAndSignTx({
                 msgs: [send],
                 memo: 'Initial Funding!',

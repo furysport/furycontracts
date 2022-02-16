@@ -17,7 +17,7 @@ pub struct VestingSchedule {
     /// Cliff period in weeks
     pub cliff_period: u64,
     /// Address of the parent category to which this account is investing into
-    pub parent_category_address: String,
+    pub parent_category_address: Option<String>,
     /// Flag to let system know if the vested amount has to be transferred immediately
     /// Or should be kept in allowances for the vester to claim
     pub should_transfer: bool,
