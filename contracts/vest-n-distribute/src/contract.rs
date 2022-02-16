@@ -2,13 +2,13 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use cosmwasm_std::{
-    attr, entry_point, to_binary, Addr, Attribute, Binary, Deps, DepsMut, Env, MessageInfo,
+    entry_point, to_binary, Addr, Attribute, Binary, Deps, DepsMut, Env, MessageInfo,
     OverflowError, OverflowOperation, Response, StdError, StdResult, SubMsg, Timestamp, Uint128,
     WasmMsg,
 };
 
 use cw2::set_contract_version;
-use cw20::{AllowanceResponse, BalanceResponse, Cw20ExecuteMsg, Cw20QueryMsg, Expiration};
+use cw20::{BalanceResponse, Cw20ExecuteMsg, Cw20QueryMsg};
 
 use crate::error::ContractError;
 use crate::msg::{
@@ -128,8 +128,8 @@ fn periodically_calculate_vesting(
             if spender_addr == address {
                 return Err(ContractError::CannotSetOwnAccount {});
             }
-            let category_address = elem.clone().parent_category_address.unwrap_or_default();
-            let owner_addr = deps.api.addr_validate(&category_address)?;
+            // let category_address = elem.clone().parent_category_address.unwrap_or_default();
+            // let owner_addr = deps.api.addr_validate(&category_address)?;
             //assign this value to allowance
             let set_allowance_msg = Cw20ExecuteMsg::IncreaseAllowance {
                 spender: elem.spender_address.clone(),
@@ -240,6 +240,8 @@ fn populate_vesting_details(
     deps: &DepsMut,
     now: Timestamp,
 ) -> Result<Vec<VestingInfo>, ContractError> {
+
+    //here we are fetching all the vesting schedule from the STATE and assigning them into a string vector 
     let vester_addresses: Vec<String> = VESTING_DETAILS
         .keys(deps.storage, None, None, cosmwasm_std::Order::Ascending)
         .map(|k| String::from_utf8(k).unwrap())
@@ -247,9 +249,10 @@ fn populate_vesting_details(
 
     let mut distribution_details: Vec<VestingInfo> = Vec::new();
 
+    //vester_addressess is of a type string vector contains all the addresses 
     for addr in vester_addresses {
-        let wallet_address = deps.api.addr_validate(&addr)?;
-        let vested_detais = VESTING_DETAILS.may_load(deps.storage, &wallet_address);
+        let wallet_address = deps.api.addr_validate(&addr)?;   //here we're validating the current addr
+        let vested_detais = VESTING_DETAILS.may_load(deps.storage, &wallet_address);    //now getting the complete vesting details from the address 
         match vested_detais {
             Ok(vested_detais) => {
                 let vd = vested_detais.unwrap();
@@ -417,15 +420,12 @@ fn claim_vested_tokens(
                         recipient: info.sender.clone().into_string(),
                         amount: amount,
                     };
-                
                     let exec_transfer_from = WasmMsg::Execute {
                         contract_addr: config.fury_token_address.to_string(),
                         msg: to_binary(&transfer_from_msg).unwrap(),
                         funds: vec![],
                     };
-                
                     let send_transfer_from: SubMsg = SubMsg::new(exec_transfer_from);
-                
                     let res = Response::new()
                         .add_submessage(send_transfer_from)
                         .add_attribute("action", "transfer")
@@ -549,7 +549,7 @@ fn distribute_vested(
 fn periodically_transfer_to_categories(
     mut deps: DepsMut,
     env: Env,
-    info: MessageInfo,
+    _info: MessageInfo,
 ) -> Result<Response, ContractError> {
     //capture the current system time
     let now = env.block.time;
