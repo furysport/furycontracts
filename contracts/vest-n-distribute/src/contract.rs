@@ -19,7 +19,8 @@ use crate::state::{Config, VestingDetails, CONFIG, VESTING_DETAILS};
 
 const CONTRACT_NAME: &str = "crates.io:cw20-base";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
-
+/// Cliff period unit (seconds in a week)
+const CLIFF_PERIOD_UNIT: u64 = 7 * 24 * 60 * 60;
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
     deps: DepsMut,
@@ -30,7 +31,7 @@ pub fn instantiate(
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     //Save the main_wallet address into config
     let config: Config = Config {
-        main_wallet: msg.main_wallet,
+        admin_wallet: msg.admin_wallet,
         fury_token_address: msg.fury_token_contract,
     };
     CONFIG.save(deps.storage, &config)?;
@@ -88,8 +89,8 @@ fn periodically_calculate_vesting(
 ) -> Result<Response, ContractError> {
     let now = env.block.time;
     let config = CONFIG.load(deps.storage)?;
-    //Check if the sender (one who is executing this contract) is minter
-    if config.main_wallet != info.sender {
+    //Check if the sender (one who is executing this contract) is admin
+    if config.admin_wallet != info.sender {
         return Err(ContractError::Unauthorized {});
     }
 
@@ -297,10 +298,10 @@ fn calculate_tokens_for_this_period(
     // println!("vd.vesting_periodicity = {}", vd.vesting_periodicity);
     if vd.vesting_periodicity > 0 {
         let mut vesting_intervals = 0;
-        if now_seconds >= (vesting_start_seconds + (vd.cliff_period * 7 * 24 * 60 * 60)) {
+        if now_seconds >= (vesting_start_seconds + (vd.cliff_period * CLIFF_PERIOD_UNIT)) {
             // the now time is greater (ahead) of vesting start + cliff
             seconds_lapsed =
-                now_seconds - (vesting_start_seconds + (vd.cliff_period * 7 * 24 * 60 * 60));
+                now_seconds - (vesting_start_seconds + (vd.cliff_period * CLIFF_PERIOD_UNIT));
             // println!("seconds_lapsed_1 = {}", seconds_lapsed);
             let total_vesting_intervals = seconds_lapsed / vd.vesting_periodicity;
             // println!("total_vesting_intervals = {}", total_vesting_intervals);
@@ -313,7 +314,7 @@ fn calculate_tokens_for_this_period(
             let mut seconds_till_last_vesting = 0;
             if vd.last_vesting_timestamp.is_some() {
                 seconds_till_last_vesting = vd.last_vesting_timestamp.unwrap().seconds()
-                    - (vesting_start_seconds + vd.cliff_period * 7 * 24 * 60 * 60);
+                    - (vesting_start_seconds + vd.cliff_period * CLIFF_PERIOD_UNIT);
             }
             // println!("seconds_till_last_vesting = {}", seconds_till_last_vesting);
             let total_vested_intervals = (seconds_till_last_vesting) / vd.vesting_periodicity;
@@ -349,7 +350,7 @@ fn calculate_tokens_for_this_period(
         }
         // println!("tokens_for_this_period = {}", tokens_for_this_period);
         //add the initial seed if cliff period is over
-        if now_seconds >= (vesting_start_seconds + (vd.cliff_period * 7 * 24 * 60 * 60)) {
+        if now_seconds >= (vesting_start_seconds + (vd.cliff_period * CLIFF_PERIOD_UNIT)) {
             tokens_for_this_period += vd.initial_vesting_count - vd.initial_vesting_consumed;
             // println!(
             //     "tokens_for_this_period after adding= {}",
@@ -547,9 +548,10 @@ fn periodically_transfer_to_categories(
     //capture the current system time
     let now = env.block.time;
     let config = CONFIG.load(deps.storage)?;
-
-    let address = env.contract.address;
-
+    //Check if the sender (one who is executing this contract) is admin
+    if config.admin_wallet != info.sender {
+        return Err(ContractError::Unauthorized {});
+    }
     // Fetch all tokens that can be distributed as per vesting logic
     let distribution_details = populate_transfer_details(&deps, now)?;
 
@@ -557,24 +559,24 @@ fn periodically_transfer_to_categories(
     let total_transfer_amount = calculate_total_distribution(&distribution_details);
     //Get the balance available in main wallet
     //is it similar to querying on chain where we can query the contract BALANCE via address
-    let balanceQueryMsg = Cw20QueryMsg::Balance {
-        address: address.clone().into_string(),
+    let balance_query_msg = Cw20QueryMsg::Balance {
+        address: info.sender.clone().into_string(),
     };
-    let balanceResponse: BalanceResponse = deps
+    let balance_response: BalanceResponse = deps
         .querier
-        .query_wasm_smart(config.fury_token_address, &balanceQueryMsg)?;
+        .query_wasm_smart(config.fury_token_address, &balance_query_msg)?;
     //Check if there is sufficient balance with main wallet
     // return error otherwise
-    if balanceResponse.balance < total_transfer_amount {
+    if balance_response.balance < total_transfer_amount {
         return Err(ContractError::Std(StdError::overflow(OverflowError::new(
             OverflowOperation::Sub,
-            balanceResponse.balance,
+            balance_response.balance,
             total_transfer_amount,
         ))));
     }
 
     //this one is understandable, related to with the above one
-    let distribute_from = address.into_string();
+    let distribute_from = info.sender.clone().into_string();
     let mut attribs: Vec<Attribute> = Vec::new();
     for elem in distribution_details {
         // Transfer the funds

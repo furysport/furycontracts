@@ -185,7 +185,7 @@ const instantiateVnD = async (deploymentDetails) => {
     if (!deploymentDetails.vndAddress) {
         console.log("Instantiating Vesting and Distribute contract");
         let vndInitMessage = {
-            main_wallet: deploymentDetails.adminWallet,
+            admin_wallet: deploymentDetails.adminWallet,
             fury_token_contract: deploymentDetails.furyContractAddress,
             vesting: {
                 vesting_schedules: [

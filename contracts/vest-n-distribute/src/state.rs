@@ -56,7 +56,7 @@ pub struct VestingDetails {
     /// This will be used to calculate the next vesting count
     pub last_vesting_timestamp: Option<Timestamp>,
 
-    /// Cliff time period expressed in months -- change it into 4 weeks
+    /// Cliff time period expressed in weeks
     pub cliff_period: u64,
 
     /// This contains addredd of parent category. It will be none for all main categories.
@@ -71,7 +71,7 @@ pub struct VestingDetails {
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub struct Config {
-    pub main_wallet: Addr,
+    pub admin_wallet: Addr,
     pub fury_token_address: Addr
 }
 pub const VESTING_DETAILS: Map<&Addr, VestingDetails> = Map::new("vesting_details");

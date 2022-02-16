@@ -30,7 +30,7 @@ pub struct InstantiateVestingSchedulesInfo {
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug, Clone, PartialEq)]
 pub struct InstantiateMsg {
-    pub main_wallet: Addr,
+    pub admin_wallet: Addr,
     pub fury_token_contract: Addr,
     pub vesting: InstantiateVestingSchedulesInfo,
 }
