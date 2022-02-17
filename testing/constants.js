@@ -10,7 +10,7 @@ export const WhitelistContractPath = "../artifacts/astroport_whitelist.wasm"
 export const FactoryContractPath = "../artifacts/astroport_factory.wasm"
 export const ProxyContractPath = "../artifacts/astroport_proxy.wasm"
 
-export const terraClient = new LocalTerra();
+// export const terraClient = new LocalTerra();
 export const terraClient = new LCDClient({
     URL: 'https://bombay-lcd.terra.dev',
     chainID: 'bombay-12',
@@ -18,15 +18,7 @@ export const terraClient = new LCDClient({
 
 
 // Accounts
-export const deployer = terraClient.wallets.test1; // used as operator on all contracts
-// These can be the client wallets to interact
-export const walletTest1 = terraClient.wallets.test1;
-export const walletTest2 = terraClient.wallets.test2;
-export const walletTest3 = terraClient.wallets.test3;
-export const walletTest4 = terraClient.wallets.test4;
-export const walletTest5 = terraClient.wallets.test5;
-export const walletTest6 = terraClient.wallets.test6;
-export const walletTest10 = terraClient.wallets.test10;
+
 // export const mint_wallet = "terra1ttjw6nscdmkrx3zhxqx3md37phldgwhggm345k";
 // export const gamifiedairdrop = "terra1m46vy0jk9wck6r9mg2n8jnxw0y4g4xgl3csh9h";
 export const privatecategory = "terra1k20rlfj3ea47zjr2sp672qqscck5k5mf3uersq";
@@ -95,6 +87,18 @@ export const transaction_wallet = terraClient.wallet(mktransaction);
 
 const mkrake_return = new MnemonicKey({ mnemonic: "royal steel thought shift curve beach reward radar okay butter ceiling detail bamboo asset busy knock kit oxygen jar under remove advance state silver", });
 export const rake_return_wallet = terraClient.wallet(mkrake_return);
+
+
+export const deployer = transaction_wallet.key.accAddress; // used as operator on all contracts
+// These can be the client wallets to interact
+export const walletTest1 = gamified_airdrop_wallet.key.accAddress;
+export const walletTest2 = whitelist_airdrop_wallet.key.accAddress;
+export const walletTest3 = private_category_wallet.key.accAddress;
+export const walletTest4 = marketing_wallet.key.accAddress;
+export const walletTest5 = partnership_wallet.key.accAddress;
+export const walletTest6 = advisory_wallet.key.accAddress;
+export const walletTest10 = gasfee_wallet.key.accAddress;
+
 
 export const swapinitMessage = {
     pair_code_id: 321,
