@@ -94,15 +94,15 @@ fn periodically_calculate_vesting(
         return Err(ContractError::Unauthorized {});
     }
 
-    let address = env.contract.address;
+    // let address = env.contract.address;
 
     // Fetch all tokens that can be vested as per vesting logic
     let vested_details = populate_vesting_details(&deps, now)?;
     // Calculate the total amount to be vested
     let total_vested_amount = calculate_total_distribution(&vested_details);
-    //Get the balance available in main wallet
+    //Get the balance available in admin wallet
     let balance_msg = Cw20QueryMsg::Balance {
-        address: String::from(address.as_str()),
+        address: info.sender.clone().into_string(),
     };
     let balance_response: cw20::BalanceResponse = deps
         .querier
@@ -120,28 +120,25 @@ fn periodically_calculate_vesting(
     let mut attribs: Vec<Attribute> = Vec::new();
     for elem in vested_details {
         if elem.amount.u128() > 0 {
-            //Update the allowancs
             let spender_addr = deps.api.addr_validate(&elem.spender_address)?;
-            if spender_addr == address {
-                return Err(ContractError::CannotSetOwnAccount {});
-            }
-            let category_address = elem.clone().parent_category_address.unwrap_or_default();
-            let owner_addr = deps.api.addr_validate(&category_address)?;
-            //assign this value to allowance
-            let set_allowance_msg = Cw20ExecuteMsg::IncreaseAllowance {
-                spender: elem.spender_address.clone(),
+            // let category_address = elem.clone().parent_category_address.unwrap_or_default();
+            // let owner_addr = deps.api.addr_validate(&category_address)?;
+            //Move the tokens from admin wallet to vesting contract
+            let transfer_from_msg = Cw20ExecuteMsg::TransferFrom {
+                owner: info.sender.clone().into_string(),
+                recipient: env.contract.address.clone().into_string(),
                 amount: elem.amount,
-                expires: None,
             };
-            let exec_transfer_from = WasmMsg::Execute {
+            let exec_transfer_from_msg = WasmMsg::Execute {
                 contract_addr: config.fury_token_address.to_string(),
-                msg: to_binary(&set_allowance_msg).unwrap(),
+                msg: to_binary(&transfer_from_msg).unwrap(),
                 funds: vec![],
             };
-            let send_transfer_from: SubMsg = SubMsg::new(exec_transfer_from);
-            sub_msgs.push(send_transfer_from);
-            attribs.push(Attribute::new("action", "increase allowance"));
-            attribs.push(Attribute::new("for", elem.spender_address.clone()));
+            let send_transfer_from_msg: SubMsg = SubMsg::new(exec_transfer_from_msg);
+            sub_msgs.push(send_transfer_from_msg);
+            attribs.push(Attribute::new("action", "transfer_from"));
+            attribs.push(Attribute::new("from", info.sender.clone().into_string()));
+            attribs.push(Attribute::new("for", spender_addr.into_string()));
             attribs.push(Attribute::new("amount", elem.amount));
         }
         //Save the vesting details
@@ -409,23 +406,17 @@ fn claim_vested_tokens(
                     // deduct_allowance(deps.storage, &owner_addr, &info.sender, &env.block, amount)?;
                     let config = CONFIG.load(deps.storage)?;
 
-                    let transfer_from_msg = Cw20ExecuteMsg::TransferFrom {
-                        owner: owner_addr_str.clone(),
+                    let transfer_msg = Cw20ExecuteMsg::Transfer {
                         recipient: info.sender.clone().into_string(),
                         amount: amount,
                     };
-                    let exec_transfer_from = WasmMsg::Execute {
+                    let exec_transfer = WasmMsg::Execute {
                         contract_addr: config.fury_token_address.to_string(),
-                        msg: to_binary(&transfer_from_msg).unwrap(),
+                        msg: to_binary(&transfer_msg).unwrap(),
                         funds: vec![],
                     };
-                    let send_transfer_from: SubMsg = SubMsg::new(exec_transfer_from);
-                    let res = Response::new()
-                        .add_submessage(send_transfer_from)
-                        .add_attribute("action", "transfer")
-                        .add_attribute("from", owner_addr_str)
-                        .add_attribute("to", info.sender.clone())
-                        .add_attribute("amount", amount);
+                    let send_transfer: SubMsg = SubMsg::new(exec_transfer);
+                    let res = Response::new().add_submessage(send_transfer);
 
                     //Update vesting info for sender
                     VESTING_DETAILS.update(deps.storage, &info.sender, |vd| -> StdResult<_> {
@@ -442,14 +433,6 @@ fn claim_vested_tokens(
                             }),
                         }
                     })?;
-
-                    // let res = Response::new().add_attributes(vec![
-                    //     attr("action", "transfer_from"),
-                    //     attr("from", owner_addr),
-                    //     attr("to", info.sender.to_string().clone()),
-                    //     attr("by", info.sender),
-                    //     attr("amount", amount),
-                    // ]);
                     return Ok(res);
                 }
                 None => {
@@ -511,7 +494,7 @@ fn distribute_vested(
     sender: String,
     recipient: String,
     amount: Uint128,
-) -> Result<Response, ContractError> {
+) -> Result<SubMsg, ContractError> {
     if amount == Uint128::zero() {
         return Err(ContractError::InvalidZeroAmount {});
     }
@@ -530,14 +513,7 @@ fn distribute_vested(
     };
 
     let send_transfer_from: SubMsg = SubMsg::new(exec_transfer_from);
-
-    let res = Response::new()
-        .add_submessage(send_transfer_from)
-        .add_attribute("action", "transfer")
-        .add_attribute("from", sender)
-        .add_attribute("to", recipient)
-        .add_attribute("amount", amount);
-    Ok(res)
+    Ok(send_transfer_from)
 }
 
 fn periodically_transfer_to_categories(
@@ -577,6 +553,7 @@ fn periodically_transfer_to_categories(
 
     //this one is understandable, related to with the above one
     let distribute_from = info.sender.clone().into_string();
+    let mut sub_msgs: Vec<SubMsg> = Vec::new();
     let mut attribs: Vec<Attribute> = Vec::new();
     for elem in distribution_details {
         // Transfer the funds
@@ -586,22 +563,35 @@ fn periodically_transfer_to_categories(
             elem.spender_address.clone(),
             elem.amount,
         )?;
-        for attrib in res.attributes {
-            attribs.push(attrib);
-        }
+        sub_msgs.push(res);
+        attribs.push(Attribute {
+            key: "action".to_string(),
+            value: "transfer".to_string(),
+        });
+        attribs.push(Attribute {
+            key: "from".to_string(),
+            value: distribute_from.clone(),
+        });
+        attribs.push(Attribute {
+            key: "to".to_string(),
+            value: elem.spender_address.clone(),
+        });
+        attribs.push(Attribute {
+            key: "amount".to_string(),
+            value: elem.amount.to_string(),
+        });
         // Save distribution information
-        let res = update_vesting_details(
+        update_vesting_details(
             &mut deps,
             elem.spender_address.clone(),
             env.block.time,
             Some(elem),
             None,
         )?;
-        for attrib in res.attributes {
-            attribs.push(attrib);
-        }
     }
-    Ok(Response::new().add_attributes(attribs))
+    Ok(Response::new()
+        .add_submessages(sub_msgs)
+        .add_attributes(attribs))
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]

@@ -70,27 +70,29 @@ const proceedToSetup = async (deploymentDetails) => {
     if (!deploymentDetails.adminWallet) {
         deploymentDetails.adminWallet = minting_wallet.key.accAddress;
     }
-    if (!deploymentDetails.authLiquidityProvider) {
-        deploymentDetails.authLiquidityProvider = treasury_wallet.key.accAddress;
-    }
-    if (!deploymentDetails.defaultLPTokenHolder) {
-        deploymentDetails.defaultLPTokenHolder = liquidity_wallet.key.accAddress;
-    }
     uploadFuryTokenContract(deploymentDetails).then(() => {
         instantiateFuryTokenContract(deploymentDetails).then(() => {
-            transferFuryToTreasury(deploymentDetails).then(() => {
-                transferFuryToMarketing(deploymentDetails).then(() => {
-                    uploadVestingNDistributionContract(deploymentDetails).then(() => {
-                        instantiateVnD(deploymentDetails).then(() => {
-                            queryVestingDetailsForGaming(deploymentDetails).then(() => {
-                                console.log("deploymentDetails = " + JSON.stringify(deploymentDetails, null, ' '));
-                                rl.close();
-                                // performOperations(deploymentDetails);
+            // transferFuryToTreasury(deploymentDetails).then(() => {
+            // transferFuryToMarketing(deploymentDetails).then(() => {
+            uploadVestingNDistributionContract(deploymentDetails).then(() => {
+                instantiateVnD(deploymentDetails).then(() => {
+                    setAllowancesForVnDContract(deploymentDetails).then(() => {
+                        console.log("deploymentDetails = " + JSON.stringify(deploymentDetails, null, ' '));
+                        rl.close();
+                        queryVestingDetailsForGaming(deploymentDetails).then(() => {
+                            performPeriodicDistribution(deploymentDetails).then(() => {
+                                performPeriodicVesting(deploymentDetails).then(() => {
+                                    claimVestedTokens(deploymentDetails).then(() => {
+                                        console.log("Finished!");
+                                    });
+                                });
                             });
                         });
                     });
                 });
             });
+            // });
+            // });
         });
     });
 }
@@ -197,6 +199,16 @@ const instantiateVnD = async (deploymentDetails) => {
                         total_vesting_token_count: "79000000000000",
                         cliff_period: 0,
                         should_transfer: true,
+                    },
+                    {
+                        address: marketing_wallet.key.accAddress,
+                        initial_vesting_count: "3780000000000",
+                        vesting_periodicity: 86400,
+                        vesting_count_per_period: "126000000000",
+                        total_vesting_token_count: "37800000000000",
+                        cliff_period: 0,
+                        parent_category_address: gamified_airdrop_wallet.key.accAddress,
+                        should_transfer: false,
                     }
                 ]
             }
@@ -206,6 +218,56 @@ const instantiateVnD = async (deploymentDetails) => {
         let contractAddress = result.logs[0].events[0].attributes.filter(element => element.key == 'contract_address').map(x => x.value);
         deploymentDetails.vndAddress = contractAddress.shift()
         writeArtifact(deploymentDetails, terraClient.chainID);
+    }
+}
+
+const setAllowancesForVnDContract = async (deploymentDetails) => {
+    if (!deploymentDetails.setAllowanceForVnD) {
+        console.log(`Setting allowances for VnD contract ${deploymentDetails.vndAddress} on admin wallet ${deploymentDetails.adminWallet}`);
+        let balanceResponse = await queryContract(deploymentDetails.furyContractAddress, {
+            balance: { address: deploymentDetails.adminWallet }
+        });
+        console.log(`Balance for ${deploymentDetails.adminWallet} = ${JSON.stringify(balanceResponse)}`);
+        let increaseAllowanceMsg = {
+            increase_allowance: {
+                spender: deploymentDetails.vndAddress,
+                amount: balanceResponse.balance
+            }
+        };
+        let incrAllowResp = await executeContract(minting_wallet, deploymentDetails.furyContractAddress, increaseAllowanceMsg);
+        console.log(incrAllowResp['txhash']);
+        deploymentDetails.setAllowanceForVnD = true;
+        writeArtifact(deploymentDetails, terraClient.chainID);
+    }
+}
+
+const performPeriodicDistribution = async (deploymentDetails) => {
+    console.log("Performing periodic distribution");
+    let periodicDistributionMsg = { periodically_transfer_to_categories: {} }
+    let periodicDistributionResp = await executeContract(minting_wallet, deploymentDetails.vndAddress, periodicDistributionMsg);
+    console.log(periodicDistributionResp['txhash']);
+}
+
+const performPeriodicVesting = async (deploymentDetails) => {
+    console.log("Performing periodic vesting");
+    let periodicVestingMsg = { periodically_calculate_vesting: {} };
+    let periodicVestingResp = await executeContract(minting_wallet, deploymentDetails.vndAddress, periodicVestingMsg);
+    console.log(periodicVestingResp['txhash']);
+}
+
+const claimVestedTokens = async (deploymentDetails) => {
+    console.log(`Claiming vested tokens for ${marketing_wallet.key.accAddress}`);
+    let vesting_details = await queryContract(deploymentDetails.vndAddress, {
+        vesting_details: { address: marketing_wallet.key.accAddress }
+    });
+    console.log(`vesting details of ${marketing_wallet.key.accAddress} : ${JSON.stringify(vesting_details)}`);
+    let vestable = vesting_details['tokens_available_to_claim']
+    if (vestable > 0) {
+        let claimVestedTokensMsg = { claim_vested_tokens: { amount: vestable } };
+        let claimVestingResp = await executeContract(marketing_wallet, deploymentDetails.vndAddress, claimVestedTokensMsg);
+        console.log(claimVestingResp['txhash']);
+    } else {
+        console.log("Number of tokens available for claiming = " + vestable);
     }
 }
 
