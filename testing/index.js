@@ -10,12 +10,8 @@ import {
 
     minting_wallet,
     treasury_wallet,
-    liquidity_wallet,
     marketing_wallet,
     terraClient,
-    StakingContractPath,
-    FactoryContractPath,
-    ProxyContractPath,
     private_category_wallet,
     partnership_wallet
 } from './constants.js';
@@ -48,7 +44,7 @@ const question = promisify(rl.question).bind(rl);
 
 const main = async () => {
     try {
-        terraClient.chainID = "localterra";
+        terraClient.chainID = "bombay-12";
         let deploymentDetails = readArtifact(terraClient.chainID);
         const primeAccounts = await question('Do you want to preload custom accounts? (y/N) ');
         if (primeAccounts === 'Y' || primeAccounts === 'y') {
@@ -72,30 +68,45 @@ const proceedToSetup = async (deploymentDetails) => {
     if (!deploymentDetails.adminWallet) {
         deploymentDetails.adminWallet = minting_wallet.key.accAddress;
     }
+    const sleep_time = 31000;
     uploadFuryTokenContract(deploymentDetails).then(() => {
-        instantiateFuryTokenContract(deploymentDetails).then(() => {
-            // transferFuryToTreasury(deploymentDetails).then(() => {
-            // transferFuryToMarketing(deploymentDetails).then(() => {
-            uploadVestingNDistributionContract(deploymentDetails).then(() => {
-                instantiateVnD(deploymentDetails).then(() => {
-                    setAllowancesForVnDContract(deploymentDetails).then(() => {
-                        console.log("deploymentDetails = " + JSON.stringify(deploymentDetails, null, ' '));
-                        rl.close();
-                        queryVestingDetailsForGaming(deploymentDetails).then(() => {
-                            performPeriodicDistribution(deploymentDetails).then(() => {
-                                performPeriodicVesting(deploymentDetails).then(() => {
-                                    claimVestedTokens(deploymentDetails).then(() => {
-                                        console.log("Finished!");
+        setTimeout(() => {
+            instantiateFuryTokenContract(deploymentDetails).then(() => {
+                setTimeout(() => {
+                    uploadVestingNDistributionContract(deploymentDetails).then(() => {
+                        setTimeout(() => {
+                            instantiateVnD(deploymentDetails).then(() => {
+                                setTimeout(() => {
+                                    setAllowancesForVnDContract(deploymentDetails).then(() => {
+                                        setTimeout(() => {
+                                            console.log("deploymentDetails = " + JSON.stringify(deploymentDetails, null, ' '));
+                                            rl.close();
+                                            queryVestingDetailsForGaming(deploymentDetails).then(() => {
+                                                setTimeout(() => {
+                                                    performPeriodicDistribution(deploymentDetails).then(() => {
+                                                        setTimeout(() => {
+                                                            performPeriodicVesting(deploymentDetails).then(() => {
+                                                                setTimeout(() => {
+                                                                    claimVestedTokens(deploymentDetails).then(() => {
+                                                                        setTimeout(() => {
+                                                                            console.log("Finished!");
+                                                                        }, sleep_time);
+                                                                    });
+                                                                }, sleep_time);
+                                                            });
+                                                        }, sleep_time);
+                                                    });
+                                                }, sleep_time);
+                                            });
+                                        }, sleep_time);
                                     });
-                                });
+                                }, sleep_time);
                             });
-                        });
+                        }, sleep_time);
                     });
-                });
+                }, sleep_time);
             });
-            // });
-            // });
-        });
+        }, sleep_time);
     });
 }
 
@@ -151,6 +162,10 @@ const instantiateFuryTokenContract = async (deploymentDetails) => {
     }
 }
 
+const periodically_transfer_to_categories = async (deploymentDetails) => {
+
+}
+
 const transferFuryToTreasury = async (deploymentDetails) => {
     let transferFuryToTreasuryMsg = {
         transfer: {
@@ -201,17 +216,17 @@ const instantiateVnD = async (deploymentDetails) => {
                         should_transfer: true,
                         total_vesting_token_count: "79000000000000",
                         vesting_count_per_period: "69490740000",
-                        vesting_periodicity: 86400,
+                        vesting_periodicity: 20,
                     },
                     {
                         address: marketing_wallet.key.accAddress,
                         cliff_period: 0,
                         initial_vesting_count: "4200000000000",
                         parent_category_address: "",
-                        should_transfer: true,
+                        should_transfer: false,
                         total_vesting_token_count: "42000000000000",
                         vesting_count_per_period: "21000000000",
-                        vesting_periodicity: 300
+                        vesting_periodicity: 10
                     },
                     {
                         address: partnership_wallet.key.accAddress,
@@ -221,7 +236,7 @@ const instantiateVnD = async (deploymentDetails) => {
                         should_transfer: false,
                         total_vesting_token_count: "16800000000000",
                         vesting_count_per_period: "8400000000",
-                        vesting_periodicity: 300
+                        vesting_periodicity: 10
                     },
                     {
                         address: treasury_wallet.key.accAddress,
@@ -231,7 +246,7 @@ const instantiateVnD = async (deploymentDetails) => {
                         should_transfer: false,
                         total_vesting_token_count: "12600000000000",
                         vesting_count_per_period: "6300000000",
-                        vesting_periodicity: 300
+                        vesting_periodicity: 10
                     },
                     {
                         address: private_category_wallet.key.accAddress,
@@ -241,7 +256,7 @@ const instantiateVnD = async (deploymentDetails) => {
                         should_transfer: false,
                         total_vesting_token_count: "12600000000000",
                         vesting_count_per_period: "6300000000",
-                        vesting_periodicity: 300
+                        vesting_periodicity: 10
                     }
                 ]
             }
@@ -313,143 +328,6 @@ const queryVestingDetailsForGaming = async (deploymentDetails) => {
     console.log(`vesting details of ${gamified_airdrop_wallet.key.accAddress} : ${JSON.stringify(result)}`);
 }
 
-const performOperations = async (deploymentDetails) => {
-    checkLPTokenDetails(deploymentDetails).then(() => {
-        checkLPTokenBalances(deploymentDetails).then(() => {
-            provideLiquidityAuthorised(deploymentDetails).then(() => {
-                checkLPTokenBalances(deploymentDetails).then(() => {
-                    queryPool(deploymentDetails).then(() => {
-                        performSimulation(deploymentDetails).then(() => {
-                            performSwap(deploymentDetails).then(() => {
-                                checkLPTokenBalances(deploymentDetails).then(() => {
-                                    provideLiquidityGeneral(deploymentDetails).then(() => {
-                                        checkLPTokenBalances(deploymentDetails).then(() => {
-                                            console.log("Finished operations");
-                                        });
-                                    });
-                                });
-                            });
-                        });
-                    });
-                });
-            });
-        });
-    });
-}
-const checkLPTokenDetails = async (deploymentDetails) => {
-    let lpTokenDetails = await queryContract(deploymentDetails.poolLpTokenAddress, {
-        token_info: {}
-    });
-    console.log(JSON.stringify(lpTokenDetails));
-    assert.equal(lpTokenDetails['name'], "FURY-UUSD-LP");
-}
-
-const checkLPTokenBalances = async (deploymentDetails) => {
-    console.log("Getting LPToken balances");
-    await queryContract(deploymentDetails.poolLpTokenAddress, {
-        all_accounts: {}
-    }).then((allAccounts) => {
-        console.log(JSON.stringify(allAccounts.accounts));
-        queryContract(deploymentDetails.poolLpTokenAddress, {
-            balance: { address: allAccounts.accounts[0] }
-        }).then((balance0) => {
-            console.log(`Balance of ${allAccounts.accounts[0]} : ${JSON.stringify(balance0)}`);
-            queryContract(deploymentDetails.poolLpTokenAddress, {
-                balance: { address: allAccounts.accounts[1] }
-            }).then((balance1) => {
-                console.log(`Balance of ${allAccounts.accounts[1]} : ${JSON.stringify(balance1)}`);
-            });
-        });
-        // allAccounts.accounts.forEach((account) => {
-        //     let balance = await queryContract(deploymentDetails.poolLpTokenAddress, {
-        //         balance: { address: account }
-        //     });
-        //     console.log(`Balance of ${account} : ${JSON.stringify(balance)}`);
-        // });
-    });
-}
-
-const provideLiquidityAuthorised = async (deploymentDetails) => {
-    //First increase allowance for proxy to spend from minting_wallet wallet
-    let increaseAllowanceMsg = {
-        increase_allowance: {
-            spender: deploymentDetails.proxyContractAddress,
-            amount: "5000000000"
-        }
-    };
-    let incrAllowResp = await executeContract(treasury_wallet, deploymentDetails.furyContractAddress, increaseAllowanceMsg);
-    console.log(`Increase allowance response hash = ${incrAllowResp['txhash']}`);
-    let executeMsg = {
-        provide_liquidity: {
-            assets: [
-                {
-                    info: {
-                        native_token: {
-                            denom: "uusd"
-                        }
-                    },
-                    amount: "500000000"
-                },
-                {
-                    info: {
-                        token: {
-                            contract_addr: deploymentDetails.furyContractAddress
-                        }
-                    },
-                    amount: "5000000000"
-                }
-            ]
-        }
-    };
-    let tax = await terraClient.utils.calculateTax(new Coin("uusd", "500000000"));
-    console.log(`tax = ${tax}`);
-    let funds = Number(500000000);
-    funds = funds + Number(tax.amount);
-    console.log(`funds = ${funds}`);
-    let response = await executeContract(treasury_wallet, deploymentDetails.proxyContractAddress, executeMsg, { 'uusd': funds });
-    console.log(`Provide Liquidity (from treasury) Response - ${response['txhash']}`);
-}
-
-const provideLiquidityGeneral = async (deploymentDetails) => {
-    //First increase allowance for proxy to spend from marketing_wallet wallet
-    let increaseAllowanceMsg = {
-        increase_allowance: {
-            spender: deploymentDetails.proxyContractAddress,
-            amount: "50000000"
-        }
-    };
-    let incrAllowResp = await executeContract(marketing_wallet, deploymentDetails.furyContractAddress, increaseAllowanceMsg);
-    console.log(`Increase allowance response hash = ${incrAllowResp['txhash']}`);
-    let executeMsg = {
-        provide_liquidity: {
-            assets: [
-                {
-                    info: {
-                        native_token: {
-                            denom: "uusd"
-                        }
-                    },
-                    amount: "5000000"
-                },
-                {
-                    info: {
-                        token: {
-                            contract_addr: deploymentDetails.furyContractAddress
-                        }
-                    },
-                    amount: "50000000"
-                }
-            ]
-        }
-    };
-    let tax = await terraClient.utils.calculateTax(new Coin("uusd", "5000000"));
-    console.log(`tax = ${tax}`);
-    let funds = Number(5000000);
-    funds = funds + Number(tax.amount);
-    console.log(`funds = ${funds}`);
-    let response = await executeContract(marketing_wallet, deploymentDetails.proxyContractAddress, executeMsg, { 'uusd': funds });
-    console.log(`Provide Liquidity (from marketing) Response - ${response['txhash']}`);
-}
 
 const queryPool = async (deploymentDetails) => {
     console.log("querying pool details");
@@ -459,136 +337,5 @@ const queryPool = async (deploymentDetails) => {
     console.log(JSON.stringify(poolDetails));
 }
 
-const performSimulation = async (deploymentDetails) => {
-    simulationOfferNative(deploymentDetails).then(() => {
-        simulationOfferFury(deploymentDetails).then(() => {
-            reverseSimulationAskNative(deploymentDetails).then(() => {
-                reverseSimulationAskFury(deploymentDetails);
-            });
-        });
-    });
-}
-
-const performSwap = async (deploymentDetails) => {
-    buyFuryTokens(deploymentDetails).then(() => {
-        sellFuryTokens(deploymentDetails).then(() => {
-
-        });
-    });
-}
-
-const buyFuryTokens = async (deploymentDetails) => {
-    let buyFuryMsg = {
-        swap: {
-            sender: minting_wallet.key.accAddress,
-            offer_asset: {
-                info: {
-                    native_token: {
-                        denom: "uusd"
-                    }
-                },
-                amount: "10000"
-            }
-        }
-    };
-    let buyFuryResp = await executeContract(minting_wallet, deploymentDetails.proxyContractAddress, buyFuryMsg, { 'uusd': 10010 });
-    console.log(`Buy Fury swap response tx hash = ${buyFuryResp['txhash']}`);
-}
-
-const sellFuryTokens = async (deploymentDetails) => {
-    let swapMsg = {
-        swap: {
-            sender: minting_wallet.key.accAddress,
-            offer_asset: {
-                info: {
-                    token: {
-                        contract_addr: deploymentDetails.furyContractAddress
-                    }
-                },
-                amount: "1000000"
-            }
-        }
-    };
-    let base64Msg = Buffer.from(JSON.stringify(swapMsg)).toString('base64');
-    console.log(`Sell Fury swap base64 msg = ${base64Msg}`);
-
-    let sendMsg = {
-        send: {
-            contract: deploymentDetails.proxyContractAddress,
-            amount: "1000000",
-            msg: base64Msg
-        }
-    };
-    let sellFuryResp = await executeContract(minting_wallet, deploymentDetails.furyContractAddress, sendMsg);
-    console.log(`Sell Fury swap response tx hash = ${sellFuryResp['txhash']}`);
-}
-
-const simulationOfferNative = async (deploymentDetails) => {
-    console.log("performing simulation for offering native coins");
-    let simulationResult = await queryContract(deploymentDetails.proxyContractAddress, {
-        simulation: {
-            offer_asset: {
-                info: {
-                    native_token: {
-                        denom: "uusd"
-                    }
-                },
-                amount: "100000000"
-            }
-        }
-    });
-    console.log(JSON.stringify(simulationResult));
-}
-
-const simulationOfferFury = async (deploymentDetails) => {
-    console.log("performing simulation for offering Fury tokens");
-    let simulationResult = await queryContract(deploymentDetails.proxyContractAddress, {
-        simulation: {
-            offer_asset: {
-                info: {
-                    token: {
-                        contract_addr: deploymentDetails.furyContractAddress
-                    }
-                },
-                amount: "100000000"
-            }
-        }
-    });
-    console.log(JSON.stringify(simulationResult));
-}
-
-const reverseSimulationAskNative = async (deploymentDetails) => {
-    console.log("performing reverse simulation asking for native coins");
-    let simulationResult = await queryContract(deploymentDetails.proxyContractAddress, {
-        reverse_simulation: {
-            ask_asset: {
-                info: {
-                    native_token: {
-                        denom: "uusd"
-                    }
-                },
-                amount: "1000000"
-            }
-        }
-    });
-    console.log(JSON.stringify(simulationResult));
-}
-
-const reverseSimulationAskFury = async (deploymentDetails) => {
-    console.log("performing reverse simulation asking for Fury tokens");
-    let simulationResult = await queryContract(deploymentDetails.proxyContractAddress, {
-        reverse_simulation: {
-            ask_asset: {
-                info: {
-                    token: {
-                        contract_addr: deploymentDetails.furyContractAddress
-                    }
-                },
-                amount: "1000000"
-            }
-        }
-    });
-    console.log(JSON.stringify(simulationResult));
-}
 
 main()

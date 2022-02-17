@@ -8,7 +8,11 @@ use cosmwasm_std::{
 };
 
 use cw2::set_contract_version;
-use cw20::{AllowanceResponse, BalanceResponse, Cw20ExecuteMsg, Cw20QueryMsg, Expiration};
+use cw20::{
+    AllowanceResponse, BalanceResponse, Cw20Coin, Cw20ExecuteMsg, Cw20QueryMsg, Cw20ReceiveMsg,
+    DownloadLogoResponse, EmbeddedLogo, Expiration, Logo, LogoInfo, MarketingInfoResponse,
+    MinterResponse, TokenInfoResponse,
+};
 
 use crate::error::ContractError;
 use crate::msg::{
@@ -611,6 +615,32 @@ fn query_vesting_details(deps: Deps, address: String) -> StdResult<VestingDetail
     };
 }
 
+pub fn query_balance(deps: Deps, address: String, info: MessageInfo) -> StdResult<BalanceResponse> {
+    let address = deps.api.addr_validate(&address)?;
+    let config = CONFIG.load(deps.storage)?;
+    let balance_msg = Cw20QueryMsg::Balance {
+        address: info.sender.clone().into_string(),
+    };
+    let balance_response: cw20::BalanceResponse = deps
+        .querier
+        .query_wasm_smart(config.fury_token_address.clone(), &balance_msg)?;
+
+    let balance = balance_response.balance;
+    Ok(BalanceResponse { balance })
+}
+
+pub fn query_minter(deps: Deps) -> StdResult<Option<MinterResponse>> {
+    let meta = TOKEN_INFO.load(deps.storage)?;
+    let minter = match meta.mint {
+        Some(m) => Some(MinterResponse {
+            minter: m.minter.into(),
+            cap: m.cap,
+        }),
+        None => None,
+    };
+    Ok(minter)
+}
+
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn migrate(_deps: DepsMut, _env: Env, _msg: MigrateMsg) -> StdResult<Response> {
     Ok(Response::default())
@@ -624,9 +654,51 @@ mod tests {
 
     use super::*;
 
+    fn get_balance<T: Into<String>>(deps: Deps, address: T) -> Uint128 {
+        query_balance(deps, address.into()).unwrap().balance
+    }
+
     #[test]
     fn vesting_test_cases() {
         assert_eq!(1, 1);
+    }
+
+    // this will set up the instantiation for other tests
+    fn do_instantiate(deps: DepsMut, addr: &str, amount: Uint128) -> TokenInfoResponse {
+        _do_instantiate(deps, addr, amount, None)
+    }
+
+    // this will set up the instantiation for other tests
+    fn _do_instantiate(
+        mut deps: DepsMut,
+        addr: &str,
+        amount: Uint128,
+        mint: Option<MinterResponse>,
+    ) -> TokenInfoResponse {
+        let instantiate_msg = InstantiateMsg {
+//WIP
+            admin_wallet: "Addr",
+            fury_token_contract: "Addr",
+            vesting: "InstantiateVestingSchedulesInfo",
+        };
+        let info = mock_info("creator", &[]);
+        let env = mock_env();
+        let res = instantiate(deps.branch(), env, info, instantiate_msg).unwrap();
+        assert_eq!(0, res.messages.len());
+
+        let meta = query_token_info(deps.as_ref()).unwrap();
+        assert_eq!(
+            meta,
+            TokenInfoResponse {
+                name: "Auto Gen".to_string(),
+                symbol: "AUTO".to_string(),
+                decimals: 3,
+                total_supply: amount,
+            }
+        );
+        assert_eq!(get_balance(deps.as_ref(), addr), amount);
+        assert_eq!(query_minter(deps.as_ref()).unwrap(), mint,);
+        meta
     }
 
     #[test]
@@ -713,7 +785,6 @@ mod tests {
 
     #[test]
     fn test_vesting_at_tge() {
-        use std::time::{Duration, SystemTime, UNIX_EPOCH};
         let spender_address = String::from("addr0001");
         let category_address = String::from("addr0002");
 
@@ -740,7 +811,6 @@ mod tests {
     }
     #[test]
     fn test_vesting_at_tge_with_initial_seed() {
-        use std::time::{Duration, SystemTime, UNIX_EPOCH};
         let spender_address = String::from("addr0001");
         let category_address = String::from("addr0002");
 
@@ -766,7 +836,6 @@ mod tests {
     }
     #[test]
     fn test_vesting_at_tge_no_initial_seed_first_interval() {
-        use std::time::{Duration, SystemTime, UNIX_EPOCH};
         let spender_address = String::from("addr0001");
         let category_address = String::from("addr0002");
 
@@ -796,7 +865,6 @@ mod tests {
 
     #[test]
     fn test_vesting_at_tge_with_initial_seed_first_interval() {
-        use std::time::{Duration, SystemTime, UNIX_EPOCH};
         let spender_address = String::from("addr0001");
         let category_address = String::from("addr0002");
 
@@ -825,7 +893,6 @@ mod tests {
     }
     #[test]
     fn test_vesting_at_tge_no_initial_seed_2_uncalc_interval() {
-        use std::time::{Duration, SystemTime, UNIX_EPOCH};
         let spender_address = String::from("addr0001");
         let category_address = String::from("addr0002");
 

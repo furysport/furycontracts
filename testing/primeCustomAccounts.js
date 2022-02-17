@@ -4,21 +4,21 @@ import {
     walletTest3,
     walletTest4,
     walletTest5,
+    walletTest6,
     minting_wallet,
     treasury_wallet,
     liquidity_wallet,
     marketing_wallet,
     gamified_airdrop_wallet,
-    private_category_wallet
+    private_category_wallet,
+    terraClient,
+    privatecategory
 } from './constants.js';
 
 import { MsgSend, LCDClient } from '@terra-money/terra.js';
 
 // To use LocalTerra
-const terra = new LCDClient({
-    URL: 'http://localhost:1317',
-    chainID: 'localterra'
-});
+const terra = terraClient
 
 export const primeAccountsWithFunds = async () => {
     var txHash = [];
@@ -39,7 +39,7 @@ function fundMintingWallet() {
         const send1 = new MsgSend(
             walletTest1.key.accAddress,
             minting_wallet.key.accAddress,
-            { uluna: 500000000000000, uusd: 500000000000000 }
+            { uluna: 500000000, uusd: 5000000000000 }
         );
 
         walletTest1
@@ -61,7 +61,7 @@ function fundTreasuryWallet() {
         const send2 = new MsgSend(
             walletTest2.key.accAddress,
             treasury_wallet.key.accAddress,
-            { uluna: 500000000000000, uusd: 500000000000000 }
+            { uluna: 500000000, uusd: 5000000000000 }
         );
 
         walletTest2
@@ -83,7 +83,7 @@ function fundLiquidityWallet() {
         const send = new MsgSend(
             walletTest3.key.accAddress,
             liquidity_wallet.key.accAddress,
-            { uluna: 500000000000000, uusd: 500000000000000 }
+            { uluna: 500000000, uusd: 5000000000000 }
         );
 
         walletTest3
@@ -105,7 +105,7 @@ function fundMarketingWallet() {
         const send = new MsgSend(
             walletTest4.key.accAddress,
             marketing_wallet.key.accAddress,
-            { uluna: 500000000000000, uusd: 500000000000000 }
+            { uluna: 500000000, uusd: 5000000000000 }
         );
 
         walletTest4
@@ -127,7 +127,7 @@ function fundGamifiedAirdropWallet() {
         const send = new MsgSend(
             walletTest5.key.accAddress,
             gamified_airdrop_wallet.key.accAddress,
-            { uluna: 500000000000, uusd: 500000000000 }
+            { uluna: 500000000, uusd: 5000000000000 }
         );
 
         walletTest5
@@ -146,12 +146,12 @@ function fundPrivateCategoryWallet() {
     console.log(`Funding ${private_category_wallet.key.accAddress}`);
     return new Promise(resolve => {
         const send = new MsgSend(
-            walletTest5.key.accAddress,
+            walletTest6.key.accAddress,
             private_category_wallet.key.accAddress,
-            { uluna: 5000000, uusd: 5000000 }
+            { uluna: 50000000, uusd: 50000000000 }
         );
 
-        walletTest5
+        walletTest6
             .createAndSignTx({
                 msgs: [send],
                 memo: 'Initial Funding!',
