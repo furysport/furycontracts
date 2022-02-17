@@ -89,15 +89,15 @@ const mkrake_return = new MnemonicKey({ mnemonic: "royal steel thought shift cur
 export const rake_return_wallet = terraClient.wallet(mkrake_return);
 
 
-export const deployer = transaction_wallet.key.accAddress; // used as operator on all contracts
+export const deployer = transaction_wallet; // used as operator on all contracts
 // These can be the client wallets to interact
-export const walletTest1 = gamified_airdrop_wallet.key.accAddress;
-export const walletTest2 = whitelist_airdrop_wallet.key.accAddress;
-export const walletTest3 = private_category_wallet.key.accAddress;
-export const walletTest4 = marketing_wallet.key.accAddress;
-export const walletTest5 = partnership_wallet.key.accAddress;
-export const walletTest6 = advisory_wallet.key.accAddress;
-export const walletTest10 = gasfee_wallet.key.accAddress;
+export const walletTest1 = gamified_airdrop_wallet;
+export const walletTest2 = whitelist_airdrop_wallet;
+export const walletTest3 = private_category_wallet;
+export const walletTest4 = marketing_wallet;
+export const walletTest5 = partnership_wallet;
+export const walletTest6 = advisory_wallet;
+export const walletTest10 = gasfee_wallet;
 
 
 export const swapinitMessage = {
