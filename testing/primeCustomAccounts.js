@@ -8,7 +8,8 @@ import {
     treasury_wallet,
     liquidity_wallet,
     marketing_wallet,
-    gamified_airdrop_wallet
+    gamified_airdrop_wallet,
+    private_category_wallet
 } from './constants.js';
 
 import { MsgSend, LCDClient } from '@terra-money/terra.js';
@@ -26,6 +27,7 @@ export const primeAccountsWithFunds = async () => {
     txHash.push(await fundLiquidityWallet());
     txHash.push(await fundMarketingWallet());
     txHash.push(await fundGamifiedAirdropWallet());
+    txHash.push(await fundPrivateCategoryWallet());
     console.log("leaving primeCustomAccounts");
     return txHash;
 }
@@ -126,6 +128,27 @@ function fundGamifiedAirdropWallet() {
             walletTest5.key.accAddress,
             gamified_airdrop_wallet.key.accAddress,
             { uluna: 500000000000, uusd: 500000000000 }
+        );
+
+        walletTest5
+            .createAndSignTx({
+                msgs: [send],
+                memo: 'Initial Funding!',
+            })
+            .then(tx => terra.tx.broadcast(tx))
+            .then(result => {
+                console.log(result.txhash);
+                resolve(result.txhash);
+            });
+    })
+}
+function fundPrivateCategoryWallet() {
+    console.log(`Funding ${private_category_wallet.key.accAddress}`);
+    return new Promise(resolve => {
+        const send = new MsgSend(
+            walletTest5.key.accAddress,
+            private_category_wallet.key.accAddress,
+            { uluna: 5000000, uusd: 5000000 }
         );
 
         walletTest5

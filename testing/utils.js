@@ -1,12 +1,12 @@
 import fs from "fs";
 import chalk from "chalk";
-import {isTxError} from "@terra-money/terra.js/dist/client/lcd/api/TxAPI.js";
+import { isTxError } from "@terra-money/terra.js/dist/client/lcd/api/TxAPI.js";
 import {
   MsgExecuteContract,
   MsgInstantiateContract,
   MsgStoreCode
 } from "@terra-money/terra.js/dist/core/wasm/msgs/index.js";
-import {terraClient,} from "./constants.js";
+import { terraClient, } from "./constants.js";
 
 import {
   readFileSync,
@@ -22,12 +22,12 @@ export function writeArtifact(data, name = 'artifact') {
 
 
 export function readArtifact(name = 'artifact') {
-    try {
-        const data = readFileSync(path.join(ARTIFACTS_PATH, `${name}.json`), 'utf8')
-        return JSON.parse(data)
-    } catch (e) {
-        return {}
-    }
+  try {
+    const data = readFileSync(path.join(ARTIFACTS_PATH, `${name}.json`), 'utf8')
+    return JSON.parse(data)
+  } catch (e) {
+    return {}
+  }
 }
 
 /**
@@ -74,7 +74,7 @@ export async function sendTransaction(senderWallet, msgs, verbose = false) {
   // fees = gas * gas_prices
   const tx = await senderWallet.createAndSignTx({
     msgs,
-    gasPrices: {uusd: 0.15},
+    gasPrices: { uusd: 0.15 },
     gasAdjustment: 1.75
   });
 

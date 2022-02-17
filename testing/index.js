@@ -204,16 +204,6 @@ const instantiateVnD = async (deploymentDetails) => {
                         vesting_periodicity: 86400,
                     },
                     {
-                        address: whitelist_airdrop_wallet.key.accAddress,
-                        cliff_period: 0,
-                        initial_vesting_count: "0",
-                        parent_category_address: "",
-                        should_transfer: true,
-                        total_vesting_token_count: "5000000000000",
-                        vesting_count_per_period: "0",
-                        vesting_periodicity: 0
-                    },
-                    {
                         address: marketing_wallet.key.accAddress,
                         cliff_period: 0,
                         initial_vesting_count: "4200000000000",
@@ -247,7 +237,7 @@ const instantiateVnD = async (deploymentDetails) => {
                         address: private_category_wallet.key.accAddress,
                         cliff_period: 0,
                         initial_vesting_count: "1260000000000",
-                        parent_category_address: "",
+                        parent_category_address: minting_wallet.key.accAddress,
                         should_transfer: false,
                         total_vesting_token_count: "12600000000000",
                         vesting_count_per_period: "6300000000",
@@ -299,19 +289,21 @@ const performPeriodicVesting = async (deploymentDetails) => {
 }
 
 const claimVestedTokens = async (deploymentDetails) => {
-    console.log(`Claiming vested tokens for ${marketing_wallet.key.accAddress}`);
+    //Get balance of private_category_wallet
+    console.log(`Claiming vested tokens for ${private_category_wallet.key.accAddress}`);
     let vesting_details = await queryContract(deploymentDetails.vndAddress, {
-        vesting_details: { address: marketing_wallet.key.accAddress }
+        vesting_details: { address: private_category_wallet.key.accAddress }
     });
-    console.log(`vesting details of ${marketing_wallet.key.accAddress} : ${JSON.stringify(vesting_details)}`);
+    console.log(`vesting details of ${private_category_wallet.key.accAddress} : ${JSON.stringify(vesting_details)}`);
     let vestable = vesting_details['tokens_available_to_claim']
     if (vestable > 0) {
         let claimVestedTokensMsg = { claim_vested_tokens: { amount: vestable } };
-        let claimVestingResp = await executeContract(marketing_wallet, deploymentDetails.vndAddress, claimVestedTokensMsg);
+        let claimVestingResp = await executeContract(private_category_wallet, deploymentDetails.vndAddress, claimVestedTokensMsg);
         console.log(claimVestingResp['txhash']);
     } else {
         console.log("Number of tokens available for claiming = " + vestable);
     }
+    //Get balance of private_category_wallet
 }
 
 const queryVestingDetailsForGaming = async (deploymentDetails) => {

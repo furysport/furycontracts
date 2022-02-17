@@ -360,8 +360,9 @@ fn calculate_tokens_for_this_period(
             amount: tokens_for_this_period,
         })
     } else {
-        return Err(ContractError::Std(StdError::generic_err(String::from(
-            "No vesting for this address",
+        return Err(ContractError::Std(StdError::generic_err(format!(
+            "Vesting periodicity for {:?} address is {:?}",
+            wallet_address, vd.vesting_periodicity
         ))));
     }
 }
