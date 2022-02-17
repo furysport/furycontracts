@@ -15,7 +15,9 @@ import {
     terraClient,
     StakingContractPath,
     FactoryContractPath,
-    ProxyContractPath
+    ProxyContractPath,
+    private_category_wallet,
+    partnership_wallet
 } from './constants.js';
 import {
     storeCode,
@@ -191,12 +193,63 @@ const instantiateVnD = async (deploymentDetails) => {
                 vesting_schedules: [
                     {
                         address: gamified_airdrop_wallet.key.accAddress,
-                        initial_vesting_count: "3950000000000",
-                        vesting_periodicity: 86400,
-                        vesting_count_per_period: "69490740000",
-                        total_vesting_token_count: "79000000000000",
                         cliff_period: 0,
+                        initial_vesting_count: "3950000000000",
+                        parent_category_address: "",
                         should_transfer: true,
+                        total_vesting_token_count: "79000000000000",
+                        vesting_count_per_period: "69490740000",
+                        vesting_periodicity: 86400,
+                    },
+                    {
+                        address: whitelist_airdrop_wallet.key.accAddress,
+                        cliff_period: 0,
+                        initial_vesting_count: "0",
+                        parent_category_address: "",
+                        should_transfer: true,
+                        total_vesting_token_count: "5000000000000",
+                        vesting_count_per_period: "0",
+                        vesting_periodicity: 0
+                    },
+                    {
+                        address: marketing_wallet.key.accAddress,
+                        cliff_period: 0,
+                        initial_vesting_count: "4200000000000",
+                        parent_category_address: "",
+                        should_transfer: true,
+                        total_vesting_token_count: "42000000000000",
+                        vesting_count_per_period: "21000000000",
+                        vesting_periodicity: 300
+                    },
+                    {
+                        address: partnership_wallet.key.accAddress,
+                        cliff_period: 0,
+                        initial_vesting_count: "1680000000000",
+                        parent_category_address: "",
+                        should_transfer: false,
+                        total_vesting_token_count: "16800000000000",
+                        vesting_count_per_period: "8400000000",
+                        vesting_periodicity: 300
+                    },
+                    {
+                        address: treasury_wallet.key.accAddress,
+                        cliff_period: 0,
+                        initial_vesting_count: "1260000000000",
+                        parent_category_address: "",
+                        should_transfer: false,
+                        total_vesting_token_count: "12600000000000",
+                        vesting_count_per_period: "6300000000",
+                        vesting_periodicity: 300
+                    },
+                    {
+                        address: private_category_wallet.key.accAddress,
+                        cliff_period: 0,
+                        initial_vesting_count: "1260000000000",
+                        parent_category_address: "",
+                        should_transfer: false,
+                        total_vesting_token_count: "12600000000000",
+                        vesting_count_per_period: "6300000000",
+                        vesting_periodicity: 300
                     }
                 ]
             }
