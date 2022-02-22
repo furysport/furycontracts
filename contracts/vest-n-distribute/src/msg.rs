@@ -40,7 +40,12 @@ pub struct InstantiateMsg {
 pub enum ExecuteMsg {
     PeriodicallyTransferToCategories {},
     PeriodicallyCalculateVesting {},
-    ClaimVestedTokens { amount: Uint128 },
+    ClaimVestedTokens {
+        amount: Uint128,
+    },
+    AddVestingSchedules {
+        schedules: InstantiateVestingSchedulesInfo,
+    },
 }
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]

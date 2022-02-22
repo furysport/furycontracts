@@ -2,16 +2,14 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use cosmwasm_std::{
-    attr, entry_point, to_binary, Addr, Attribute, Binary, Deps, DepsMut, Env, MessageInfo,
+    entry_point, to_binary, Addr, Attribute, Binary, Deps, DepsMut, Env, MessageInfo,
     OverflowError, OverflowOperation, Response, StdError, StdResult, SubMsg, Timestamp, Uint128,
     WasmMsg,
 };
 
 use cw2::set_contract_version;
 use cw20::{
-    AllowanceResponse, BalanceResponse, Cw20Coin, Cw20ExecuteMsg, Cw20QueryMsg, Cw20ReceiveMsg,
-    DownloadLogoResponse, EmbeddedLogo, Expiration, Logo, LogoInfo, MarketingInfoResponse,
-    MinterResponse, TokenInfoResponse,
+    BalanceResponse, Cw20ExecuteMsg, Cw20QueryMsg
 };
 
 use crate::error::ContractError;
@@ -175,7 +173,7 @@ fn update_vesting_details(
     address: String,
     execution_timestamp: Timestamp,
     transferred: Option<VestingInfo>,
-    vestable: Option<VestingInfo>,
+    vestable: Option<VestingInfo>, //mandatory
 ) -> Result<Response, ContractError> {
     let addr = deps.api.addr_validate(&address)?;
 
@@ -303,7 +301,7 @@ fn calculate_tokens_for_this_period(
             // the now time is greater (ahead) of vesting start + cliff
             seconds_lapsed =
                 now_seconds - (vesting_start_seconds + (vd.cliff_period * CLIFF_PERIOD_UNIT));
-            // println!("seconds_lapsed_1 = {}", seconds_lapsed);
+            println!("seconds_lapsed_1 = {}", seconds_lapsed);
             let total_vesting_intervals = seconds_lapsed / vd.vesting_periodicity;
             // println!("total_vesting_intervals = {}", total_vesting_intervals);
             // println!(
@@ -386,7 +384,18 @@ pub fn execute(
             periodically_calculate_vesting(deps, env, info)
         }
         ExecuteMsg::ClaimVestedTokens { amount } => claim_vested_tokens(deps, env, info, amount),
+        ExecuteMsg::AddVestingSchedules { schedules } => {
+            add_vesting_schedules(deps, env, schedules)
+        }
     }
+}
+
+fn add_vesting_schedules(
+    deps: DepsMut,
+    env: Env,
+    schedules: InstantiateVestingSchedulesInfo,
+) -> Result<Response, ContractError> {
+    instantiate_category_vesting_schedules(deps, env, schedules)
 }
 
 fn claim_vested_tokens(
@@ -405,7 +414,7 @@ fn claim_vested_tokens(
             let owner_addr_str = vd.parent_category_address;
             match owner_addr_str {
                 Some(owner_addr_str) => {
-                    let owner_addr = deps.api.addr_validate(&owner_addr_str)?;
+                    let _owner_addr = deps.api.addr_validate(&owner_addr_str)?;
                     // deduct allowance before doing anything else have enough allowance
                     //in our case do we have to deduct?
                     // deduct_allowance(deps.storage, &owner_addr, &info.sender, &env.block, amount)?;
@@ -615,11 +624,11 @@ fn query_vesting_details(deps: Deps, address: String) -> StdResult<VestingDetail
     };
 }
 
-pub fn query_balance(deps: Deps, address: String, info: MessageInfo) -> StdResult<BalanceResponse> {
+pub fn query_balance(deps: Deps, address: String) -> StdResult<BalanceResponse> {
     let address = deps.api.addr_validate(&address)?;
     let config = CONFIG.load(deps.storage)?;
     let balance_msg = Cw20QueryMsg::Balance {
-        address: info.sender.clone().into_string(),
+        address: address.to_string(),
     };
     let balance_response: cw20::BalanceResponse = deps
         .querier
@@ -629,17 +638,21 @@ pub fn query_balance(deps: Deps, address: String, info: MessageInfo) -> StdResul
     Ok(BalanceResponse { balance })
 }
 
-pub fn query_minter(deps: Deps) -> StdResult<Option<MinterResponse>> {
-    let meta = TOKEN_INFO.load(deps.storage)?;
-    let minter = match meta.mint {
-        Some(m) => Some(MinterResponse {
-            minter: m.minter.into(),
-            cap: m.cap,
-        }),
-        None => None,
-    };
-    Ok(minter)
-}
+// pub fn query_minter(deps: Deps,
+//     address: String,
+// ) -> StdResult<Option<MinterResponse>> {
+//     // let meta = TOKEN_INFO.load(deps.storage)?;
+//     let meta = CONFIG.load(deps.storage)?;
+//     // let meta = deps.api.addr_validate(&address)?;
+//     let minter = match meta.mint {
+//         Some(m) => Some(MinterResponse {
+//             minter: m.minter.into(),
+//             cap: m.cap,
+//         }),
+//         None => None,
+//     };
+//     Ok(minter)
+// }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn migrate(_deps: DepsMut, _env: Env, _msg: MigrateMsg) -> StdResult<Response> {
@@ -664,42 +677,44 @@ mod tests {
     }
 
     // this will set up the instantiation for other tests
-    fn do_instantiate(deps: DepsMut, addr: &str, amount: Uint128) -> TokenInfoResponse {
-        _do_instantiate(deps, addr, amount, None)
-    }
+    // fn do_instantiate(deps: DepsMut, addr: &str, amount: Uint128) -> TokenInfoResponse {
+    //     _do_instantiate(deps, addr, amount, None)
+    // }
 
     // this will set up the instantiation for other tests
-    fn _do_instantiate(
-        mut deps: DepsMut,
-        addr: &str,
-        amount: Uint128,
-        mint: Option<MinterResponse>,
-    ) -> TokenInfoResponse {
-        let instantiate_msg = InstantiateMsg {
-//WIP
-            admin_wallet: "Addr",
-            fury_token_contract: "Addr",
-            vesting: "InstantiateVestingSchedulesInfo",
-        };
-        let info = mock_info("creator", &[]);
-        let env = mock_env();
-        let res = instantiate(deps.branch(), env, info, instantiate_msg).unwrap();
-        assert_eq!(0, res.messages.len());
+    // fn _do_instantiate(
+    //     mut deps: DepsMut,
+    //     addr: &str,
+    //     amount: Uint128,
+    //     mint: Option<MinterResponse>,
+    // ) -> TokenInfoResponse {
+    //     let instantiate_msg = InstantiateMsg {
+    //         admin_wallet: Addr::unchecked("terra1ttjw6nscdmkrx3zhxqx3md37phldgwhggm345k"),
+    //         fury_token_contract: Addr::unchecked("terra1ttjw6nscdmkrx3zhxqx3md37phldgwhggm345k"),
+    //         vesting: {
+                
+    //         },
+    //     };
+    //     //WIP
+    //     let info = mock_info("creator", &[]);
+    //     let env = mock_env();
+    //     let res = instantiate(deps.branch(), env, info, instantiate_msg).unwrap();
+    //     assert_eq!(0, res.messages.len());
 
-        let meta = query_token_info(deps.as_ref()).unwrap();
-        assert_eq!(
-            meta,
-            TokenInfoResponse {
-                name: "Auto Gen".to_string(),
-                symbol: "AUTO".to_string(),
-                decimals: 3,
-                total_supply: amount,
-            }
-        );
-        assert_eq!(get_balance(deps.as_ref(), addr), amount);
-        assert_eq!(query_minter(deps.as_ref()).unwrap(), mint,);
-        meta
-    }
+    //     let meta = query_token_info(deps.as_ref()).unwrap();
+    //     assert_eq!(
+    //         meta,
+    //         TokenInfoResponse {
+    //             name: "Auto Gen".to_string(),
+    //             symbol: "AUTO".to_string(),
+    //             decimals: 3,
+    //             total_supply: amount,
+    //         }
+    //     );
+    //     assert_eq!(get_balance(deps.as_ref(), addr), amount);
+    //     // assert_eq!(query_minter(deps.as_ref()).unwrap(), mint,);
+    //     meta
+    // }
 
     #[test]
     fn transfer_to_categories() {
@@ -708,14 +723,14 @@ mod tests {
         let distribute_to = String::from("addr0002");
         let amount = Uint128::from(1000u128);
 
-        do_instantiate(deps.as_mut(), &distribute_from, amount);
+        // do_instantiate(deps.as_mut(), &distribute_from, amount);
 
         let init_from_balance = get_balance(deps.as_ref(), distribute_from.clone());
         let init_to_balance = get_balance(deps.as_ref(), distribute_to.clone());
 
         // Transfer the funds
         let mut_deps = &mut deps.as_mut();
-        let res = distribute_vested(
+        let _res = distribute_vested(
             mut_deps,
             distribute_from.clone(),
             distribute_to.clone(),
@@ -737,9 +752,9 @@ mod tests {
         let mut deps = mock_dependencies(&[]);
         let distribute_from = String::from("addr0001");
         let distribute_to = String::from("addr0002");
-        let amount1 = Uint128::from(1000u128);
+        let _amount1 = Uint128::from(1000u128);
 
-        do_instantiate(deps.as_mut(), &distribute_from, amount1);
+        // do_instantiate(deps.as_mut(), &distribute_from, amount1);
 
         let init_from_balance = get_balance(deps.as_ref(), distribute_from.clone());
         let init_to_balance = get_balance(deps.as_ref(), distribute_to.clone());
@@ -748,7 +763,7 @@ mod tests {
 
         // Try to transfer more than the funds available - it should fail
         let mut_deps = &mut deps.as_mut();
-        let res = distribute_vested(
+        let _res = distribute_vested(
             mut_deps,
             distribute_from.clone(),
             distribute_to.clone(),
@@ -785,7 +800,7 @@ mod tests {
 
     #[test]
     fn test_vesting_at_tge() {
-        let spender_address = String::from("addr0001");
+        let _spender_address = String::from("addr0001");
         let category_address = String::from("addr0002");
 
         let now = mock_env().block.time; // today
@@ -811,7 +826,7 @@ mod tests {
     }
     #[test]
     fn test_vesting_at_tge_with_initial_seed() {
-        let spender_address = String::from("addr0001");
+        let _spender_address = String::from("addr0001");
         let category_address = String::from("addr0002");
 
         let now = mock_env().block.time; // today
@@ -836,7 +851,7 @@ mod tests {
     }
     #[test]
     fn test_vesting_at_tge_no_initial_seed_first_interval() {
-        let spender_address = String::from("addr0001");
+        let _spender_address = String::from("addr0001");
         let category_address = String::from("addr0002");
 
         let now = mock_env().block.time; // today
@@ -865,7 +880,7 @@ mod tests {
 
     #[test]
     fn test_vesting_at_tge_with_initial_seed_first_interval() {
-        let spender_address = String::from("addr0001");
+        let _spender_address = String::from("addr0001");
         let category_address = String::from("addr0002");
 
         let now = mock_env().block.time; // today
@@ -893,7 +908,7 @@ mod tests {
     }
     #[test]
     fn test_vesting_at_tge_no_initial_seed_2_uncalc_interval() {
-        let spender_address = String::from("addr0001");
+        let _spender_address = String::from("addr0001");
         let category_address = String::from("addr0002");
 
         let now = mock_env().block.time; // today
@@ -922,8 +937,8 @@ mod tests {
     }
     #[test]
     fn test_vesting_at_tge_with_initial_seed_2_uncalc_interval() {
-        use std::time::{Duration, SystemTime, UNIX_EPOCH};
-        let spender_address = String::from("addr0001");
+        // use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let _spender_address = String::from("addr0001");
         let category_address = String::from("addr0002");
 
         let now = mock_env().block.time; // today
@@ -954,8 +969,8 @@ mod tests {
 
     #[test]
     fn test_vesting_at_tge_no_initial_seed_1vested_1uncalc_interval() {
-        use std::time::{Duration, SystemTime, UNIX_EPOCH};
-        let spender_address = String::from("addr0001");
+        // use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let _spender_address = String::from("addr0001");
         let category_address = String::from("addr0002");
 
         let now = mock_env().block.time; // today
@@ -988,8 +1003,8 @@ mod tests {
 
     #[test]
     fn test_vesting_at_tge_no_initial_seed_1claimed_1uncalc_interval() {
-        use std::time::{Duration, SystemTime, UNIX_EPOCH};
-        let spender_address = String::from("addr0001");
+        // use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let _spender_address = String::from("addr0001");
         let category_address = String::from("addr0002");
 
         let now = mock_env().block.time; // today
@@ -1026,8 +1041,8 @@ mod tests {
 
     #[test]
     fn test_vesting_at_tge_no_initial_seed_1claimed_half_uncalc_interval() {
-        use std::time::{Duration, SystemTime, UNIX_EPOCH};
-        let spender_address = String::from("addr0001");
+        // use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let _spender_address = String::from("addr0001");
         let category_address = String::from("addr0002");
 
         let now = mock_env().block.time; // today
@@ -1064,8 +1079,8 @@ mod tests {
 
     #[test]
     fn test_vesting_at_tge_with_cliff() {
-        use std::time::{Duration, SystemTime, UNIX_EPOCH};
-        let spender_address = String::from("addr0001");
+        // use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let _spender_address = String::from("addr0001");
         let category_address = String::from("addr0002");
 
         let now = mock_env().block.time; // today
@@ -1093,8 +1108,8 @@ mod tests {
 
     #[test]
     fn test_vesting_at_tge_with_initial_seed_with_cliff() {
-        use std::time::{Duration, SystemTime, UNIX_EPOCH};
-        let spender_address = String::from("addr0001");
+        // use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let _spender_address = String::from("addr0001");
         let category_address = String::from("addr0002");
 
         let now = mock_env().block.time; // today
@@ -1121,8 +1136,8 @@ mod tests {
 
     #[test]
     fn test_vesting_at_tge_no_initial_seed_first_interval_with_cliff() {
-        use std::time::{Duration, SystemTime, UNIX_EPOCH};
-        let spender_address = String::from("addr0001");
+        // use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let _spender_address = String::from("addr0001");
         let category_address = String::from("addr0002");
 
         let now = mock_env().block.time; // today
@@ -1133,7 +1148,7 @@ mod tests {
         vesting_details.vesting_start_timestamp = vesting_details
             .vesting_start_timestamp
             .minus_seconds(vesting_details.vesting_periodicity);
-        let vcpp = vesting_details.vesting_count_per_period.u128();
+        let _vcpp = vesting_details.vesting_count_per_period.u128();
         let vested_amount = calculate_tokens_for_this_period(
             Addr::unchecked(category_address.clone()),
             now,
@@ -1152,8 +1167,8 @@ mod tests {
 
     #[test]
     fn test_vesting_at_tge_with_initial_seed_first_interval_with_cliff() {
-        use std::time::{Duration, SystemTime, UNIX_EPOCH};
-        let spender_address = String::from("addr0001");
+        // use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let _spender_address = String::from("addr0001");
         let category_address = String::from("addr0002");
 
         let now = mock_env().block.time; // today
@@ -1183,8 +1198,8 @@ mod tests {
 
     #[test]
     fn test_vesting_at_tge_no_initial_seed_2_uncalc_interval_with_cliff() {
-        use std::time::{Duration, SystemTime, UNIX_EPOCH};
-        let spender_address = String::from("addr0001");
+        // use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let _spender_address = String::from("addr0001");
         let category_address = String::from("addr0002");
 
         let now = mock_env().block.time; // today
@@ -1215,8 +1230,8 @@ mod tests {
 
     #[test]
     fn test_vesting_at_tge_with_initial_seed_2_uncalc_intervalwith_cliff() {
-        use std::time::{Duration, SystemTime, UNIX_EPOCH};
-        let spender_address = String::from("addr0001");
+        // use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let _spender_address = String::from("addr0001");
         let category_address = String::from("addr0002");
 
         let now = mock_env().block.time; // today
@@ -1248,8 +1263,8 @@ mod tests {
 
     #[test]
     fn test_vesting_at_tge_no_initial_seed_1vested_1uncalc_interval_with_cliff() {
-        use std::time::{Duration, SystemTime, UNIX_EPOCH};
-        let spender_address = String::from("addr0001");
+        // use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let _spender_address = String::from("addr0001");
         let category_address = String::from("addr0002");
 
         let now = mock_env().block.time; // today
@@ -1282,8 +1297,8 @@ mod tests {
 
     #[test]
     fn test_vesting_at_tge_no_initial_seed_1claimed_1uncalc_interval_with_cliff() {
-        use std::time::{Duration, SystemTime, UNIX_EPOCH};
-        let spender_address = String::from("addr0001");
+        // use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let _spender_address = String::from("addr0001");
         let category_address = String::from("addr0002");
 
         let now = mock_env().block.time; // today
@@ -1320,8 +1335,8 @@ mod tests {
 
     #[test]
     fn test_vesting_at_tge_no_initial_seed_1claimed_half_uncalc_interval_with_cliff() {
-        use std::time::{Duration, SystemTime, UNIX_EPOCH};
-        let spender_address = String::from("addr0001");
+        // use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let _spender_address = String::from("addr0001");
         let category_address = String::from("addr0002");
 
         let now = mock_env().block.time; // today
@@ -1358,8 +1373,8 @@ mod tests {
 
     #[test]
     fn test_vesting_at_tge_with_cliff_period_over() {
-        use std::time::{Duration, SystemTime, UNIX_EPOCH};
-        let spender_address = String::from("addr0001");
+        // use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let _spender_address = String::from("addr0001");
         let category_address = String::from("addr0002");
 
         let now = mock_env().block.time; // today
@@ -1391,8 +1406,8 @@ mod tests {
 
     #[test]
     fn test_vesting_at_tge_with_initial_seed_with_cliff_period_over() {
-        use std::time::{Duration, SystemTime, UNIX_EPOCH};
-        let spender_address = String::from("addr0001");
+        // use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let _spender_address = String::from("addr0001");
         let category_address = String::from("addr0002");
 
         let now = mock_env().block.time; // today
@@ -1422,8 +1437,8 @@ mod tests {
 
     #[test]
     fn test_vesting_at_tge_no_initial_seed_first_interval_with_cliff_period_over() {
-        use std::time::{Duration, SystemTime, UNIX_EPOCH};
-        let spender_address = String::from("addr0001");
+        // use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let _spender_address = String::from("addr0001");
         let category_address = String::from("addr0002");
 
         let now = mock_env().block.time; // today
@@ -1457,8 +1472,8 @@ mod tests {
 
     #[test]
     fn test_vesting_at_tge_with_initial_seed_first_interval_with_cliff_period_over() {
-        use std::time::{Duration, SystemTime, UNIX_EPOCH};
-        let spender_address = String::from("addr0001");
+        // use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let _spender_address = String::from("addr0001");
         let category_address = String::from("addr0002");
 
         let now = mock_env().block.time; // today
@@ -1492,8 +1507,8 @@ mod tests {
 
     #[test]
     fn test_vesting_at_tge_no_initial_seed_2_uncalc_interval_with_cliff_period_over() {
-        use std::time::{Duration, SystemTime, UNIX_EPOCH};
-        let spender_address = String::from("addr0001");
+        // use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let _spender_address = String::from("addr0001");
         let category_address = String::from("addr0002");
 
         let now = mock_env().block.time; // today
@@ -1528,8 +1543,8 @@ mod tests {
 
     #[test]
     fn test_vesting_at_tge_with_initial_seed_2_uncalc_interval_with_cliff_period_over() {
-        use std::time::{Duration, SystemTime, UNIX_EPOCH};
-        let spender_address = String::from("addr0001");
+        // use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let _spender_address = String::from("addr0001");
         let category_address = String::from("addr0002");
 
         let now = mock_env().block.time; // today
@@ -1565,8 +1580,8 @@ mod tests {
 
     #[test]
     fn test_vesting_at_tge_no_initial_seed_1vested_1uncalc_interval_with_cliff_period_over() {
-        use std::time::{Duration, SystemTime, UNIX_EPOCH};
-        let spender_address = String::from("addr0001");
+        // use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let _spender_address = String::from("addr0001");
         let category_address = String::from("addr0002");
 
         let now = mock_env().block.time; // today
@@ -1605,8 +1620,8 @@ mod tests {
 
     #[test]
     fn test_vesting_at_tge_no_initial_seed_1claimed_1uncalc_interval_with_cliff_period_over() {
-        use std::time::{Duration, SystemTime, UNIX_EPOCH};
-        let spender_address = String::from("addr0001");
+        // use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let _spender_address = String::from("addr0001");
         let category_address = String::from("addr0002");
 
         let now = mock_env().block.time; // today
@@ -1649,8 +1664,8 @@ mod tests {
 
     #[test]
     fn test_vesting_at_tge_no_initial_seed_1claimed_half_uncalc_interval_with_cliff_period_over() {
-        use std::time::{Duration, SystemTime, UNIX_EPOCH};
-        let spender_address = String::from("addr0001");
+        // use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let _spender_address = String::from("addr0001");
         let category_address = String::from("addr0002");
 
         let now = mock_env().block.time; // today
@@ -1693,13 +1708,13 @@ mod tests {
 
     #[test]
     fn test_vesting() {
-        use std::time::{Duration, SystemTime, UNIX_EPOCH};
-        let spender_address = String::from("addr0001");
-        let category_address = String::from("addr0002");
+        // use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let _spender_address = String::from("addr0001");
+        let _category_address = String::from("addr0002");
 
-        let now = mock_env().block.time; // today
+        let _now = mock_env().block.time; // today
 
-        let mut vesting_details = get_vesting_details();
+        let mut _vesting_details = get_vesting_details();
 
         // vesting_periodicity = 86400; // in seconds
         // vesting_started_before = 92; // in days
