@@ -58,6 +58,8 @@ async function proceedToSetup(deploymentDetails) {
     if (result) {
         result = await instantiateFuryTokenContract(deploymentDetails);
         if (result) {
+            await setPoolPairContractAddress(deploymentDetails);
+            deploymentDetails = readArtifact(terraClient.chainID);
             await transferFuryToWallets(deploymentDetails);
             await uploadClubStaking(deploymentDetails);
             await instantiateClubStaking(deploymentDetails);
@@ -66,6 +68,16 @@ async function proceedToSetup(deploymentDetails) {
     console.log("Leaving proceedToSetup");
 }
 
+async function setPoolPairContractAddress(deploymentDetails) {
+    if (!deploymentDetails.poolPairContractAddress) {
+        const setPoolPair = await question('Do you want to set the pool pair contract address? (y/N)');
+        if (setPoolPair === 'Y' || setPoolPair === 'y') {
+            const poolPairAddress = await question('Please provide the pool pair contract address? ');
+            deploymentDetails.poolPairContractAddress = poolPairAddress;
+        }
+        writeArtifact(deploymentDetails, terraClient.chainID);
+    }
+}
 async function uploadFuryTokenContract(deploymentDetails) {
     if (!deploymentDetails.furyTokenCodeId) {
         let deployFury = false;
@@ -117,8 +129,8 @@ async function instantiateFuryTokenContract(deploymentDetails) {
             let contractAddress = initiate.logs[0].events[0].attributes[3].value;
             console.log(`Fury Token Contract ID: ${contractAddress}`);
             deploymentDetails.furyContractAddress = contractAddress;
-            writeArtifact(deploymentDetails, terraClient.chainID);
         }
+        writeArtifact(deploymentDetails, terraClient.chainID);
     }
     return true;
 }
@@ -226,11 +238,16 @@ async function instantiateClubStaking(deploymentDetails) {
         let clubStakingInitMessage = {
             admin_address: deploymentDetails.adminWallet,
             minting_contract_address: deploymentDetails.furyContractAddress,
+            pool_pair_address: deploymentDetails.poolPairContractAddress,
+            platform_fees_collector_wallet: deploymentDetails.adminWallet,
             club_fee_collector_wallet: deploymentDetails.teamWallet,
             club_reward_next_timestamp: "1640447808000000000",
             reward_periodicity: 300,
             club_price: "100000",
-            bonding_duration: 300
+            bonding_duration: 300,
+            platform_fees: "100",
+            transaction_fees: "30",
+            control_fees: "50",
         }
         console.log(JSON.stringify(clubStakingInitMessage, null, 2));
         let result = await instantiateContract(mint_wallet, deploymentDetails.clubStakingId, clubStakingInitMessage);
@@ -274,7 +291,9 @@ async function buyAClub(deploymentDetails) {
             club_name: "ClubB"
         }
     };
-    let bacResponse = await executeContract(nitin_wallet, deploymentDetails.clubStakingAddress, bacRequest, { 'uusd': 1000 });
+    let platformFees = await queryContract(deploymentDetails.clubStakingAddress, { query_platform_fees: { msg: Buffer.from(JSON.stringify(bacRequest)).toString('base64') } });
+    console.log(`platformFees = ${JSON.stringify(platformFees)}`);
+    let bacResponse = await executeContract(nitin_wallet, deploymentDetails.clubStakingAddress, bacRequest, { 'uusd': Number(platformFees) });
     console.log("All clubs ownership = " + bacResponse['txhash']);
 }
 

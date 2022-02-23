@@ -8,6 +8,9 @@ use cosmwasm_std::{
 use cw2::set_contract_version;
 use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg};
 
+use astroport::pair::PoolResponse;
+use astroport::pair::QueryMsg::Pool;
+
 // use crate::allowances::{
 //     deduct_allowance, execute_burn_from, execute_decrease_allowance, execute_increase_allowance,
 //     execute_send_from, execute_transfer_from, query_allowance,
@@ -48,6 +51,8 @@ const CLUB_STAKING_DURATION: u64 = 0u64;
 
 use cosmwasm_std::{Coin, Timestamp};
 
+const HUNDRED_PERCENT: u128 = 10000u128;
+
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
     deps: DepsMut,
@@ -59,16 +64,23 @@ pub fn instantiate(
 
     let mut next_reward_time = msg.club_reward_next_timestamp;
     if next_reward_time.seconds() == 0u64 {
-        let next_reward_time = _env.block.time.minus_seconds(1);
+        next_reward_time = _env.block.time.minus_seconds(1);
     }
     let config = Config {
         admin_address: deps.api.addr_validate(&msg.admin_address)?,
         minting_contract_address: deps.api.addr_validate(&msg.minting_contract_address)?,
+        pool_pair_address: deps.api.addr_validate(&msg.pool_pair_address)?,
         club_fee_collector_wallet: deps.api.addr_validate(&msg.club_fee_collector_wallet)?,
         club_reward_next_timestamp: next_reward_time,
         reward_periodicity: msg.reward_periodicity,
         club_price: msg.club_price,
         bonding_duration: msg.bonding_duration,
+        platform_fees_collector_wallet: deps
+            .api
+            .addr_validate(&msg.platform_fees_collector_wallet)?,
+        platform_fees: msg.platform_fees,
+        transaction_fees: msg.transaction_fees,
+        control_fees: msg.control_fees,
     };
     CONFIG.save(deps.storage, &config)?;
     CLUB_REWARD_NEXT_TIMESTAMP.save(deps.storage, &config.club_reward_next_timestamp)?;
@@ -141,15 +153,6 @@ fn received_message(
     let msg: ReceivedMsg = from_binary(&message.msg)?;
     let amount = Uint128::from(message.amount);
     match msg {
-        ReceivedMsg::BuyAClub(bcc) => buy_a_club(
-            deps,
-            env,
-            info,
-            bcc.buyer,
-            bcc.seller,
-            bcc.club_name,
-            amount,
-        ),
         ReceivedMsg::StakeOnAClub(soac) => {
             stake_on_a_club(deps, env, info, soac.staker, soac.club_name, amount)
         }
@@ -337,11 +340,10 @@ fn buy_a_club(
 ) -> Result<Response, ContractError> {
     println!("seller_opt = {:?}", seller_opt);
     let seller;
-    match seller_opt {
+    match seller_opt.clone() {
         Some(s) => seller = s,
         None => seller = String::default(),
     }
-    println!("seller = {:?}", seller);
 
     let config = CONFIG.load(deps.storage)?;
     if info.sender == config.minting_contract_address {
@@ -349,18 +351,7 @@ fn buy_a_club(
             functionality: String::from("buy_a_club"),
         });
     }
-    let mut fees = Uint128::zero();
-    for fund in info.funds {
-        if fund.denom == "uusd" {
-            fees = fees.checked_add(fund.amount).unwrap();
-        }
-    }
-    if fees != Uint128::from(1000u128) {
-        return Err(ContractError::InsufficientFees{
-            required: Uint128::from(1000u128),
-            received: fees
-        })
-    }
+
     let club_price = config.club_price;
     if price != club_price {
         return Err(ContractError::Std(StdError::GenericErr {
@@ -368,6 +359,26 @@ fn buy_a_club(
         }));
     }
 
+    let required_ust_fees = query_platform_fees(
+        deps.as_ref(),
+        to_binary(&ExecuteMsg::BuyAClub {
+            buyer: buyer.clone(),
+            club_name: club_name.clone(),
+            seller: seller_opt,
+        })?,
+    )?;
+    let mut fees = Uint128::zero();
+    for fund in info.funds {
+        if fund.denom == "uusd" {
+            fees = fees.checked_add(fund.amount).unwrap();
+        }
+    }
+    if fees != required_ust_fees {
+        return Err(ContractError::InsufficientFees {
+            required: required_ust_fees,
+            received: fees,
+        });
+    }
     let buyer_addr = deps.api.addr_validate(&buyer)?;
 
     let ownership_details;
@@ -1201,6 +1212,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         //     start_after,
         //     limit,
         // } => to_binary(&query_allowance(deps, owner.clone(), owner.clone())?),
+        QueryMsg::QueryPlatformFees { msg } => to_binary(&query_platform_fees(deps, msg)?),
         QueryMsg::ClubStakingDetails { club_name } => {
             to_binary(&query_club_staking_details(deps.storage, club_name)?)
         }
@@ -1240,6 +1252,74 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         }
         QueryMsg::RewardAmount {} => to_binary(&query_reward_amount(deps)?),
     }
+}
+
+pub fn query_platform_fees(deps: Deps, msg: Binary) -> StdResult<Uint128> {
+    let config = CONFIG.load(deps.storage)?;
+    let platform_fees_percentage: Uint128;
+    let fury_amount_provided;
+    match from_binary(&msg) {
+        Ok(ExecuteMsg::Receive(_)) => {
+            return Ok(Uint128::zero());
+        }
+        Ok(ExecuteMsg::BuyAClub {
+            buyer,
+            seller,
+            club_name,
+        }) => {
+            platform_fees_percentage = config.platform_fees + config.transaction_fees;
+            fury_amount_provided = config.club_price;
+        }
+        Ok(ExecuteMsg::ReleaseClub { owner, club_name }) => {
+            return Ok(Uint128::zero());
+        }
+        Ok(ExecuteMsg::ClaimOwnerRewards { owner, club_name }) => {
+            return Ok(Uint128::zero());
+        }
+        Ok(ExecuteMsg::ClaimPreviousOwnerRewards { previous_owner }) => {
+            return Ok(Uint128::zero());
+        }
+        Ok(ExecuteMsg::StakeWithdrawFromAClub {
+            staker,
+            club_name,
+            amount,
+            immediate_withdrawal,
+        }) => {
+            return Ok(Uint128::zero());
+        }
+        Ok(ExecuteMsg::PeriodicallyRefundStakeouts {}) => {
+            return Ok(Uint128::zero());
+        }
+        Ok(ExecuteMsg::CalculateAndDistributeRewards {}) => {
+            return Ok(Uint128::zero());
+        }
+        Ok(ExecuteMsg::ClaimRewards { staker, club_name }) => {
+            return Ok(Uint128::zero());
+        }
+        Err(err) => {
+            return Err(StdError::generic_err(format!("{:?}", err)));
+        }
+    }
+    let pool_rsp: PoolResponse = deps
+        .querier
+        .query_wasm_smart(config.pool_pair_address, &Pool {})?;
+
+    let mut uust_count = Uint128::zero();
+    let mut ufury_count = Uint128::zero();
+    for asset in pool_rsp.assets {
+        if (asset.info.is_native_token()) {
+            uust_count = asset.amount;
+        }
+        if (!asset.info.is_native_token()) {
+            ufury_count = asset.amount;
+        }
+    }
+    let ust_equiv_for_fury = fury_amount_provided
+        .checked_mul(uust_count)?
+        .checked_div(ufury_count)?;
+    return Ok(ust_equiv_for_fury
+        .checked_mul(platform_fees_percentage)?
+        .checked_div(Uint128::from(HUNDRED_PERCENT))?);
 }
 
 pub fn query_club_staking_details(
@@ -1465,8 +1545,6 @@ mod tests {
     use cosmwasm_std::{coins, from_binary, Addr, CosmosMsg, StdError, SubMsg, WasmMsg};
 
     use super::*;
-    use crate::msg::InstantiateMarketingInfo;
-
     use cosmwasm_std::coin;
 
     #[test]
@@ -1477,11 +1555,16 @@ mod tests {
         let instantiate_msg = InstantiateMsg {
             admin_address: "admin11111".to_string(),
             minting_contract_address: "minting_admin11111".to_string(),
+            pool_pair_address: "pool_pair_address1111".to_string(),
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
             club_reward_next_timestamp: now.minus_seconds(1 * 60 * 60),
             reward_periodicity: 24 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
             bonding_duration: 5 * 60u64,
+            platform_fees_collector_wallet: "platform_fee_collector_wallet_1111".to_string(),
+            platform_fees: Uint128::from(100u128),
+            transaction_fees: Uint128::from(30u128),
+            control_fees: Uint128::from(50u128),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -1493,11 +1576,11 @@ mod tests {
         )
         .unwrap();
 
-        let owner1Info = mock_info("Owner001", &[coin(1000, "stake")]);
+        let owner1_info = mock_info("Owner001", &[coin(1000, "uusd")]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
-            mintingContractInfo.clone(),
+            owner1_info.clone(),
             "Owner001".to_string(),
             Some(String::default()),
             "CLUB001".to_string(),
@@ -1527,11 +1610,16 @@ mod tests {
         let instantiate_msg = InstantiateMsg {
             admin_address: "admin11111".to_string(),
             minting_contract_address: "minting_admin11111".to_string(),
+            pool_pair_address: "pool_pair_address1111".to_string(),
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
             club_reward_next_timestamp: now.minus_seconds(1 * 60 * 60),
             reward_periodicity: 24 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
             bonding_duration: 5 * 60u64,
+            platform_fees_collector_wallet: "platform_fee_collector_wallet_1111".to_string(),
+            platform_fees: Uint128::from(100u128),
+            transaction_fees: Uint128::from(30u128),
+            control_fees: Uint128::from(50u128),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -1543,17 +1631,17 @@ mod tests {
         )
         .unwrap();
 
-        let owner1Info = mock_info("Owner001", &[coin(1000, "stake")]);
-        buy_a_club(
+        let owner1_info = mock_info("Owner001", &[coin(1000, "uusd")]);
+        let result = buy_a_club(
             deps.as_mut(),
             mock_env(),
-            mintingContractInfo.clone(),
+            owner1_info.clone(),
             "Owner001".to_string(),
             Some(String::default()),
             "CLUB001".to_string(),
             Uint128::from(1000000u128),
         );
-
+        println!("result = {:?}", result);
         let queryRes = query_club_ownership_details(&mut deps.storage, "CLUB001".to_string());
         match queryRes {
             Ok(cod) => {
@@ -1571,7 +1659,7 @@ mod tests {
         claim_owner_rewards(
             deps.as_mut(),
             mock_env(),
-            owner1Info.clone(),
+            owner1_info.clone(),
             "Owner001".to_string(),
             "CLUB001".to_string(),
         );
@@ -1599,11 +1687,16 @@ mod tests {
         let instantiate_msg = InstantiateMsg {
             admin_address: "admin11111".to_string(),
             minting_contract_address: "minting_admin11111".to_string(),
+            pool_pair_address: "pool_pair_address1111".to_string(),
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
             club_reward_next_timestamp: now.minus_seconds(1 * 60 * 60),
             reward_periodicity: 24 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
             bonding_duration: 5 * 60u64,
+            platform_fees_collector_wallet: "platform_fee_collector_wallet_1111".to_string(),
+            platform_fees: Uint128::from(100u128),
+            transaction_fees: Uint128::from(30u128),
+            control_fees: Uint128::from(50u128),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -1615,22 +1708,22 @@ mod tests {
         )
         .unwrap();
 
-        let owner1Info = mock_info("Owner001", &[coin(1000, "stake")]);
+        let owner1_info = mock_info("Owner001", &[coin(1000, "uusd")]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
-            mintingContractInfo.clone(),
+            owner1_info.clone(),
             "Owner001".to_string(),
             Some(String::default()),
             "CLUB001".to_string(),
             Uint128::from(1000000u128),
         );
 
-        let owner2Info = mock_info("Owner002", &[coin(1000, "stake")]);
+        let owner2_info = mock_info("Owner002", &[coin(1000, "uusd")]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
-            mintingContractInfo.clone(),
+            owner2_info.clone(),
             "Owner002".to_string(),
             Some(String::default()),
             "CLUB001".to_string(),
@@ -1795,11 +1888,16 @@ mod tests {
         let instantiate_msg = InstantiateMsg {
             admin_address: "admin11111".to_string(),
             minting_contract_address: "minting_admin11111".to_string(),
+            pool_pair_address: "pool_pair_address1111".to_string(),
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
             club_reward_next_timestamp: now.minus_seconds(1 * 60 * 60),
             reward_periodicity: 24 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
             bonding_duration: 5 * 60u64,
+            platform_fees_collector_wallet: "platform_fee_collector_wallet_1111".to_string(),
+            platform_fees: Uint128::from(100u128),
+            transaction_fees: Uint128::from(30u128),
+            control_fees: Uint128::from(50u128),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -1811,11 +1909,11 @@ mod tests {
         )
         .unwrap();
 
-        let owner1Info = mock_info("Owner001", &[coin(1000, "stake")]);
+        let owner1_info = mock_info("Owner001", &[coin(1000, "uusd")]);
         let mut resp = buy_a_club(
             deps.as_mut(),
             mock_env(),
-            mintingContractInfo.clone(),
+            owner1_info.clone(),
             "Owner001".to_string(),
             Some(String::default()),
             "CLUB001".to_string(),
@@ -1825,7 +1923,7 @@ mod tests {
         resp = release_club(
             deps.as_mut(),
             mock_env(),
-            owner1Info.clone(),
+            owner1_info.clone(),
             "Owner001".to_string(),
             "CLUB001".to_string(),
         );
@@ -1850,7 +1948,7 @@ mod tests {
         release_club(
             deps.as_mut(),
             mock_env(),
-            owner1Info.clone(),
+            owner1_info.clone(),
             "Owner001".to_string(),
             "CLUB001".to_string(),
         );
@@ -1869,11 +1967,11 @@ mod tests {
             }
         }
 
-        let owner2Info = mock_info("Owner002", &[coin(1000, "stake")]);
+        let owner2_info = mock_info("Owner002", &[coin(1000, "uusd")]);
         let resp = buy_a_club(
             deps.as_mut(),
             mock_env(),
-            mintingContractInfo.clone(),
+            owner2_info.clone(),
             "Owner002".to_string(),
             Some("Owner001".to_string()),
             "CLUB001".to_string(),
@@ -1903,11 +2001,16 @@ mod tests {
         let instantiate_msg = InstantiateMsg {
             admin_address: "admin11111".to_string(),
             minting_contract_address: "minting_admin11111".to_string(),
+            pool_pair_address: "pool_pair_address1111".to_string(),
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
             club_reward_next_timestamp: now.minus_seconds(1 * 60 * 60),
             reward_periodicity: 24 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
             bonding_duration: 5 * 60u64,
+            platform_fees_collector_wallet: "platform_fee_collector_wallet_1111".to_string(),
+            platform_fees: Uint128::from(100u128),
+            transaction_fees: Uint128::from(30u128),
+            control_fees: Uint128::from(50u128),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -1919,11 +2022,11 @@ mod tests {
         )
         .unwrap();
 
-        let owner1Info = mock_info("Owner001", &[coin(1000, "stake")]);
+        let owner1_info = mock_info("Owner001", &[coin(1000, "uusd")]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
-            mintingContractInfo.clone(),
+            owner1_info.clone(),
             "Owner001".to_string(),
             Some(String::default()),
             "CLUB001".to_string(),
@@ -1933,7 +2036,7 @@ mod tests {
         release_club(
             deps.as_mut(),
             mock_env(),
-            owner1Info.clone(),
+            owner1_info.clone(),
             "Owner001".to_string(),
             "CLUB001".to_string(),
         );
@@ -1985,7 +2088,7 @@ mod tests {
         release_club(
             deps.as_mut(),
             mock_env(),
-            owner1Info.clone(),
+            owner1_info.clone(),
             "Owner001".to_string(),
             "CLUB001".to_string(),
         );
@@ -2014,11 +2117,11 @@ mod tests {
         );
 
         println!("buy a club with new owner");
-        let owner2Info = mock_info("Owner002", &[coin(1000, "stake")]);
+        let owner2_info = mock_info("Owner002", &[coin(1000, "uusd")]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
-            mintingContractInfo.clone(),
+            owner2_info.clone(),
             "Owner002".to_string(),
             Some("Owner001".to_string()),
             "CLUB001".to_string(),
@@ -2066,7 +2169,7 @@ mod tests {
             query_all_previous_club_ownership_details(&mut deps.storage)
         );
 
-        claim_previous_owner_rewards(deps.as_mut(), owner1Info.clone(), "Owner001".to_string());
+        claim_previous_owner_rewards(deps.as_mut(), owner1_info.clone(), "Owner001".to_string());
         let queryPrevOwnerDetailsAfterRewardClaim =
             query_club_previous_owner_details(&mut deps.storage, "Owner001".to_string())
                 .unwrap_err();
@@ -2093,11 +2196,16 @@ mod tests {
         let instantiate_msg = InstantiateMsg {
             admin_address: "admin11111".to_string(),
             minting_contract_address: "minting_admin11111".to_string(),
+            pool_pair_address: "pool_pair_address1111".to_string(),
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
             club_reward_next_timestamp: now.minus_seconds(1 * 60 * 60),
             reward_periodicity: 24 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
             bonding_duration: 5 * 60u64,
+            platform_fees_collector_wallet: "platform_fee_collector_wallet_1111".to_string(),
+            platform_fees: Uint128::from(100u128),
+            transaction_fees: Uint128::from(30u128),
+            control_fees: Uint128::from(50u128),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -2109,11 +2217,11 @@ mod tests {
         )
         .unwrap();
 
-        let owner1Info = mock_info("Owner001", &[coin(1000, "stake")]);
+        let owner1_info = mock_info("Owner001", &[coin(1000, "uusd")]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
-            mintingContractInfo.clone(),
+            owner1_info.clone(),
             "Owner001".to_string(),
             Some(String::default()),
             "CLUB001".to_string(),
@@ -2169,11 +2277,16 @@ mod tests {
         let instantiate_msg = InstantiateMsg {
             admin_address: "admin11111".to_string(),
             minting_contract_address: "minting_admin11111".to_string(),
+            pool_pair_address: "pool_pair_address1111".to_string(),
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
             club_reward_next_timestamp: now.minus_seconds(1 * 60 * 60),
             reward_periodicity: 24 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
             bonding_duration: 5 * 60u64,
+            platform_fees_collector_wallet: "platform_fee_collector_wallet_1111".to_string(),
+            platform_fees: Uint128::from(100u128),
+            transaction_fees: Uint128::from(30u128),
+            control_fees: Uint128::from(50u128),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -2185,11 +2298,11 @@ mod tests {
         )
         .unwrap();
 
-        let owner1Info = mock_info("Owner001", &[coin(1000, "stake")]);
+        let owner1_info = mock_info("Owner001", &[coin(1000, "uusd")]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
-            mintingContractInfo.clone(),
+            owner1_info.clone(),
             "Owner001".to_string(),
             Some(String::default()),
             "CLUB001".to_string(),
@@ -2267,11 +2380,16 @@ mod tests {
         let instantiate_msg = InstantiateMsg {
             admin_address: "admin11111".to_string(),
             minting_contract_address: "minting_admin11111".to_string(),
+            pool_pair_address: "pool_pair_address1111".to_string(),
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
             club_reward_next_timestamp: now.minus_seconds(1 * 60 * 60),
             reward_periodicity: 24 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
             bonding_duration: 5 * 60u64,
+            platform_fees_collector_wallet: "platform_fee_collector_wallet_1111".to_string(),
+            platform_fees: Uint128::from(100u128),
+            transaction_fees: Uint128::from(30u128),
+            control_fees: Uint128::from(50u128),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -2371,11 +2489,16 @@ mod tests {
         let instantiate_msg = InstantiateMsg {
             admin_address: "admin11111".to_string(),
             minting_contract_address: "minting_admin11111".to_string(),
+            pool_pair_address: "pool_pair_address1111".to_string(),
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
             club_reward_next_timestamp: now.minus_seconds(1 * 60 * 60),
             reward_periodicity: 24 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
             bonding_duration: 5 * 60u64,
+            platform_fees_collector_wallet: "platform_fee_collector_wallet_1111".to_string(),
+            platform_fees: Uint128::from(100u128),
+            transaction_fees: Uint128::from(30u128),
+            control_fees: Uint128::from(50u128),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -2387,11 +2510,11 @@ mod tests {
         )
         .unwrap();
 
-        let owner1Info = mock_info("Owner001", &[coin(1000, "stake")]);
+        let owner1_info = mock_info("Owner001", &[coin(1000, "uusd")]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
-            mintingContractInfo.clone(),
+            owner1_info.clone(),
             "Owner001".to_string(),
             Some(String::default()),
             "CLUB001".to_string(),
@@ -2524,11 +2647,16 @@ mod tests {
         let instantiate_msg = InstantiateMsg {
             admin_address: "admin11111".to_string(),
             minting_contract_address: "minting_admin11111".to_string(),
+            pool_pair_address: "pool_pair_address1111".to_string(),
             club_fee_collector_wallet: "feecollector11111".to_string(),
             club_reward_next_timestamp: now.minus_seconds(1 * 60 * 60),
             reward_periodicity: 24 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
             bonding_duration: 5 * 60u64,
+            platform_fees_collector_wallet: "platform_fee_collector_wallet_1111".to_string(),
+            platform_fees: Uint128::from(100u128),
+            transaction_fees: Uint128::from(30u128),
+            control_fees: Uint128::from(50u128),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -2539,11 +2667,11 @@ mod tests {
             instantiate_msg,
         );
 
-        let owner1Info = mock_info("Owner001", &[coin(1000, "stake")]);
+        let owner1_info = mock_info("Owner001", &[coin(1000, "uusd")]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
-            mintingContractInfo.clone(),
+            owner1_info.clone(),
             "Owner001".to_string(),
             Some(String::default()),
             "CLUB001".to_string(),
@@ -2669,11 +2797,16 @@ mod tests {
         let instantiate_msg = InstantiateMsg {
             admin_address: "admin11111".to_string(),
             minting_contract_address: "minting_admin11111".to_string(),
+            pool_pair_address: "pool_pair_address1111".to_string(),
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
             club_reward_next_timestamp: now.minus_seconds(1 * 60 * 60),
             reward_periodicity: 24 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
             bonding_duration: 5 * 60u64,
+            platform_fees_collector_wallet: "platform_fee_collector_wallet_1111".to_string(),
+            platform_fees: Uint128::from(100u128),
+            transaction_fees: Uint128::from(30u128),
+            control_fees: Uint128::from(50u128),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -2685,18 +2818,18 @@ mod tests {
         )
         .unwrap();
 
-        let owner1Info = mock_info("Owner001", &[coin(1000, "stake")]);
-        buy_a_club(
+        let owner1_info = mock_info("Owner001", &[coin(1000, "uusd")]);
+        let result = buy_a_club(
             deps.as_mut(),
             mock_env(),
-            mintingContractInfo.clone(),
+            owner1_info.clone(),
             "Owner001".to_string(),
             Some(String::default()),
             "CLUB001".to_string(),
             Uint128::from(1000000u128),
         );
-
-        let stakerInfo = mock_info("Staker0001", &[coin(10, "stake")]);
+        println!("buy_a_club result = {:?}", result);
+        let stakerInfo = mock_info("Staker0001", &[coin(10, "uusd")]);
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
@@ -2723,7 +2856,7 @@ mod tests {
             Uint128::from(12u128),
             NO_IMMEDIATE_WITHDRAWAL,
         );
-        withdraw_stake_from_a_club(
+        let result = withdraw_stake_from_a_club(
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
@@ -2732,9 +2865,9 @@ mod tests {
             Uint128::from(13u128),
             NO_IMMEDIATE_WITHDRAWAL,
         );
-
-        let queryStakes = query_all_stakes(&mut deps.storage);
-        match queryStakes {
+        println!("result = {:?}", result);
+        let query_stakes = query_all_stakes(&mut deps.storage);
+        match query_stakes {
             Ok(all_stakes) => {
                 assert_eq!(all_stakes.len(), 1);
                 for stake in all_stakes {
@@ -2776,11 +2909,16 @@ mod tests {
         let instantiate_msg = InstantiateMsg {
             admin_address: "admin11111".to_string(),
             minting_contract_address: "minting_admin11111".to_string(),
+            pool_pair_address: "pool_pair_address1111".to_string(),
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
             club_reward_next_timestamp: now.minus_seconds(8 * 60 * 60),
             reward_periodicity: 5 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
             bonding_duration: 5 * 60u64,
+            platform_fees_collector_wallet: "platform_fee_collector_wallet_1111".to_string(),
+            platform_fees: Uint128::from(100u128),
+            transaction_fees: Uint128::from(30u128),
+            control_fees: Uint128::from(50u128),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -2981,11 +3119,16 @@ mod tests {
         let instantiate_msg = InstantiateMsg {
             admin_address: "admin11111".to_string(),
             minting_contract_address: "minting_admin11111".to_string(),
+            pool_pair_address: "pool_pair_address1111".to_string(),
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
             club_reward_next_timestamp: now.minus_seconds(1 * 60 * 60),
             reward_periodicity: 5 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
             bonding_duration: 5 * 60u64,
+            platform_fees_collector_wallet: "platform_fee_collector_wallet_1111".to_string(),
+            platform_fees: Uint128::from(100u128),
+            transaction_fees: Uint128::from(30u128),
+            control_fees: Uint128::from(50u128),
         };
         instantiate(
             deps.as_mut(),

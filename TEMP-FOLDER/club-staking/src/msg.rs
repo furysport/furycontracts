@@ -6,22 +6,22 @@ use serde::{Deserialize, Serialize};
 use cosmwasm_std::{Coin, Timestamp};
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug, Clone, PartialEq)]
-pub struct InstantiateMarketingInfo {
-    pub project: Option<String>,
-    pub description: Option<String>,
-    pub marketing: Option<String>,
-    pub logo: Option<Logo>,
-}
-
-#[derive(Serialize, Deserialize, JsonSchema, Debug, Clone, PartialEq)]
 pub struct InstantiateMsg {
     pub admin_address: String,
     pub minting_contract_address: String,
+    pub pool_pair_address: String,
     pub club_fee_collector_wallet: String,
     pub club_reward_next_timestamp: Timestamp,
     pub reward_periodicity: u64,
     pub club_price: Uint128,
     pub bonding_duration: u64,
+    pub platform_fees_collector_wallet: String,
+    ///Specified in percentage multiplied by 100, i.e. 100% = 10000 and 0.01% = 1
+    pub platform_fees: Uint128,
+    ///Specified in percentage multiplied by 100, i.e. 100% = 10000 and 0.01% = 1
+    pub transaction_fees: Uint128,
+    ///Specified in percentage multiplied by 100, i.e. 100% = 10000 and 0.01% = 1
+    pub control_fees: Uint128,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -94,21 +94,17 @@ pub enum QueryMsg {
     },
     GetClubRankingByStakes {},
     RewardAmount {},
+    QueryPlatformFees { 
+        msg: Binary,
+    },
 }
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ReceivedMsg {
-    BuyAClub(BuyClubCommand),
     StakeOnAClub(StakeOnAClubCommand),
     IncreaseRewardAmount(IncreaseRewardAmountCommand),
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct BuyClubCommand {
-    pub buyer: String,
-    pub seller: Option<String>,
-    pub club_name: String,
-}
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct StakeOnAClubCommand {
     pub staker: String,

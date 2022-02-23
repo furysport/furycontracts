@@ -10,11 +10,19 @@ use cw_storage_plus::{Item, Map};
 pub struct Config {
     pub admin_address: Addr,
     pub minting_contract_address: Addr,
+    pub pool_pair_address: Addr,
     pub club_fee_collector_wallet: Addr,
     pub club_reward_next_timestamp: Timestamp,
     pub reward_periodicity: u64,
     pub club_price: Uint128,
     pub bonding_duration: u64,
+    pub platform_fees_collector_wallet: Addr,
+    ///Specified in percentage multiplied by 100, i.e. 100% = 10000 and 0.01% = 1
+    pub platform_fees: Uint128,
+    ///Specified in percentage multiplied by 100, i.e. 100% = 10000 and 0.01% = 1
+    pub transaction_fees: Uint128,
+    ///Specified in percentage multiplied by 100, i.e. 100% = 10000 and 0.01% = 1
+    pub control_fees: Uint128,
 }
 
 pub const CONFIG_KEY: &str = "config";
@@ -48,7 +56,7 @@ pub struct ClubOwnershipDetails {
 /// used by previous owner using new verb PreviousOwnerRewardOut()
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
 #[serde(rename_all = "snake_case")]
-pub struct ClubPreviousOwnerDetails { 
+pub struct ClubPreviousOwnerDetails {
     /// The previous owner name
     pub previous_owner_address: String,
 
@@ -113,7 +121,7 @@ pub const CLUB_BONDING_DETAILS: Map<String, Vec<ClubBondingDetails>> =
     Map::new("club_bonding_details");
 
 /// Map of previous owners and their reward points. the key is owner address and the
-/// ClubPreviousOwnerDetails will contain information about the 
+/// ClubPreviousOwnerDetails will contain information about the
 /// previous owner of the club and his reward points
 pub const CLUB_PREVIOUS_OWNER_DETAILS: Map<String, ClubPreviousOwnerDetails> =
     Map::new("club_previous_owner_details");
