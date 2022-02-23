@@ -1,4 +1,4 @@
-use cosmwasm_std::StdError;
+use cosmwasm_std::{StdError, Uint128};
 use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq)]
@@ -21,18 +21,21 @@ pub enum ContractError {
     #[error("No allowance for this account")]
     NoAllowance {},
 
-    // #[error("No vesting details for this account")]
-    // NoVestingDetails (String),
-
-    #[error("Minting cannot exceed the cap")]
-    CannotExceedCap {},
-
     #[error("Logo binary data exceeds 5KB limit")]
     LogoTooBig {},
 
-    #[error("Invalid xml preamble for SVG")]
-    InvalidXmlPreamble {},
+    #[error("The {functionality} functionality must be called directly")]
+    CallExecute {
+        functionality: String,
+        #[cfg(feature = "backtraces")]
+        backtrace: Backtrace,
+    },
 
-    #[error("Invalid png header")]
-    InvalidPngHeader {},
+    #[error("Fees received = {received}uusd whereas required = {required}uusd")]
+    InsufficientFees {
+        received: Uint128,
+        required: Uint128,
+        #[cfg(feature = "backtraces")]
+        backtrace: Backtrace,
+    },
 }

@@ -28,6 +28,11 @@ pub struct InstantiateMsg {
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
     Receive(Cw20ReceiveMsg),
+    BuyAClub {
+        buyer: String,
+        seller: Option<String>,
+        club_name: String,
+    },
     ReleaseClub {
         owner: String,
         club_name: String,
@@ -51,53 +56,11 @@ pub enum ExecuteMsg {
         staker: String,
         club_name: String,
     },
-    // IncreaseAllowance {
-    //     spender: String,
-    //     amount: Uint128,
-    //     expires: Option<Expiration>,
-    // },
-    // DecreaseAllowance {
-    //     spender: String,
-    //     amount: Uint128,
-    //     expires: Option<Expiration>,
-    // },
-    // TransferFrom {
-    //     owner: String,
-    //     recipient: String,
-    //     amount: Uint128,
-    // },
-    // BurnFrom {
-    //     owner: String,
-    //     amount: Uint128,
-    // },
-    // SendFrom {
-    //     owner: String,
-    //     contract: String,
-    //     amount: Uint128,
-    //     msg: Binary,
-    // },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
-    /// Only with "allowance" extension.
-    /// Returns how much spender can use from owner account, 0 if unset.
-    /// Return type: AllowanceResponse.
-    // Allowance {
-    //     owner: String,
-    //     spender: String,
-    // },
-    // /// Only with "enumerable" extension (and "allowances")
-    // /// Returns all allowances this owner has approved. Supports pagination.
-    // /// Return type: AllAllowancesResponse.
-    // AllAllowances {
-    //     owner: String,
-    //     start_after: Option<String>,
-    //     limit: Option<u32>,
-    // },
-    /// Returns the current state of vesting information for the given address.
-    /// Return type: StakingDetails.
     ClubStakingDetails {
         club_name: String,
     },
@@ -143,7 +106,7 @@ pub enum ReceivedMsg {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct BuyClubCommand {
     pub buyer: String,
-    pub seller: String,
+    pub seller: Option<String>,
     pub club_name: String,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

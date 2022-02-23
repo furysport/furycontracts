@@ -6,9 +6,7 @@ use cosmwasm_std::{
 };
 
 use cw2::set_contract_version;
-use cw20::{
-    Cw20ExecuteMsg, Cw20ReceiveMsg,
-};
+use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg};
 
 // use crate::allowances::{
 //     deduct_allowance, execute_burn_from, execute_decrease_allowance, execute_increase_allowance,
@@ -19,7 +17,7 @@ use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, ReceivedMsg};
 use crate::state::{
     ClubBondingDetails, ClubOwnershipDetails, ClubPreviousOwnerDetails, ClubStakingDetails, Config,
     CLUB_BONDING_DETAILS, CLUB_OWNERSHIP_DETAILS, CLUB_PREVIOUS_OWNER_DETAILS,
-    CLUB_STAKING_DETAILS, CONFIG, REWARD, STAKING_FUNDS, CLUB_REWARD_NEXT_TIMESTAMP
+    CLUB_REWARD_NEXT_TIMESTAMP, CLUB_STAKING_DETAILS, CONFIG, REWARD, STAKING_FUNDS,
 };
 
 // version info for migration info
@@ -90,22 +88,24 @@ pub fn execute(
 ) -> Result<Response, ContractError> {
     match msg {
         ExecuteMsg::Receive(msg) => received_message(deps, env, info, msg),
+        ExecuteMsg::BuyAClub {
+            buyer,
+            seller,
+            club_name,
+        } => {
+            let config = CONFIG.load(deps.storage)?;
+            let price = config.club_price;
+            buy_a_club(deps, env, info, buyer, seller, club_name, price)
+        }
         ExecuteMsg::ReleaseClub { owner, club_name } => {
             release_club(deps, env, info, owner, club_name)
         }
-        ExecuteMsg::ClaimOwnerRewards {
-            owner,
-            club_name,
-        } => claim_owner_rewards(
-            deps,
-            env,
-            info,
-            owner,
-            club_name,
-        ),
-        ExecuteMsg::ClaimPreviousOwnerRewards {
-            previous_owner,
-        } => claim_previous_owner_rewards(deps, info, previous_owner),
+        ExecuteMsg::ClaimOwnerRewards { owner, club_name } => {
+            claim_owner_rewards(deps, env, info, owner, club_name)
+        }
+        ExecuteMsg::ClaimPreviousOwnerRewards { previous_owner } => {
+            claim_previous_owner_rewards(deps, info, previous_owner)
+        }
         ExecuteMsg::StakeWithdrawFromAClub {
             staker,
             club_name,
@@ -123,35 +123,12 @@ pub fn execute(
         ExecuteMsg::CalculateAndDistributeRewards {} => {
             calculate_and_distribute_rewards(deps, env, info)
         }
-        ExecuteMsg::ClaimRewards {
-            staker,
-            club_name,
-        } => claim_rewards(deps, info, staker, club_name),
+        ExecuteMsg::ClaimRewards { staker, club_name } => {
+            claim_rewards(deps, info, staker, club_name)
+        }
         ExecuteMsg::PeriodicallyRefundStakeouts {} => {
             periodically_refund_stakeouts(deps, env, info)
         }
-        // ExecuteMsg::IncreaseAllowance {
-        //     spender,
-        //     amount,
-        //     expires,
-        // } => execute_increase_allowance(deps, env, info, spender, amount, expires),
-        // ExecuteMsg::DecreaseAllowance {
-        //     spender,
-        //     amount,
-        //     expires,
-        // } => execute_decrease_allowance(deps, env, info, spender, amount, expires),
-        // ExecuteMsg::TransferFrom {
-        //     owner,
-        //     recipient,
-        //     amount,
-        // } => execute_transfer_from(deps, env, info, owner, recipient, amount),
-        // ExecuteMsg::BurnFrom { owner, amount } => execute_burn_from(deps, env, info, owner, amount),
-        // ExecuteMsg::SendFrom {
-        //     owner,
-        //     contract,
-        //     amount,
-        //     msg,
-        // } => execute_send_from(deps, env, info, owner, contract, amount, msg),
     }
 }
 
@@ -162,7 +139,7 @@ fn received_message(
     message: Cw20ReceiveMsg,
 ) -> Result<Response, ContractError> {
     let msg: ReceivedMsg = from_binary(&message.msg)?;
-    let amount = Uint128::from(message.amount);   
+    let amount = Uint128::from(message.amount);
     match msg {
         ReceivedMsg::BuyAClub(bcc) => buy_a_club(
             deps,
@@ -173,21 +150,12 @@ fn received_message(
             bcc.club_name,
             amount,
         ),
-        ReceivedMsg::StakeOnAClub(soac) => stake_on_a_club(
-            deps,
-            env,
-            info,
-            soac.staker,
-            soac.club_name,
-            amount,
-        ),
-        ReceivedMsg::IncreaseRewardAmount(irac) => increase_reward_amount(
-            deps,
-            env,
-            info,
-            irac.reward_from,
-            amount,
-        ),
+        ReceivedMsg::StakeOnAClub(soac) => {
+            stake_on_a_club(deps, env, info, soac.staker, soac.club_name, amount)
+        }
+        ReceivedMsg::IncreaseRewardAmount(irac) => {
+            increase_reward_amount(deps, env, info, irac.reward_from, amount)
+        }
     }
     // Err(ContractError::Std(StdError::GenericErr {
     //     msg: format!("received_message where msg = {:?}", msg),
@@ -199,7 +167,7 @@ fn claim_previous_owner_rewards(
     info: MessageInfo,
     previous_owner: String,
 ) -> Result<Response, ContractError> {
-	let mut amount = Uint128::zero();
+    let mut amount = Uint128::zero();
     let mut transfer_confirmed = false;
     let previous_owner_addr = deps.api.addr_validate(&previous_owner)?;
     //Check if withdrawer is same as invoker
@@ -210,7 +178,7 @@ fn claim_previous_owner_rewards(
     let previous_ownership_details;
     let previous_ownership_details_result =
         CLUB_PREVIOUS_OWNER_DETAILS.may_load(deps.storage, previous_owner.clone());
-        match previous_ownership_details_result {
+    match previous_ownership_details_result {
         Ok(od) => {
             previous_ownership_details = od;
         }
@@ -228,26 +196,27 @@ fn claim_previous_owner_rewards(
                     }));
                 }
 
-				amount = previous_owner_detail.reward_amount;
+                amount = previous_owner_detail.reward_amount;
 
                 // Now remove the previous ownership details
-                CLUB_PREVIOUS_OWNER_DETAILS.remove(
-                    deps.storage,
-                    previous_owner.clone(),
-                );
+                CLUB_PREVIOUS_OWNER_DETAILS.remove(deps.storage, previous_owner.clone());
 
                 // Add amount to the owners wallet
                 transfer_confirmed = true;
-
             }
         }
     }
-    if transfer_confirmed == false{
+    if transfer_confirmed == false {
         return Err(ContractError::Std(StdError::GenericErr {
             msg: String::from("Not a valid previous owner for the club"),
         }));
     }
-    transfer_from_contract_to_wallet(deps.storage, previous_owner.clone(), amount, "previous_owners_reward".to_string())
+    transfer_from_contract_to_wallet(
+        deps.storage,
+        previous_owner.clone(),
+        amount,
+        "previous_owners_reward".to_string(),
+    )
 }
 
 fn claim_owner_rewards(
@@ -257,7 +226,7 @@ fn claim_owner_rewards(
     owner: String,
     club_name: String,
 ) -> Result<Response, ContractError> {
-	let mut amount = Uint128::zero();
+    let mut amount = Uint128::zero();
     let mut transfer_confirmed = false;
     let owner_addr = deps.api.addr_validate(&owner)?;
     //Check if withdrawer is same as invoker
@@ -287,7 +256,7 @@ fn claim_owner_rewards(
 
                 transfer_confirmed = true;
 
-				amount = owner_detail.reward_amount;
+                amount = owner_detail.reward_amount;
 
                 // Now save the ownership details
                 CLUB_OWNERSHIP_DETAILS.save(
@@ -303,17 +272,21 @@ fn claim_owner_rewards(
                         owner_released: owner_detail.owner_released,
                     },
                 )?;
-
             }
         }
     }
 
-    if transfer_confirmed == false{
+    if transfer_confirmed == false {
         return Err(ContractError::Std(StdError::GenericErr {
             msg: String::from("Not a valid owner for the club"),
         }));
     }
-    transfer_from_contract_to_wallet(deps.storage, owner.clone(), amount, "owner_reward".to_string())
+    transfer_from_contract_to_wallet(
+        deps.storage,
+        owner.clone(),
+        amount,
+        "owner_reward".to_string(),
+    )
 }
 
 fn periodically_refund_stakeouts(
@@ -358,19 +331,41 @@ fn buy_a_club(
     env: Env,
     info: MessageInfo,
     buyer: String,
-    seller: String,
+    seller_opt: Option<String>,
     club_name: String,
     price: Uint128,
 ) -> Result<Response, ContractError> {
+    println!("seller_opt = {:?}", seller_opt);
+    let seller;
+    match seller_opt {
+        Some(s) => seller = s,
+        None => seller = String::default(),
+    }
+    println!("seller = {:?}", seller);
+
     let config = CONFIG.load(deps.storage)?;
-    if info.sender != config.minting_contract_address {
-        return Err(ContractError::Unauthorized {});
+    if info.sender == config.minting_contract_address {
+        return Err(ContractError::CallExecute {
+            functionality: String::from("buy_a_club"),
+        });
+    }
+    let mut fees = Uint128::zero();
+    for fund in info.funds {
+        if fund.denom == "uusd" {
+            fees = fees.checked_add(fund.amount).unwrap();
+        }
+    }
+    if fees != Uint128::from(1000u128) {
+        return Err(ContractError::InsufficientFees{
+            required: Uint128::from(1000u128),
+            received: fees
+        })
     }
     let club_price = config.club_price;
     if price != club_price {
-            return Err(ContractError::Std(StdError::GenericErr {
-                msg: String::from("Club price is not matching"),
-            }));
+        return Err(ContractError::Std(StdError::GenericErr {
+            msg: String::from("Club price is not matching"),
+        }));
     }
 
     let buyer_addr = deps.api.addr_validate(&buyer)?;
@@ -392,14 +387,14 @@ fn buy_a_club(
         .collect();
 
     for one_club_name in all_clubs {
-        let one_ownership_details = CLUB_OWNERSHIP_DETAILS.load(deps.storage, one_club_name.clone())?;
-        if  buyer == one_ownership_details.owner_address {
+        let one_ownership_details =
+            CLUB_OWNERSHIP_DETAILS.load(deps.storage, one_club_name.clone())?;
+        if buyer == one_ownership_details.owner_address {
             return Err(ContractError::Std(StdError::GenericErr {
-                msg: String::from("buyer already owns a club"),
+                msg: String::from("buyer already owns this club"),
             }));
         }
     }
-
 
     let mut previous_owners_reward_amount = Uint128::from(0u128);
 
@@ -409,7 +404,11 @@ fn buy_a_club(
                 return Err(ContractError::Std(StdError::GenericErr {
                     msg: String::from("Owner has not released the club"),
                 }));
-            } else if owner.owner_address != "".to_string() && owner.owner_address != seller {
+            } else if owner.owner_address != String::default() && owner.owner_address != seller {
+                println!(
+                    "owner.owner_address = {:?} and seller = {:?}",
+                    owner.owner_address, seller
+                );
                 return Err(ContractError::Std(StdError::GenericErr {
                     msg: String::from("Seller is not the owner for the club"),
                 }));
@@ -417,17 +416,17 @@ fn buy_a_club(
 
             // Evaluate previous owner rewards
             previous_owners_reward_amount = owner.reward_amount;
-            println!("prv own amount picked {:?}",previous_owners_reward_amount);
+            println!("prv own amount picked {:?}", previous_owners_reward_amount);
             let mut previous_reward = Uint128::zero();
-            println!("prv own amount avl {:?}",previous_owners_reward_amount);
+            println!("prv own amount avl {:?}", previous_owners_reward_amount);
             if previous_owners_reward_amount != Uint128::zero() {
                 let pod = CLUB_PREVIOUS_OWNER_DETAILS.may_load(deps.storage, seller.clone())?;
                 match pod {
                     Some(pod) => {
                         previous_reward = pod.reward_amount;
-                        println!("prv own existing reward {:?}",previous_reward);
+                        println!("prv own existing reward {:?}", previous_reward);
                     }
-                    None => {} 
+                    None => {}
                 }
 
                 // Now save the previous ownership details
@@ -442,7 +441,6 @@ fn buy_a_club(
             }
         }
     }
-
 
     // Now save the ownership details
     CLUB_OWNERSHIP_DETAILS.save(
@@ -461,7 +459,8 @@ fn buy_a_club(
 
     let config = CONFIG.load(deps.storage)?;
 
-    let transfer_msg = Cw20ExecuteMsg::Transfer {
+    let transfer_msg = Cw20ExecuteMsg::TransferFrom {
+        owner: info.sender.into_string(),
         recipient: config.club_fee_collector_wallet.to_string(),
         amount: price,
     };
@@ -476,12 +475,10 @@ fn buy_a_club(
         ],
         // TODO Add a memo inthe transfer msg that this is club staking fee
     };
-    
-    let send : SubMsg = SubMsg::new(exec);
-    
+
+    let send: SubMsg = SubMsg::new(exec);
     //send.id = 1000;
     //send.reply_on = ReplyOn::Error;
-    
     let data_msg = format!("Club fees {} received", price).into_bytes();
     return Ok(Response::new()
         .add_submessage(send)
@@ -613,7 +610,6 @@ fn stake_on_a_club(
         // Nothing required to transfer anything staking fund has arrived in the staking contract
         // Deduct amount from the stakers wallet
         // transfer_from_wallet_to_contract(deps.storage, staker.clone(), amount);
-
     } else {
         return Err(ContractError::Std(StdError::GenericErr {
             msg: String::from("The club is not available for staking"),
@@ -623,7 +619,7 @@ fn stake_on_a_club(
         .add_attribute("action", "stake_on_a_club")
         .add_attribute("staker", staker)
         .add_attribute("club_name", club_name)
-        .add_attribute("stake", amount.to_string()))
+        .add_attribute("stake", amount.to_string()));
     //return Ok(Response::default());
 }
 
@@ -664,8 +660,6 @@ fn withdraw_stake_from_a_club(
         let mut amount_remaining = withdrawal_amount.clone();
 
         if immediate_withdrawal == IMMEDIATE_WITHDRAWAL {
-
-
             // update funds for staker
             // TODO : checking for amount > stake
             STAKING_FUNDS.update(
@@ -699,8 +693,13 @@ fn withdraw_stake_from_a_club(
             for bond in existing_bonds {
                 let mut updated_bond = bond.1.clone();
                 if staker_addr == bond.1.bonder_address {
-                    println!("staker {:?} timestamp  {:?} amount {:?}", staker_addr, bond.1.bonding_start_timestamp, bond.1.bonded_amount);
-                    if bond.1.bonding_start_timestamp < env.block.time.minus_seconds(bond.1.bonding_duration) {
+                    println!(
+                        "staker {:?} timestamp  {:?} amount {:?}",
+                        staker_addr, bond.1.bonding_start_timestamp, bond.1.bonded_amount
+                    );
+                    if bond.1.bonding_start_timestamp
+                        < env.block.time.minus_seconds(bond.1.bonding_duration)
+                    {
                         if amount_remaining > Uint128::zero() {
                             if bond.1.bonded_amount > amount_remaining {
                                 unbonded_amount = amount_remaining;
@@ -745,7 +744,7 @@ fn withdraw_stake_from_a_club(
                 env,
                 staker.clone(),
                 club_name.clone(),
-                (withdrawal_amount-unbonded_amount)-bonded_amount,
+                (withdrawal_amount - unbonded_amount) - bonded_amount,
                 DECREASE_STAKE,
             )?;
 
@@ -757,10 +756,8 @@ fn withdraw_stake_from_a_club(
                     .checked_div(Uint128::from(100u128))
                     .unwrap_or_default();
             };
-            
             // Remaining 90% transfer to staker wallet
             transfer_confirmed = true;
-
         } else {
             let action = "withdrawn_stake_bonded".to_string();
             // update the staking details
@@ -792,7 +789,7 @@ fn withdraw_stake_from_a_club(
         }));
     }
 
-    if transfer_confirmed == false{
+    if transfer_confirmed == false {
         return Err(ContractError::Std(StdError::GenericErr {
             msg: String::from("Not a valid staker for the club"),
         }));
@@ -815,36 +812,35 @@ fn withdraw_stake_from_a_club(
                 // },
             ],
         };
-        let burn : SubMsg = SubMsg::new(exec_burn);
-        rsp = rsp.add_submessage(burn)
-                 .add_attribute("burnt", burn_amount.to_string());      
+        let burn: SubMsg = SubMsg::new(exec_burn);
+        rsp = rsp
+            .add_submessage(burn)
+            .add_attribute("burnt", burn_amount.to_string());
     }
-    
     let transfer_msg = Cw20ExecuteMsg::Transfer {
         recipient: staker,
-        amount: withdrawal_amount-burn_amount,
+        amount: withdrawal_amount - burn_amount,
     };
     let exec = WasmMsg::Execute {
         contract_addr: config.minting_contract_address.to_string(),
         msg: to_binary(&transfer_msg).unwrap(),
         funds: vec![
-            // Coin {
-            //     denom: token_info.name.to_string(),
-            //     amount: price,
-            // },
-            ]
-        };
-    let send : SubMsg = SubMsg::new(exec);
+        // Coin {
+        //     denom: token_info.name.to_string(),
+        //     amount: price,
+        // },
+        ],
+    };
+    let send: SubMsg = SubMsg::new(exec);
     let data_msg = format!("Amount {} transferred", withdrawal_amount).into_bytes();
 
-    rsp = rsp.add_submessage(send)
-             .add_attribute("action", action)
-             .add_attribute("withdrawn", withdrawal_amount.clone().to_string())
-             .set_data(data_msg);
-    
+    rsp = rsp
+        .add_submessage(send)
+        .add_attribute("action", action)
+        .add_attribute("withdrawn", withdrawal_amount.clone().to_string())
+        .set_data(data_msg);
     return Ok(rsp);
 }
-
 
 fn save_staking_details(
     storage: &mut dyn Storage,
@@ -886,7 +882,7 @@ fn save_staking_details(
             // updated_stakes.push(updated_stake);
         }
         if updated_stake.staked_amount > Uint128::from(0u128) {
-        updated_stakes.push(updated_stake);
+            updated_stakes.push(updated_stake);
         }
     }
     if already_staked == true {
@@ -948,7 +944,6 @@ fn increase_reward_amount(
     if info.sender != config.minting_contract_address {
         return Err(ContractError::Unauthorized {});
     }
-    
     let existing_reward = REWARD.may_load(deps.storage)?.unwrap_or_default();
     let new_reward = existing_reward + amount;
     REWARD.save(deps.storage, &new_reward)?;
@@ -989,10 +984,10 @@ fn claim_rewards(
     for stake in existing_stakes {
         let mut updated_stake = stake.clone();
         if staker == stake.staker_address {
-			amount += updated_stake.reward_amount;
-			updated_stake.reward_amount = Uint128::zero();
-			// confirm transfer to staker wallet
-			transfer_confirmed = true;
+            amount += updated_stake.reward_amount;
+            updated_stake.reward_amount = Uint128::zero();
+            // confirm transfer to staker wallet
+            transfer_confirmed = true;
         }
         updated_stakes.push(updated_stake);
     }
@@ -1008,7 +1003,12 @@ fn claim_rewards(
             msg: String::from("No rewards for this user"),
         }));
     }
-    transfer_from_contract_to_wallet(deps.storage, staker.clone(), amount, "staking_reward_claim".to_string())
+    transfer_from_contract_to_wallet(
+        deps.storage,
+        staker.clone(),
+        amount,
+        "staking_reward_claim".to_string(),
+    )
 }
 
 fn calculate_and_distribute_rewards(
@@ -1023,7 +1023,9 @@ fn calculate_and_distribute_rewards(
             msg: String::from("not authorised"),
         }));
     }
-    let mut next_reward_time = CLUB_REWARD_NEXT_TIMESTAMP.may_load(deps.storage)?.unwrap_or_default();
+    let mut next_reward_time = CLUB_REWARD_NEXT_TIMESTAMP
+        .may_load(deps.storage)?
+        .unwrap_or_default();
     if env.block.time < next_reward_time {
         println!(
             "early - now = {:?} timestamp = {:?}",
@@ -1041,18 +1043,13 @@ fn calculate_and_distribute_rewards(
     while next_reward_time < env.block.time {
         next_reward_time = next_reward_time.plus_seconds(config.reward_periodicity);
     }
-    println!(
-        "next timestamp = {:?}",
-        next_reward_time
-    );
+    println!("next timestamp = {:?}", next_reward_time);
     CLUB_REWARD_NEXT_TIMESTAMP.save(deps.storage, &next_reward_time)?;
 
     let total_reward = REWARD.may_load(deps.storage)?.unwrap_or_default();
     // No need to calculate if there is no reward amount
     if total_reward == Uint128::zero() {
-        return Ok(Response::new()
-            .add_attribute("response", "no accumulated rewards")
-            );
+        return Ok(Response::new().add_attribute("response", "no accumulated rewards"));
     }
 
     let mut reward_given_so_far = Uint128::zero();
@@ -1068,7 +1065,6 @@ fn calculate_and_distribute_rewards(
             "winner club owner address = {:?}",
             winner_club_details.owner_address
         );
-
 
         //Get all stakes for this club
         let mut stakes: Vec<ClubStakingDetails> = Vec::new();
@@ -1163,7 +1159,6 @@ fn calculate_and_distribute_rewards(
 //     return Ok(Response::default());
 // }
 
-
 fn transfer_from_contract_to_wallet(
     store: &dyn Storage,
     wallet_owner: String,
@@ -1186,7 +1181,7 @@ fn transfer_from_contract_to_wallet(
             // },
         ],
     };
-    let send : SubMsg = SubMsg::new(exec);
+    let send: SubMsg = SubMsg::new(exec);
     let data_msg = format!("Amount {} transferred", amount).into_bytes();
     return Ok(Response::new()
         .add_submessage(send)
@@ -1194,7 +1189,6 @@ fn transfer_from_contract_to_wallet(
         .add_attribute("amount", amount.to_string())
         .set_data(data_msg));
 }
-
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
@@ -1216,26 +1210,31 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::ClubOwnershipDetails { club_name } => {
             to_binary(&query_club_ownership_details(deps.storage, club_name)?)
         }
-        QueryMsg::ClubPreviousOwnershipDetails { previous_owner } => {
-            to_binary(&query_club_previous_owner_details(deps.storage, previous_owner)?)
-        }
-        QueryMsg::AllClubOwnershipDetails { } => {
+        QueryMsg::ClubPreviousOwnershipDetails { previous_owner } => to_binary(
+            &query_club_previous_owner_details(deps.storage, previous_owner)?,
+        ),
+        QueryMsg::AllClubOwnershipDetails {} => {
             to_binary(&query_all_club_ownership_details(deps.storage)?)
         }
-        QueryMsg::AllPreviousClubOwnershipDetails { } => {
+        QueryMsg::AllPreviousClubOwnershipDetails {} => {
             to_binary(&query_all_previous_club_ownership_details(deps.storage)?)
         }
-        QueryMsg::ClubOwnershipDetailsForOwner { owner_address } => {
-            to_binary(&query_club_ownership_details_for_owner(deps.storage, owner_address)?)
-        }
+        QueryMsg::ClubOwnershipDetailsForOwner { owner_address } => to_binary(
+            &query_club_ownership_details_for_owner(deps.storage, owner_address)?,
+        ),
         QueryMsg::AllStakes {} => to_binary(&query_all_stakes(deps.storage)?),
         QueryMsg::AllStakesForUser { user_address } => {
             to_binary(&query_all_stakes_for_user(deps.storage, user_address)?)
         }
         QueryMsg::AllBonds {} => to_binary(&query_all_bonds(deps.storage)?),
-        QueryMsg::ClubBondingDetailsForUser { user_address, club_name } => {
-            to_binary(&query_club_bonding_details_for_user(deps.storage, user_address, club_name)?)
-        }
+        QueryMsg::ClubBondingDetailsForUser {
+            user_address,
+            club_name,
+        } => to_binary(&query_club_bonding_details_for_user(
+            deps.storage,
+            user_address,
+            club_name,
+        )?),
         QueryMsg::GetClubRankingByStakes {} => {
             to_binary(&get_clubs_ranking_by_stakes(deps.storage)?)
         }
@@ -1345,12 +1344,10 @@ pub fn query_club_previous_owner_details(
     };
 }
 
-
 pub fn query_all_stakes_for_user(
-	storage: &dyn Storage,
-	user_address: String,
-) 
--> StdResult<Vec<ClubStakingDetails>> {
+    storage: &dyn Storage,
+    user_address: String,
+) -> StdResult<Vec<ClubStakingDetails>> {
     let mut all_stakes = Vec::new();
     let all_clubs: Vec<String> = CLUB_STAKING_DETAILS
         .keys(storage, None, None, Order::Ascending)
@@ -1359,9 +1356,9 @@ pub fn query_all_stakes_for_user(
     for club_name in all_clubs {
         let staking_details = CLUB_STAKING_DETAILS.load(storage, club_name)?;
         for stake in staking_details {
-			if stake.staker_address == user_address {
-				all_stakes.push(stake);
-			}
+            if stake.staker_address == user_address {
+                all_stakes.push(stake);
+            }
         }
     }
     return Ok(all_stakes);
@@ -1376,8 +1373,8 @@ pub fn query_club_bonding_details_for_user(
     let cbd = CLUB_BONDING_DETAILS.may_load(storage, club_name)?;
     match cbd {
         Some(cbd) => {
-                bonds = cbd;
-            }
+            bonds = cbd;
+        }
         None => return Err(StdError::generic_err("No bonding details found")),
     };
     let mut all_bonds = Vec::new();
@@ -1389,7 +1386,7 @@ pub fn query_club_bonding_details_for_user(
     return Ok(all_bonds);
 }
 
-// ) 
+// )
 // -> StdResult<Vec<ClubBondingDetails>> {
 //     let mut all_bonds = Vec::new();
 //     let all_clubs: Vec<String> = CLUB_BONDING_DETAILS
@@ -1404,19 +1401,18 @@ pub fn query_club_bonding_details_for_user(
 //     }
 //     return Ok(all_bonds);
 
-    // let mut all_bonds = Vec::new();
-    // let bonding_details = CLUB_BONDING_DETAILS.load(storage, club_name.to_string())?;
-    // for bond in bonding_details {
-    //     if true { //bond.bonder_address == user_address {
-    //         all_bonds.push(bond);
-    //     }
-    // }
-    // return Ok(all_bonds);
+// let mut all_bonds = Vec::new();
+// let bonding_details = CLUB_BONDING_DETAILS.load(storage, club_name.to_string())?;
+// for bond in bonding_details {
+//     if true { //bond.bonder_address == user_address {
+//         all_bonds.push(bond);
+//     }
+// }
+// return Ok(all_bonds);
 // }
 
-
 pub fn query_all_club_ownership_details(
-	storage: &dyn Storage
+    storage: &dyn Storage,
 ) -> StdResult<Vec<ClubOwnershipDetails>> {
     let mut all_owners = Vec::new();
     let all_clubs: Vec<String> = CLUB_OWNERSHIP_DETAILS
@@ -1425,7 +1421,7 @@ pub fn query_all_club_ownership_details(
         .collect();
     for club_name in all_clubs {
         let owner_details = CLUB_OWNERSHIP_DETAILS.load(storage, club_name)?;
-		all_owners.push(owner_details);
+        all_owners.push(owner_details);
     }
     return Ok(all_owners);
 }
@@ -1446,8 +1442,8 @@ pub fn query_all_previous_club_ownership_details(
 }
 
 pub fn query_club_ownership_details_for_owner(
-	storage: &dyn Storage,
-	owner_address: String,
+    storage: &dyn Storage,
+    owner_address: String,
 ) -> StdResult<Vec<ClubOwnershipDetails>> {
     let mut all_owners = Vec::new();
     let all_clubs: Vec<String> = CLUB_OWNERSHIP_DETAILS
@@ -1456,13 +1452,12 @@ pub fn query_club_ownership_details_for_owner(
         .collect();
     for club_name in all_clubs {
         let owner_details = CLUB_OWNERSHIP_DETAILS.load(storage, club_name)?;
-		if owner_details.owner_address == owner_address {
-			all_owners.push(owner_details);
-		}
+        if owner_details.owner_address == owner_address {
+            all_owners.push(owner_details);
+        }
     }
     return Ok(all_owners);
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -1483,10 +1478,10 @@ mod tests {
             admin_address: "admin11111".to_string(),
             minting_contract_address: "minting_admin11111".to_string(),
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
-            club_reward_next_timestamp: now.minus_seconds(1*60*60),
-            reward_periodicity: 24*60*60u64,
+            club_reward_next_timestamp: now.minus_seconds(1 * 60 * 60),
+            reward_periodicity: 24 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
-            bonding_duration: 5*60u64,
+            bonding_duration: 5 * 60u64,
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -1498,14 +1493,13 @@ mod tests {
         )
         .unwrap();
 
-
         let owner1Info = mock_info("Owner001", &[coin(1000, "stake")]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
             mintingContractInfo.clone(),
             "Owner001".to_string(),
-            "".to_string(),
+            Some(String::default()),
             "CLUB001".to_string(),
             Uint128::from(1000000u128),
         );
@@ -1525,7 +1519,6 @@ mod tests {
         }
     }
 
-
     #[test]
     fn test_owner_claim_rewards() {
         let mut deps = mock_dependencies(&[]);
@@ -1535,10 +1528,10 @@ mod tests {
             admin_address: "admin11111".to_string(),
             minting_contract_address: "minting_admin11111".to_string(),
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
-            club_reward_next_timestamp: now.minus_seconds(1*60*60),
-            reward_periodicity: 24*60*60u64,
+            club_reward_next_timestamp: now.minus_seconds(1 * 60 * 60),
+            reward_periodicity: 24 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
-            bonding_duration: 5*60u64,
+            bonding_duration: 5 * 60u64,
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -1556,7 +1549,7 @@ mod tests {
             mock_env(),
             mintingContractInfo.clone(),
             "Owner001".to_string(),
-            "".to_string(),
+            Some(String::default()),
             "CLUB001".to_string(),
             Uint128::from(1000000u128),
         );
@@ -1607,10 +1600,10 @@ mod tests {
             admin_address: "admin11111".to_string(),
             minting_contract_address: "minting_admin11111".to_string(),
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
-            club_reward_next_timestamp: now.minus_seconds(1*60*60),
-            reward_periodicity: 24*60*60u64,
+            club_reward_next_timestamp: now.minus_seconds(1 * 60 * 60),
+            reward_periodicity: 24 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
-            bonding_duration: 5*60u64,
+            bonding_duration: 5 * 60u64,
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -1628,7 +1621,7 @@ mod tests {
             mock_env(),
             mintingContractInfo.clone(),
             "Owner001".to_string(),
-            "".to_string(),
+            Some(String::default()),
             "CLUB001".to_string(),
             Uint128::from(1000000u128),
         );
@@ -1639,7 +1632,7 @@ mod tests {
             mock_env(),
             mintingContractInfo.clone(),
             "Owner002".to_string(),
-            "".to_string(),
+            Some(String::default()),
             "CLUB001".to_string(),
             Uint128::from(1000000u128),
         );
@@ -1704,7 +1697,7 @@ mod tests {
             }
         }
     }
-    
+
 
     #[test]
     fn test_releasing_of_club_after_locking_period() {
@@ -1803,10 +1796,10 @@ mod tests {
             admin_address: "admin11111".to_string(),
             minting_contract_address: "minting_admin11111".to_string(),
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
-            club_reward_next_timestamp: now.minus_seconds(1*60*60),
-            reward_periodicity: 24*60*60u64,
+            club_reward_next_timestamp: now.minus_seconds(1 * 60 * 60),
+            reward_periodicity: 24 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
-            bonding_duration: 5*60u64,
+            bonding_duration: 5 * 60u64,
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -1819,23 +1812,24 @@ mod tests {
         .unwrap();
 
         let owner1Info = mock_info("Owner001", &[coin(1000, "stake")]);
-        buy_a_club(
+        let mut resp = buy_a_club(
             deps.as_mut(),
             mock_env(),
             mintingContractInfo.clone(),
             "Owner001".to_string(),
-            "".to_string(),
+            Some(String::default()),
             "CLUB001".to_string(),
             Uint128::from(1000000u128),
         );
-
-        release_club(
+        println!("{:?}", resp);
+        resp = release_club(
             deps.as_mut(),
             mock_env(),
             owner1Info.clone(),
             "Owner001".to_string(),
             "CLUB001".to_string(),
         );
+        println!("{:?}", resp);
 
         let now = mock_env().block.time; // today
 
@@ -1876,16 +1870,16 @@ mod tests {
         }
 
         let owner2Info = mock_info("Owner002", &[coin(1000, "stake")]);
-        buy_a_club(
+        let resp = buy_a_club(
             deps.as_mut(),
             mock_env(),
             mintingContractInfo.clone(),
             "Owner002".to_string(),
-            "Owner001".to_string(),
+            Some("Owner001".to_string()),
             "CLUB001".to_string(),
             Uint128::from(1000000u128),
         );
-
+        println!("{:?}", resp);
         let queryResAfterSellingByPrevOwner =
             query_club_ownership_details(&mut deps.storage, "CLUB001".to_string());
         match queryResAfterSellingByPrevOwner {
@@ -1910,10 +1904,10 @@ mod tests {
             admin_address: "admin11111".to_string(),
             minting_contract_address: "minting_admin11111".to_string(),
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
-            club_reward_next_timestamp: now.minus_seconds(1*60*60),
-            reward_periodicity: 24*60*60u64,
+            club_reward_next_timestamp: now.minus_seconds(1 * 60 * 60),
+            reward_periodicity: 24 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
-            bonding_duration: 5*60u64,
+            bonding_duration: 5 * 60u64,
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -1931,7 +1925,7 @@ mod tests {
             mock_env(),
             mintingContractInfo.clone(),
             "Owner001".to_string(),
-            "".to_string(),
+            Some(String::default()),
             "CLUB001".to_string(),
             Uint128::from(1000000u128),
         );
@@ -2000,7 +1994,10 @@ mod tests {
             query_club_ownership_details(&mut deps.storage, "CLUB001".to_string());
         match queryResAfterReleasing {
             Ok(cod) => {
-                println!("before - owner:{:?}, reward {:?}",cod.owner_address,cod.reward_amount);
+                println!(
+                    "before - owner:{:?}, reward {:?}",
+                    cod.owner_address, cod.reward_amount
+                );
                 assert_eq!(cod.owner_address, "Owner001".to_string());
                 assert_eq!(cod.price_paid, Uint128::from(1000000u128));
                 assert_eq!(cod.owner_released, true);
@@ -2011,7 +2008,10 @@ mod tests {
             }
         }
 
-        println!("pod:\n {:?}",query_all_previous_club_ownership_details(&mut deps.storage));
+        println!(
+            "pod:\n {:?}",
+            query_all_previous_club_ownership_details(&mut deps.storage)
+        );
 
         println!("buy a club with new owner");
         let owner2Info = mock_info("Owner002", &[coin(1000, "stake")]);
@@ -2020,7 +2020,7 @@ mod tests {
             mock_env(),
             mintingContractInfo.clone(),
             "Owner002".to_string(),
-            "Owner001".to_string(),
+            Some("Owner001".to_string()),
             "CLUB001".to_string(),
             Uint128::from(1000000u128),
         );
@@ -2029,7 +2029,10 @@ mod tests {
             query_club_ownership_details(&mut deps.storage, "CLUB001".to_string());
         match queryResAfterSellingByPrevOwner {
             Ok(cod) => {
-                println!("after - owner:{:?}, reward {:?}",cod.owner_address,cod.reward_amount);
+                println!(
+                    "after - owner:{:?}, reward {:?}",
+                    cod.owner_address, cod.reward_amount
+                );
                 assert_eq!(cod.owner_address, "Owner002".to_string());
                 assert_eq!(cod.price_paid, Uint128::from(1000000u128));
                 assert_eq!(cod.owner_released, false);
@@ -2045,7 +2048,10 @@ mod tests {
             query_club_previous_owner_details(&mut deps.storage, "Owner001".to_string());
         match queryPrevOwnerDetailsBeforeRewardClaim {
             Ok(pod) => {
-                println!("before - owner:{:?}, reward {:?}",pod.previous_owner_address,pod.reward_amount);
+                println!(
+                    "before - owner:{:?}, reward {:?}",
+                    pod.previous_owner_address, pod.reward_amount
+                );
                 assert_eq!(pod.previous_owner_address, "Owner001".to_string());
                 assert_eq!(pod.reward_amount, Uint128::from(10000u128));
             }
@@ -2055,21 +2061,26 @@ mod tests {
             }
         }
 
-        println!("pod:\n {:?}",query_all_previous_club_ownership_details(&mut deps.storage));
-
-        claim_previous_owner_rewards(
-            deps.as_mut(),
-            owner1Info.clone(),
-            "Owner001".to_string(),
+        println!(
+            "pod:\n {:?}",
+            query_all_previous_club_ownership_details(&mut deps.storage)
         );
+
+        claim_previous_owner_rewards(deps.as_mut(), owner1Info.clone(), "Owner001".to_string());
         let queryPrevOwnerDetailsAfterRewardClaim =
             query_club_previous_owner_details(&mut deps.storage, "Owner001".to_string())
-            .unwrap_err();
-        assert_eq!(queryPrevOwnerDetailsAfterRewardClaim, (StdError::GenericErr {
-            msg: String::from("No previous ownership details found")}));
+                .unwrap_err();
+        assert_eq!(
+            queryPrevOwnerDetailsAfterRewardClaim,
+            (StdError::GenericErr {
+                msg: String::from("No previous ownership details found")
+            })
+        );
 
-
-        println!("pod:\n {:?}",query_all_previous_club_ownership_details(&mut deps.storage));
+        println!(
+            "pod:\n {:?}",
+            query_all_previous_club_ownership_details(&mut deps.storage)
+        );
 
         //assert_eq!(1, 2);
     }
@@ -2083,10 +2094,10 @@ mod tests {
             admin_address: "admin11111".to_string(),
             minting_contract_address: "minting_admin11111".to_string(),
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
-            club_reward_next_timestamp: now.minus_seconds(1*60*60),
-            reward_periodicity: 24*60*60u64,
+            club_reward_next_timestamp: now.minus_seconds(1 * 60 * 60),
+            reward_periodicity: 24 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
-            bonding_duration: 5*60u64,
+            bonding_duration: 5 * 60u64,
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -2104,7 +2115,7 @@ mod tests {
             mock_env(),
             mintingContractInfo.clone(),
             "Owner001".to_string(),
-            "".to_string(),
+            Some(String::default()),
             "CLUB001".to_string(),
             Uint128::from(1000000u128),
         );
@@ -2159,10 +2170,10 @@ mod tests {
             admin_address: "admin11111".to_string(),
             minting_contract_address: "minting_admin11111".to_string(),
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
-            club_reward_next_timestamp: now.minus_seconds(1*60*60),
-            reward_periodicity: 24*60*60u64,
+            club_reward_next_timestamp: now.minus_seconds(1 * 60 * 60),
+            reward_periodicity: 24 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
-            bonding_duration: 5*60u64,
+            bonding_duration: 5 * 60u64,
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -2180,7 +2191,7 @@ mod tests {
             mock_env(),
             mintingContractInfo.clone(),
             "Owner001".to_string(),
-            "".to_string(),
+            Some(String::default()),
             "CLUB001".to_string(),
             Uint128::from(1000000u128),
         );
@@ -2257,10 +2268,10 @@ mod tests {
             admin_address: "admin11111".to_string(),
             minting_contract_address: "minting_admin11111".to_string(),
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
-            club_reward_next_timestamp: now.minus_seconds(1*60*60),
-            reward_periodicity: 24*60*60u64,
+            club_reward_next_timestamp: now.minus_seconds(1 * 60 * 60),
+            reward_periodicity: 24 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
-            bonding_duration: 5*60u64,
+            bonding_duration: 5 * 60u64,
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -2278,7 +2289,7 @@ mod tests {
             mock_env(),
             mintingContractInfo.clone(),
             "Owner001".to_string(),
-            "".to_string(),
+            Some(String::default()),
             "CLUB001".to_string(),
             Uint128::from(1000000u128),
         );
@@ -2361,10 +2372,10 @@ mod tests {
             admin_address: "admin11111".to_string(),
             minting_contract_address: "minting_admin11111".to_string(),
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
-            club_reward_next_timestamp: now.minus_seconds(1*60*60),
-            reward_periodicity: 24*60*60u64,
+            club_reward_next_timestamp: now.minus_seconds(1 * 60 * 60),
+            reward_periodicity: 24 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
-            bonding_duration: 5*60u64,
+            bonding_duration: 5 * 60u64,
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -2382,7 +2393,7 @@ mod tests {
             mock_env(),
             mintingContractInfo.clone(),
             "Owner001".to_string(),
-            "".to_string(),
+            Some(String::default()),
             "CLUB001".to_string(),
             Uint128::from(1000000u128),
         );
@@ -2482,14 +2493,17 @@ mod tests {
             Uint128::from(11u128),
             NO_IMMEDIATE_WITHDRAWAL,
         );
-        
-        let queryBonds = query_club_bonding_details_for_user(&mut deps.storage, "CLUB001".to_string(), "Staker0002".to_string());
+
+        let queryBonds = query_club_bonding_details_for_user(
+            &mut deps.storage,
+            "CLUB001".to_string(),
+            "Staker0002".to_string(),
+        );
         match queryBonds {
             Ok(all_bonds) => {
                 assert_eq!(all_bonds.len(), 1);
                 for bond in all_bonds {
-                    if bond.bonded_amount != Uint128::from(11u128)
-                    {
+                    if bond.bonded_amount != Uint128::from(11u128) {
                         println!("bond is {:?} ", bond);
                         assert_eq!(1, 2);
                     }
@@ -2511,14 +2525,19 @@ mod tests {
             admin_address: "admin11111".to_string(),
             minting_contract_address: "minting_admin11111".to_string(),
             club_fee_collector_wallet: "feecollector11111".to_string(),
-            club_reward_next_timestamp: now.minus_seconds(1*60*60),
-            reward_periodicity: 24*60*60u64,
+            club_reward_next_timestamp: now.minus_seconds(1 * 60 * 60),
+            reward_periodicity: 24 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
-            bonding_duration: 5*60u64,
+            bonding_duration: 5 * 60u64,
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
-        instantiate(deps.as_mut(), mock_env(), adminInfo.clone(), instantiate_msg);
+        instantiate(
+            deps.as_mut(),
+            mock_env(),
+            adminInfo.clone(),
+            instantiate_msg,
+        );
 
         let owner1Info = mock_info("Owner001", &[coin(1000, "stake")]);
         buy_a_club(
@@ -2526,7 +2545,7 @@ mod tests {
             mock_env(),
             mintingContractInfo.clone(),
             "Owner001".to_string(),
-            "".to_string(),
+            Some(String::default()),
             "CLUB001".to_string(),
             Uint128::from(1000000u128),
         );
@@ -2651,10 +2670,10 @@ mod tests {
             admin_address: "admin11111".to_string(),
             minting_contract_address: "minting_admin11111".to_string(),
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
-            club_reward_next_timestamp: now.minus_seconds(1*60*60),
-            reward_periodicity: 24*60*60u64,
+            club_reward_next_timestamp: now.minus_seconds(1 * 60 * 60),
+            reward_periodicity: 24 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
-            bonding_duration: 5*60u64,
+            bonding_duration: 5 * 60u64,
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -2672,7 +2691,7 @@ mod tests {
             mock_env(),
             mintingContractInfo.clone(),
             "Owner001".to_string(),
-            "".to_string(),
+            Some(String::default()),
             "CLUB001".to_string(),
             Uint128::from(1000000u128),
         );
@@ -2758,10 +2777,10 @@ mod tests {
             admin_address: "admin11111".to_string(),
             minting_contract_address: "minting_admin11111".to_string(),
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
-            club_reward_next_timestamp: now.minus_seconds(8*60*60),
-            reward_periodicity: 5*60*60u64,
+            club_reward_next_timestamp: now.minus_seconds(8 * 60 * 60),
+            reward_periodicity: 5 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
-            bonding_duration: 5*60u64,
+            bonding_duration: 5 * 60u64,
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -2780,7 +2799,7 @@ mod tests {
             mock_env(),
             mintingContractInfo.clone(),
             "Owner001".to_string(),
-            "".to_string(),
+            Some(String::default()),
             "CLUB001".to_string(),
             Uint128::from(1000000u128),
         );
@@ -2790,7 +2809,7 @@ mod tests {
             mock_env(),
             mintingContractInfo.clone(),
             "Owner002".to_string(),
-            "".to_string(),
+            Some(String::default()),
             "CLUB002".to_string(),
             Uint128::from(1000000u128),
         );
@@ -2800,7 +2819,7 @@ mod tests {
             mock_env(),
             mintingContractInfo.clone(),
             "Owner003".to_string(),
-            "".to_string(),
+            Some(String::default()),
             "CLUB003".to_string(),
             Uint128::from(1000000u128),
         );
@@ -2892,7 +2911,7 @@ mod tests {
             Uint128::from(1000000u128),
         );
 
-       let res = execute(
+        let res = execute(
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
@@ -2951,18 +2970,22 @@ mod tests {
         )
         .unwrap_err();
 
-        assert_eq!(err, (ContractError::Std(StdError::GenericErr {
-            msg: String::from("Time for Reward not yet arrived")})));
+        assert_eq!(
+            err,
+            (ContractError::Std(StdError::GenericErr {
+                msg: String::from("Time for Reward not yet arrived")
+            }))
+        );
 
-        // test by preponing club_reward_next_timestamp 
+        // test by preponing club_reward_next_timestamp
         let instantiate_msg = InstantiateMsg {
             admin_address: "admin11111".to_string(),
             minting_contract_address: "minting_admin11111".to_string(),
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
-            club_reward_next_timestamp: now.minus_seconds(1*60*60),
-            reward_periodicity: 5*60*60u64,
+            club_reward_next_timestamp: now.minus_seconds(1 * 60 * 60),
+            reward_periodicity: 5 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
-            bonding_duration: 5*60u64,
+            bonding_duration: 5 * 60u64,
         };
         instantiate(
             deps.as_mut(),
