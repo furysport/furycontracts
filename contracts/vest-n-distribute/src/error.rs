@@ -9,6 +9,9 @@ pub enum ContractError {
     #[error("Unauthorized")]
     Unauthorized {},
 
+    #[error("Error Duplicate Entry")]
+    ErrorDupliacateEntry {},
+
     #[error("Cannot set to own account")]
     CannotSetOwnAccount {},
 

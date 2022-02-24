@@ -37,7 +37,7 @@ pub fn instantiate(
         fury_token_address: msg.fury_token_contract,
     };
     CONFIG.save(deps.storage, &config)?;
-    instantiate_category_vesting_schedules(deps, env, msg.vesting)?;
+    instantiate_category_vesting_schedules(deps, env, msg.vesting, None)?;
     Ok(Response::default())
 }
 
@@ -59,8 +59,16 @@ fn instantiate_category_vesting_schedules(
     deps: DepsMut,
     env: Env,
     vesting_info: InstantiateVestingSchedulesInfo,
+    add: Option<bool>,
 ) -> Result<Response, ContractError> {
     // Some(vesting_info) => {
+    let mut check_duplicate_ = false;
+    match add {
+        None => {}
+        Some(value) => {
+            check_duplicate_ = value;
+        }
+    }
     for schedule in vesting_info.vesting_schedules {
         let vesting_start_timestamp = env.block.time;
         let address = deps.api.addr_validate(schedule.address.as_str())?;
@@ -79,6 +87,21 @@ fn instantiate_category_vesting_schedules(
             parent_category_address: schedule.parent_category_address,
             should_transfer: schedule.should_transfer,
         };
+
+        match VESTING_DETAILS.load(deps.storage, &address){
+            Ok(some) => {
+            if check_duplicate_ {
+                
+                // set custom error saying accounts exists already in the schedule
+                return Err(ContractError::ErrorDupliacateEntry{});
+            }
+            VESTING_DETAILS.save(deps.storage, &address, &vesting_details)?;
+        }
+            Err(..) => {
+            VESTING_DETAILS.save(deps.storage, &address, &vesting_details)?;
+        }
+        }
+
         VESTING_DETAILS.save(deps.storage, &address, &vesting_details)?;
     }
     Ok(Response::default())
@@ -395,7 +418,7 @@ fn add_vesting_schedules(
     env: Env,
     schedules: InstantiateVestingSchedulesInfo,
 ) -> Result<Response, ContractError> {
-    instantiate_category_vesting_schedules(deps, env, schedules)
+    instantiate_category_vesting_schedules(deps, env, schedules, true)
 }
 
 fn claim_vested_tokens(
