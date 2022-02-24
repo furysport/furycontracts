@@ -666,12 +666,14 @@ fn stake_on_a_club(
         to_address: config.platform_fees_collector_wallet.into_string(),
         amount: info.funds,
     });
+    let data_msg = format!("Club stake {} received", amount).into_bytes();
     return Ok(Response::new()
         .add_message(send_bank)
         .add_attribute("action", "stake_on_a_club")
         .add_attribute("staker", staker)
         .add_attribute("club_name", club_name)
-        .add_attribute("stake", amount.to_string()));
+        .add_attribute("stake", amount.to_string())
+        .set_data(data_msg));
 }
 
 fn withdraw_stake_from_a_club(
