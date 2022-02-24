@@ -10,7 +10,7 @@ use cw_storage_plus::{Item, Map};
 pub struct Config {
     pub admin_address: Addr,
     pub minting_contract_address: Addr,
-    pub pool_pair_address: Addr,
+    pub astro_proxy_address: Addr,
     pub club_fee_collector_wallet: Addr,
     pub club_reward_next_timestamp: Timestamp,
     pub reward_periodicity: u64,

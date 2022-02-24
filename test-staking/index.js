@@ -58,7 +58,7 @@ async function proceedToSetup(deploymentDetails) {
     if (result) {
         result = await instantiateFuryTokenContract(deploymentDetails);
         if (result) {
-            await setPoolPairContractAddress(deploymentDetails);
+            await setAstroProxyContractAddress(deploymentDetails);
             deploymentDetails = readArtifact(terraClient.chainID);
             await transferFuryToWallets(deploymentDetails);
             await uploadClubStaking(deploymentDetails);
@@ -68,12 +68,12 @@ async function proceedToSetup(deploymentDetails) {
     console.log("Leaving proceedToSetup");
 }
 
-async function setPoolPairContractAddress(deploymentDetails) {
-    if (!deploymentDetails.poolPairContractAddress) {
-        const setPoolPair = await question('Do you want to set the pool pair contract address? (y/N)');
-        if (setPoolPair === 'Y' || setPoolPair === 'y') {
-            const poolPairAddress = await question('Please provide the pool pair contract address? ');
-            deploymentDetails.poolPairContractAddress = poolPairAddress;
+async function setAstroProxyContractAddress(deploymentDetails) {
+    if (!deploymentDetails.astroProxyContractAddress) {
+        const setAstroProxy = await question('Do you want to set the astro proxy contract address? (y/N)');
+        if (setAstroProxy === 'Y' || setAstroProxy === 'y') {
+            const astroProxyAddress = await question('Please provide the astro proxy contract address? ');
+            deploymentDetails.astroProxyContractAddress = astroProxyAddress;
         }
         writeArtifact(deploymentDetails, terraClient.chainID);
     }
@@ -238,7 +238,7 @@ async function instantiateClubStaking(deploymentDetails) {
         let clubStakingInitMessage = {
             admin_address: deploymentDetails.adminWallet,
             minting_contract_address: deploymentDetails.furyContractAddress,
-            pool_pair_address: deploymentDetails.poolPairContractAddress,
+            astro_proxy_address: deploymentDetails.astroProxyContractAddress,
             platform_fees_collector_wallet: deploymentDetails.adminWallet,
             club_fee_collector_wallet: deploymentDetails.teamWallet,
             club_reward_next_timestamp: "1640447808000000000",
@@ -260,7 +260,19 @@ async function instantiateClubStaking(deploymentDetails) {
 
 async function performOperationsOnClubStaking(deploymentDetails) {
     await queryAllClubOwnerships(deploymentDetails);
+    console.log("Balances of buyer");
+    await queryBalances(deploymentDetails, deploymentDetails.nitinWallet);
+    console.log("Balances of club_fee_collector");
+    await queryBalances(deploymentDetails, deploymentDetails.teamWallet);
+    console.log("Balances of platform_fee_collector");
+    await queryBalances(deploymentDetails, deploymentDetails.adminWallet);
     await buyAClub(deploymentDetails);
+    console.log("Balances of buyer");
+    await queryBalances(deploymentDetails, deploymentDetails.nitinWallet);
+    console.log("Balances of club_fee_collector");
+    await queryBalances(deploymentDetails, deploymentDetails.teamWallet);
+    console.log("Balances of platform_fee_collector");
+    await queryBalances(deploymentDetails, deploymentDetails.adminWallet);
     await queryAllClubOwnerships(deploymentDetails);
 }
 
@@ -294,7 +306,13 @@ async function buyAClub(deploymentDetails) {
     let platformFees = await queryContract(deploymentDetails.clubStakingAddress, { query_platform_fees: { msg: Buffer.from(JSON.stringify(bacRequest)).toString('base64') } });
     console.log(`platformFees = ${JSON.stringify(platformFees)}`);
     let bacResponse = await executeContract(nitin_wallet, deploymentDetails.clubStakingAddress, bacRequest, { 'uusd': Number(platformFees) });
-    console.log("All clubs ownership = " + bacResponse['txhash']);
+    console.log("Buy a club transaction hash = " + bacResponse['txhash']);
 }
 
+async function queryBalances(deploymentDetails, accAddress) {
+    let bankBalances = await terraClient.bank.balance(accAddress);
+    console.log(JSON.stringify(bankBalances));
+    let furyBalance = await queryContract(deploymentDetails.furyContractAddress, { balance: { address: accAddress } });
+    console.log(JSON.stringify(furyBalance));
+}
 main();

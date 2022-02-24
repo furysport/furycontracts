@@ -9,7 +9,7 @@ use cosmwasm_std::{Coin, Timestamp};
 pub struct InstantiateMsg {
     pub admin_address: String,
     pub minting_contract_address: String,
-    pub pool_pair_address: String,
+    pub astro_proxy_address: String,
     pub club_fee_collector_wallet: String,
     pub club_reward_next_timestamp: Timestamp,
     pub reward_periodicity: u64,
