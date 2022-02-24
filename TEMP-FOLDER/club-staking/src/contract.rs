@@ -593,9 +593,6 @@ fn stake_on_a_club(
     amount: Uint128,
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
-    if info.sender != config.minting_contract_address {
-        return Err(ContractError::Unauthorized {});
-    }
 
     let staker_addr = deps.api.addr_validate(&staker)?;
 
