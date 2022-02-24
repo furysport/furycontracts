@@ -106,15 +106,9 @@ pub enum QueryMsg {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ReceivedMsg {
-    StakeOnAClub(StakeOnAClubCommand),
     IncreaseRewardAmount(IncreaseRewardAmountCommand),
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct StakeOnAClubCommand {
-    pub staker: String,
-    pub club_name: String,
-}
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct IncreaseRewardAmountCommand {
     pub reward_from: String,

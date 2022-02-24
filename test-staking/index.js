@@ -274,6 +274,11 @@ async function performOperationsOnClubStaking(deploymentDetails) {
     console.log("Balances of platform_fee_collector");
     await queryBalances(deploymentDetails, deploymentDetails.adminWallet);
     await queryAllClubOwnerships(deploymentDetails);
+    await stakeOnAClub(deploymentDetails);
+    console.log("Balances of staker");
+    await queryBalances(deploymentDetails, deploymentDetails.sameerWallet);
+    console.log("Balances of platform_fee_collector");
+    await queryBalances(deploymentDetails, deploymentDetails.adminWallet);
 }
 
 async function queryAllClubOwnerships(deploymentDetails) {
@@ -282,6 +287,17 @@ async function queryAllClubOwnerships(deploymentDetails) {
         all_club_ownership_details: {}
     });
     console.log("All clubs ownership = " + JSON.stringify(coResponse));
+
+}
+
+async function queryAllClubStakes(deploymentDetails) {
+    //Fetch club Stakes details for all clubs
+    let csResponse = await queryContract(deploymentDetails.clubStakingAddress, {
+        club_staking_details: {
+            club_name: "ClubB"
+		}
+    });
+    console.log("All clubs stakes = " + JSON.stringify(csResponse));
 
 }
 
@@ -307,6 +323,31 @@ async function buyAClub(deploymentDetails) {
     console.log(`platformFees = ${JSON.stringify(platformFees)}`);
     let bacResponse = await executeContract(nitin_wallet, deploymentDetails.clubStakingAddress, bacRequest, { 'uusd': Number(platformFees) });
     console.log("Buy a club transaction hash = " + bacResponse['txhash']);
+}
+
+async function stakeOnAClub(deploymentDetails) {
+    //let Sameer stakeOn a club
+    // first increase allowance for club staking contract on Sameer wallet to let it move fury
+    let increaseAllowanceMsg = {
+        increase_allowance: {
+            spender: deploymentDetails.clubStakingAddress,
+            amount: "100000"
+        }
+    };
+    let incrAllowResp = await executeContract(sameer_wallet, deploymentDetails.furyContractAddress, increaseAllowanceMsg);
+    console.log(`Increase allowance response hash = ${incrAllowResp['txhash']}`);
+
+    let soacRequest = {
+        stake_on_a_club: {
+            staker: sameeer_wallet.key.accAddress,
+            club_name: "ClubB",
+            amount: "100000"
+        }
+    };
+    let platformFees = await queryContract(deploymentDetails.clubStakingAddress, { query_platform_fees: { msg: Buffer.from(JSON.stringify(soacRequest)).toString('base64') } });
+    console.log(`platformFees = ${JSON.stringify(platformFees)}`);
+    let soacResponse = await executeContract(sameeer_wallet, deploymentDetails.clubStakingAddress, soacRequest, { 'uusd': Number(platformFees) });
+    console.log("Stake on a club transaction hash = " + soacResponse['txhash']);
 }
 
 async function queryBalances(deploymentDetails, accAddress) {

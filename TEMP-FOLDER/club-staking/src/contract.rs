@@ -162,9 +162,6 @@ fn received_message(
     let msg: ReceivedMsg = from_binary(&message.msg)?;
     let amount = Uint128::from(message.amount);
     match msg {
-        ReceivedMsg::StakeOnAClub(soac) => {
-            stake_on_a_club(deps, env, info, soac.staker, soac.club_name, amount)
-        }
         ReceivedMsg::IncreaseRewardAmount(irac) => {
             increase_reward_amount(deps, env, info, irac.reward_from, amount)
         }
@@ -662,19 +659,22 @@ fn stake_on_a_club(
         )?;
 
         // Nothing required to transfer anything staking fund has arrived in the staking contract
-        // Deduct amount from the stakers wallet
-        // transfer_from_wallet_to_contract(deps.storage, staker.clone(), amount);
     } else {
         return Err(ContractError::Std(StdError::GenericErr {
             msg: String::from("The club is not available for staking"),
         }));
     }
+
+    let send_bank: CosmosMsg = CosmosMsg::Bank(BankMsg::Send {
+        to_address: config.platform_fees_collector_wallet.into_string(),
+        amount: info.funds,
+    });
     return Ok(Response::new()
+        .add_message(send_bank)
         .add_attribute("action", "stake_on_a_club")
         .add_attribute("staker", staker)
         .add_attribute("club_name", club_name)
         .add_attribute("stake", amount.to_string()));
-    //return Ok(Response::default());
 }
 
 fn withdraw_stake_from_a_club(
