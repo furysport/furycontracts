@@ -418,7 +418,7 @@ fn add_vesting_schedules(
     env: Env,
     schedules: InstantiateVestingSchedulesInfo,
 ) -> Result<Response, ContractError> {
-    instantiate_category_vesting_schedules(deps, env, schedules, true)
+    instantiate_category_vesting_schedules(deps, env, schedules, Option::from(true))
 }
 
 fn claim_vested_tokens(
