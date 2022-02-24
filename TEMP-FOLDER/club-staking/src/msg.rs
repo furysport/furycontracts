@@ -33,6 +33,11 @@ pub enum ExecuteMsg {
         seller: Option<String>,
         club_name: String,
     },
+    StakeOnAClub {
+        staker: String,
+        club_name: String,
+        amount: Uint128,
+    },
     ReleaseClub {
         owner: String,
         club_name: String,

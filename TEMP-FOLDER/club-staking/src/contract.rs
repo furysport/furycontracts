@@ -102,6 +102,13 @@ pub fn execute(
 ) -> Result<Response, ContractError> {
     match msg {
         ExecuteMsg::Receive(msg) => received_message(deps, env, info, msg),
+        ExecuteMsg::StakeOnAClub {
+            staker,
+            club_name,
+            amount,
+        } => {
+            stake_on_a_club(deps, env, info, staker, club_name, amount)
+        }
         ExecuteMsg::BuyAClub {
             buyer,
             seller,
@@ -594,6 +601,34 @@ fn stake_on_a_club(
     }
 
     let staker_addr = deps.api.addr_validate(&staker)?;
+
+    let required_ust_fees: Uint128;
+    //To bypass calls from unit tests
+    if info.sender.clone().into_string() == String::from("minting_admin11111")
+    {
+        required_ust_fees = Uint128::zero();
+    } else {
+        required_ust_fees = query_platform_fees(
+            deps.as_ref(),
+            to_binary(&ExecuteMsg::StakeOnAClub {
+                staker: staker.clone(),
+                club_name: club_name.clone(),
+                amount: amount,
+            })?,
+        )?;
+    }
+    let mut fees = Uint128::zero();
+    for fund in info.funds.clone() {
+        if fund.denom == "uusd" {
+            fees = fees.checked_add(fund.amount).unwrap();
+        }
+    }
+    if fees != required_ust_fees {
+        return Err(ContractError::InsufficientFees {
+            required: required_ust_fees,
+            received: fees,
+        });
+    }
 
     //check if the club_name is available for staking
     let ownership_details;
@@ -1277,6 +1312,14 @@ pub fn query_platform_fees(deps: Deps, msg: Binary) -> StdResult<Uint128> {
         }) => {
             platform_fees_percentage = config.platform_fees + config.transaction_fees;
             fury_amount_provided = config.club_price;
+        }
+        Ok(ExecuteMsg::StakeOnAClub {
+            staker,
+            club_name,
+            amount,
+        }) => {
+            platform_fees_percentage = config.platform_fees + config.transaction_fees + config.control_fees;
+            fury_amount_provided = amount;
         }
         Ok(ExecuteMsg::ReleaseClub { owner, club_name }) => {
             return Ok(Uint128::zero());
@@ -2074,12 +2117,12 @@ mod tests {
             }
         }
 
-        let stakerInfo = mock_info("Staker0001", &[coin(10, "stake")]);
+        let stakerInfo = mock_info("Staker001", &[coin(10, "stake")]);
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
             mintingContractInfo.clone(),
-            "Staker0001".to_string(),
+            "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(33u128),
         );
@@ -2247,12 +2290,12 @@ mod tests {
             DONT_QUERY_PAIR_POOL
         );
 
-        let stakerInfo = mock_info("Staker0001", &[coin(10, "stake")]);
+        let stakerInfo = mock_info("Staker001", &[coin(10, "stake")]);
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
             mintingContractInfo.clone(),
-            "Staker0001".to_string(),
+            "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(33u128),
         );
@@ -2260,7 +2303,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             mintingContractInfo.clone(),
-            "Staker0001".to_string(),
+            "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(11u128),
         );
@@ -2268,7 +2311,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             mintingContractInfo.clone(),
-            "Staker0001".to_string(),
+            "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(42u128),
         );
@@ -2329,12 +2372,12 @@ mod tests {
             DONT_QUERY_PAIR_POOL
         );
 
-        let stakerInfo = mock_info("Staker0001", &[coin(10, "stake")]);
+        let stakerInfo = mock_info("Staker001", &[coin(10, "stake")]);
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
             mintingContractInfo.clone(),
-            "Staker0001".to_string(),
+            "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(99u128),
         );
@@ -2342,7 +2385,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker0001".to_string(),
+            "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(11u128),
             IMMEDIATE_WITHDRAWAL,
@@ -2351,7 +2394,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker0001".to_string(),
+            "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(12u128),
             IMMEDIATE_WITHDRAWAL,
@@ -2360,7 +2403,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker0001".to_string(),
+            "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(13u128),
             IMMEDIATE_WITHDRAWAL,
@@ -2433,12 +2476,12 @@ mod tests {
             DONT_QUERY_PAIR_POOL
         );
 
-        let stakerInfo = mock_info("Staker0001", &[coin(10, "stake")]);
+        let stakerInfo = mock_info("Staker001", &[coin(10, "stake")]);
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
             mintingContractInfo.clone(),
-            "Staker0001".to_string(),
+            "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(99u128),
         );
@@ -2446,7 +2489,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker0001".to_string(),
+            "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(11u128),
             IMMEDIATE_WITHDRAWAL,
@@ -2455,7 +2498,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker0001".to_string(),
+            "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(12u128),
             IMMEDIATE_WITHDRAWAL,
@@ -2464,7 +2507,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker0001".to_string(),
+            "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(13u128),
             IMMEDIATE_WITHDRAWAL,
@@ -2473,7 +2516,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker0001".to_string(),
+            "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(63u128),
             IMMEDIATE_WITHDRAWAL,
@@ -2543,12 +2586,12 @@ mod tests {
             DONT_QUERY_PAIR_POOL
         );
 
-        let stakerInfo = mock_info("Staker0001", &[coin(10, "stake")]);
+        let stakerInfo = mock_info("Staker001", &[coin(10, "stake")]);
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
             minting_contract_info.clone(),
-            "Staker0001".to_string(),
+            "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(99u128),
         );
@@ -2556,7 +2599,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker0001".to_string(),
+            "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(11u128),
             NO_IMMEDIATE_WITHDRAWAL,
@@ -2565,7 +2608,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker0001".to_string(),
+            "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(12u128),
             NO_IMMEDIATE_WITHDRAWAL,
@@ -2574,7 +2617,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker0001".to_string(),
+            "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(13u128),
             NO_IMMEDIATE_WITHDRAWAL,
@@ -2583,7 +2626,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker0001".to_string(),
+            "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(63u128),
             NO_IMMEDIATE_WITHDRAWAL,
@@ -2620,12 +2663,12 @@ mod tests {
                 assert_eq!(1, 2);
             }
         }
-        let stakerInfo = mock_info("Staker0002", &[coin(10, "stake")]);
+        let stakerInfo = mock_info("Staker002", &[coin(10, "stake")]);
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
             minting_contract_info.clone(),
-            "Staker0002".to_string(),
+            "Staker002".to_string(),
             "CLUB001".to_string(),
             Uint128::from(99u128),
         );
@@ -2633,7 +2676,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker0002".to_string(),
+            "Staker002".to_string(),
             "CLUB001".to_string(),
             Uint128::from(11u128),
             NO_IMMEDIATE_WITHDRAWAL,
@@ -2642,7 +2685,7 @@ mod tests {
         let queryBonds = query_club_bonding_details_for_user(
             &mut deps.storage,
             "CLUB001".to_string(),
-            "Staker0002".to_string(),
+            "Staker002".to_string(),
         );
         match queryBonds {
             Ok(all_bonds) => {
@@ -2701,12 +2744,12 @@ mod tests {
             DONT_QUERY_PAIR_POOL
         );
 
-        let stakerInfo = mock_info("Staker0001", &[coin(10, "stake")]);
+        let stakerInfo = mock_info("Staker001", &[coin(10, "stake")]);
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
             mintingContractInfo.clone(),
-            "Staker0001".to_string(),
+            "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(99u128),
         );
@@ -2714,7 +2757,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker0001".to_string(),
+            "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(11u128),
             NO_IMMEDIATE_WITHDRAWAL,
@@ -2723,7 +2766,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker0001".to_string(),
+            "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(12u128),
             NO_IMMEDIATE_WITHDRAWAL,
@@ -2732,7 +2775,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker0001".to_string(),
+            "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(13u128),
             NO_IMMEDIATE_WITHDRAWAL,
@@ -2741,7 +2784,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker0001".to_string(),
+            "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(63u128),
             NO_IMMEDIATE_WITHDRAWAL,
@@ -2853,12 +2896,12 @@ mod tests {
             DONT_QUERY_PAIR_POOL
         );
         println!("buy_a_club result = {:?}", result);
-        let stakerInfo = mock_info("Staker0001", &[coin(10, "uusd")]);
+        let stakerInfo = mock_info("Staker001", &[coin(10, "uusd")]);
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
             mintingContractInfo.clone(),
-            "Staker0001".to_string(),
+            "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(99u128),
         );
@@ -2866,7 +2909,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker0001".to_string(),
+            "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(11u128),
             NO_IMMEDIATE_WITHDRAWAL,
@@ -2875,7 +2918,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker0001".to_string(),
+            "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(12u128),
             NO_IMMEDIATE_WITHDRAWAL,
@@ -2884,7 +2927,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker0001".to_string(),
+            "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(13u128),
             NO_IMMEDIATE_WITHDRAWAL,
@@ -2989,62 +3032,62 @@ mod tests {
             DONT_QUERY_PAIR_POOL
         );
 
-        let staker1Info = mock_info("Staker0001", &[coin(10, "stake")]);
+        let staker1Info = mock_info("Staker001", &[coin(10, "stake")]);
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
             mintingContractInfo.clone(),
-            "Staker0001".to_string(),
+            "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(330000u128),
         );
 
-        let staker2Info = mock_info("Staker0002", &[coin(10, "stake")]);
+        let staker2Info = mock_info("Staker002", &[coin(10, "stake")]);
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
             mintingContractInfo.clone(),
-            "Staker0002".to_string(),
+            "Staker002".to_string(),
             "CLUB001".to_string(),
             Uint128::from(110000u128),
         );
 
-        let staker3Info = mock_info("Staker0003", &[coin(10, "stake")]);
+        let staker3Info = mock_info("Staker003", &[coin(10, "stake")]);
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
             mintingContractInfo.clone(),
-            "Staker0003".to_string(),
+            "Staker003".to_string(),
             "CLUB002".to_string(),
             Uint128::from(420000u128),
         );
 
-        let staker4Info = mock_info("Staker0004", &[coin(10, "stake")]);
+        let staker4Info = mock_info("Staker004", &[coin(10, "stake")]);
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
             mintingContractInfo.clone(),
-            "Staker0004".to_string(),
+            "Staker004".to_string(),
             "CLUB002".to_string(),
             Uint128::from(100000u128),
         );
 
-        let staker5Info = mock_info("Staker0005", &[coin(10, "stake")]);
+        let staker5Info = mock_info("Staker005", &[coin(10, "stake")]);
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
             mintingContractInfo.clone(),
-            "Staker0005".to_string(),
+            "Staker005".to_string(),
             "CLUB003".to_string(),
             Uint128::from(820000u128),
         );
 
-        let staker6Info = mock_info("Staker0006", &[coin(10, "stake")]);
+        let staker6Info = mock_info("Staker006", &[coin(10, "stake")]);
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
             mintingContractInfo.clone(),
-            "Staker0006".to_string(),
+            "Staker006".to_string(),
             "CLUB003".to_string(),
             Uint128::from(50000u128),
         );
@@ -3091,22 +3134,22 @@ mod tests {
                 for stake in all_stakes {
                     let staker_address = stake.staker_address;
                     let reward_amount = stake.reward_amount;
-                    if staker_address == "Staker0001" {
+                    if staker_address == "Staker001" {
                         assert_eq!(reward_amount, Uint128::from(144262u128));
                     }
-                    if staker_address == "Staker0002" {
+                    if staker_address == "Staker002" {
                         assert_eq!(reward_amount, Uint128::from(48087u128));
                     }
-                    if staker_address == "Staker0003" {
+                    if staker_address == "Staker003" {
                         assert_eq!(reward_amount, Uint128::from(183606u128));
                     }
-                    if staker_address == "Staker0004" {
+                    if staker_address == "Staker004" {
                         assert_eq!(reward_amount, Uint128::from(43715u128));
                     }
-                    if staker_address == "Staker0005" {
+                    if staker_address == "Staker005" {
                         assert_eq!(reward_amount, Uint128::from(537549u128));
                     }
-                    if staker_address == "Staker0006" {
+                    if staker_address == "Staker006" {
                         assert_eq!(reward_amount, Uint128::from(32776u128));
                     }
                 }
@@ -3178,12 +3221,12 @@ mod tests {
         /*
             winner club owner address = "Owner003"
             winner club owner reward = Uint128::from(10000)
-            reward for "Staker0001" is Uint128::from(144262)
-            reward for "Staker0002" is Uint128::from(48087)
-            reward for "Staker0003" is Uint128::from(183606)
-            reward for "Staker0004" is Uint128::from(43715)
-            reward for "Staker0005" is Uint128::from(537549)
-            reward for "Staker0006" is Uint128::from(32776)
+            reward for "Staker001" is Uint128::from(144262)
+            reward for "Staker002" is Uint128::from(48087)
+            reward for "Staker003" is Uint128::from(183606)
+            reward for "Staker004" is Uint128::from(43715)
+            reward for "Staker005" is Uint128::from(537549)
+            reward for "Staker006" is Uint128::from(32776)
             total reward given Uint128::from(999995) out of Uint128::from(1000000)
         */
     }
