@@ -130,8 +130,8 @@ pub fn execute(
             max_teams_for_gamer,
             wallet_percentages,
         ),
-        ExecuteMsg::CancelGame { } => cancel_game(deps, env, info),
-        ExecuteMsg::LockGame { } => lock_game(deps, env, info),
+        ExecuteMsg::CancelGame {} => cancel_game(deps, env, info),
+        ExecuteMsg::LockGame {} => lock_game(deps, env, info),
         ExecuteMsg::CreatePool { pool_type } => {
             create_pool(deps, env, info, pool_type)
         }
@@ -141,6 +141,22 @@ pub fn execute(
             pool_id,
             game_winners,
         } => game_pool_reward_distribute(deps, env, info, pool_id, game_winners),
+        ExecuteMsg::SaveTeamDetails {
+            gamer,
+            pool_id,
+            team_id,
+            game_id,
+            pool_type,
+            reward_amount,
+            claimed_reward,
+            refund_amount,
+            claimed_refund,
+            team_points,
+            team_rank
+        } => save_team_details(
+            deps.storage, env, gamer, pool_id, team_id, game_id, pool_type,
+            reward_amount, claimed_reward, refund_amount, claimed_refund,
+            team_points, team_rank)
     }
 }
 
@@ -344,7 +360,7 @@ fn cancel_game(
     return Ok(Response::new()
         .add_attribute("game_id", game_id.clone())
         .add_attribute("game_status", "GAME_CANCELLED".to_string())
-    ); 
+    );
 }
 
 fn lock_game(
@@ -359,7 +375,7 @@ fn lock_game(
         });
     }
     let platform_fee = config.platform_fee;
-	let game_id = config.game_id;
+    let game_id = config.game_id;
 
     let gd = GAME_DETAILS.may_load(deps.storage, game_id.clone())?;
     let mut game;
@@ -461,7 +477,7 @@ fn lock_game(
     return Ok(Response::new()
         .add_attribute("game_id", game_id.clone())
         .add_attribute("game_status", "GAME_POOL_CLOSED".to_string())
-    ); 
+    );
 }
 
 fn create_pool(
@@ -476,7 +492,7 @@ fn create_pool(
             invoker: info.sender.to_string(),
         });
     }
-	let game_id = config.game_id;
+    let game_id = config.game_id;
 
     let gd = GAME_DETAILS.may_load(deps.storage, game_id.clone())?;
     let mut game;
@@ -883,7 +899,7 @@ fn game_pool_reward_distribute(
         return Err(ContractError::Std(StdError::GenericErr {
             msg: String::from("Rewards are already distributed for this pool"),
         }));
-    }    
+    }
     let pool_count = pool_details.current_teams_count;
     let pool_type = pool_details.pool_type;
     POOL_DETAILS.save(
@@ -1101,7 +1117,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::PoolTypeDetails { pool_type } => {
             to_binary(&query_pool_type_details(deps.storage, pool_type)?)
         }
-        QueryMsg::AllPoolTypeDetails { } => {
+        QueryMsg::AllPoolTypeDetails {} => {
             to_binary(&query_all_pool_type_details(deps.storage)?)
         }
         QueryMsg::AllTeams {} => to_binary(&query_all_teams(deps.storage)?),
@@ -1112,11 +1128,11 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
             pool_id,
             team_id,
         } => to_binary(&query_game_result(deps, gamer, pool_id, team_id)?),
-        QueryMsg::GameDetails { } => to_binary(&query_game_details(deps.storage)?),
+        QueryMsg::GameDetails {} => to_binary(&query_game_details(deps.storage)?),
         QueryMsg::PoolTeamDetailsWithTeamId { pool_id, team_id } => {
             to_binary(&query_team_details(deps.storage, pool_id, team_id)?)
         }
-        QueryMsg::AllPoolsInGame { } => to_binary(&query_all_pools_in_game(deps.storage)?),
+        QueryMsg::AllPoolsInGame {} => to_binary(&query_all_pools_in_game(deps.storage)?),
         QueryMsg::PoolCollection { pool_id } => to_binary(&query_pool_collection(deps.storage, pool_id)?),
     }
 }
@@ -1232,7 +1248,7 @@ fn query_game_result(
     team_id: String,
 ) -> StdResult<GameResult> {
     let config = CONFIG.load(deps.storage)?;
-	let game_id = config.game_id;
+    let game_id = config.game_id;
 
     let mut reward_amount = Uint128::zero();
     let mut refund_amount = Uint128::zero();
@@ -1319,7 +1335,7 @@ fn get_team_count_for_user_in_pool_type(
 
 fn query_game_details(storage: &dyn Storage) -> StdResult<GameDetails> {
     let config = CONFIG.load(storage)?;
-	let game_id = config.game_id;
+    let game_id = config.game_id;
 
     let gameDetail = GAME_DETAILS.may_load(storage, game_id)?;
     match gameDetail {
@@ -1346,7 +1362,7 @@ fn query_all_pools_in_game(
     storage: &dyn Storage,
 ) -> StdResult<Vec<PoolDetails>> {
     let config = CONFIG.load(storage)?;
-	let game_id = config.game_id;
+    let game_id = config.game_id;
 
     let mut all_pool_details = Vec::new();
     let all_pools: Vec<String> = POOL_DETAILS
@@ -1481,6 +1497,7 @@ mod tests {
             }
         }
     }
+
     #[test]
     fn test_save_and_query_team_detail() {
         let mut deps = mock_dependencies(&[]);
@@ -3235,7 +3252,7 @@ mod tests {
         match claim_reward_rsp_2 {
             Ok(claim_reward_rsp_2) => {
                 // IT should not come here
-                assert_eq!(1,2);
+                assert_eq!(1, 2);
             }
             Err(e) => {
                 let outstr = format!("error parsing header: {:?}", e);
@@ -3423,13 +3440,13 @@ mod tests {
         for team in team_details {
             //let mut gamer_addr = team[0].gamer_address.clone();
             let gamer_addr = Addr::unchecked(team[0].gamer_address.clone().as_str()); //owner1Info //deps.api.addr_validate(&gamer);
-                                                                                      //let address = deps.api.addr_validate(team[0].gamer_address.clone().as_str());
+            //let address = deps.api.addr_validate(team[0].gamer_address.clone().as_str());
             let gf_res = GAMING_FUNDS.load(&mut deps.storage, &gamer_addr);
             //let mut global_pool_id;
             match gf_res {
                 Ok(gf_res) => {
                     println!("error parsing header: {:?}", gf_res);
-                    assert_eq!(gf_res, Uint128::from(0u128)); 
+                    assert_eq!(gf_res, Uint128::from(0u128));
                 }
                 Err(e) => {
                     println!("error parsing header: {:?}", e);

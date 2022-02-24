@@ -20,7 +20,7 @@ pub struct InstantiateMsg {
     pub game_id: String,
 }
 
-use crate::state::{ GameResult, WalletPercentage };
+use crate::state::{GameResult, WalletPercentage};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -37,10 +37,8 @@ pub enum ExecuteMsg {
         max_teams_for_gamer: u32,
         wallet_percentages: Vec<WalletPercentage>,
     },
-    CancelGame {
-    },
-    LockGame {
-    },
+    CancelGame {},
+    LockGame {},
     CreatePool {
         pool_type: String
     },
@@ -52,8 +50,21 @@ pub enum ExecuteMsg {
     },
     GamePoolRewardDistribute {
         pool_id: String,
-        game_winners: Vec<GameResult>
-    },    
+        game_winners: Vec<GameResult>,
+    },
+    SaveTeamDetails {
+        gamer: String,
+        pool_id: String,
+        team_id: String,
+        game_id: String,
+        pool_type: String,
+        reward_amount: Uint128,
+        claimed_reward: bool,
+        refund_amount: Uint128,
+        claimed_refund: bool,
+        team_points: u64,
+        team_rank: u64,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -68,8 +79,7 @@ pub enum QueryMsg {
     PoolTypeDetails {
         pool_type: String,
     },
-    AllPoolTypeDetails {
-    },
+    AllPoolTypeDetails {},
     AllTeams {},
     QueryReward {
         gamer: String
@@ -80,16 +90,14 @@ pub enum QueryMsg {
     QueryGameResult {
         gamer: String,
         pool_id: String,
-        team_id: String
+        team_id: String,
     },
-    GameDetails {
-    },
+    GameDetails {},
     PoolTeamDetailsWithTeamId {
         pool_id: String,
         team_id: String,
     },
-    AllPoolsInGame {
-    },
+    AllPoolsInGame {},
     PoolCollection {
         pool_id: String,
     },
