@@ -195,7 +195,7 @@ let test_get_team_count_for_user_in_pool_type = async function (time) {
 
 let test_game_pool_bid_submit_when_pool_team_in_range = async function (time) {
     console.log("Test game pool bid submit when pool team in range")
-    let response = executeContract(walletTest1, gaming_contract_address, {
+    await executeContract(walletTest1, gaming_contract_address, {
         set_pool_type_params: {
             'pool_type': "oneToOne",
             'pool_fee': "144262",
@@ -231,7 +231,7 @@ let test_game_pool_bid_submit_when_pool_team_in_range = async function (time) {
         }
     }
 
-    response = await executeContract(walletTest1, gaming_contract_address, {
+    let response = await executeContract(walletTest1, gaming_contract_address, {
         cw20_receive_msg: {
             sender: walletTest1.key.accAddress,
             amount: "10",
