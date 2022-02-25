@@ -90,6 +90,7 @@ async function uploadFuryTokenContract(deploymentDetails) {
                 deployFury = true;
             } else {
                 deploymentDetails.furyTokenCodeId = codeId;
+                writeArtifact(deploymentDetails, terraClient.chainID);
                 deployFury = false;
             }
         } else {
@@ -231,7 +232,7 @@ async function instantiateClubStaking(deploymentDetails) {
         console.log("Instantiating Club Staking...");
         /*
         Club Price in this contract is 100000 (0.1 Fury) -  "club_price": "100000"
-        Withdraw from a Club will mature after 5 minutes 300 seconds -  "bonding_duration": 300
+        Withdraw from a Club will mature after 2 minutes 120 seconds -  "bonding_duration": 120
         Also a repeat calculate_and_distribute_reward() 
             if called within 5 minutes shall fail - "reward_periodicity": 300
         */
@@ -244,7 +245,7 @@ async function instantiateClubStaking(deploymentDetails) {
             club_reward_next_timestamp: "1640447808000000000",
             reward_periodicity: 300,
             club_price: "100000",
-            bonding_duration: 300,
+            bonding_duration: 120,
             platform_fees: "100",
             transaction_fees: "30",
             control_fees: "50",
@@ -376,8 +377,37 @@ async function withdrawStakeFromAClub(deploymentDetails) {
     };
     let platformFees = await queryContract(deploymentDetails.clubStakingAddress, { query_platform_fees: { msg: Buffer.from(JSON.stringify(wsfacRequest)).toString('base64') } });
     console.log(`platformFees = ${JSON.stringify(platformFees)}`);
+
     let wsfacResponse = await executeContract(sameer_wallet, deploymentDetails.clubStakingAddress, wsfacRequest, { 'uusd': Number(platformFees) });
     console.log("Withdraw Stake on a club transaction hash = " + wsfacResponse['txhash']);
+
+    console.log("Waiting for 30sec to try early Withdraw - would fail");
+    //ADD DELAY small to check failure of quick withdraw - 30sec
+    await new Promise(resolve => setTimeout(resolve, 30000));
+
+    wsfacRequest = {
+        stake_withdraw_from_a_club: {
+            staker: sameer_wallet.key.accAddress,
+            club_name: "ClubB",
+            amount: "10000",
+            immediate_withdrawal: true
+        }
+    };
+    try {
+        wsfacResponse = await executeContract(sameer_wallet, deploymentDetails.clubStakingAddress, wsfacRequest, { 'uusd': Number(platformFees) });
+        console.log("Not expected to reach here");
+        console.log("Withdraw Stake on a club transaction hash = " + wsfacResponse['txhash']);
+    } catch (error) {
+        console.log("Failure as expected");
+        console.log("Waiting for 100sec to try Withdraw after bonding period 2min- should pass");
+        //ADD DELAY to reach beyond the bonding duration - 2min
+        await new Promise(resolve => setTimeout(resolve, 100000));
+
+        wsfacResponse = await executeContract(sameer_wallet, deploymentDetails.clubStakingAddress, wsfacRequest, { 'uusd': Number(platformFees) });
+        console.log("Withdraw Stake on a club transaction hash = " + wsfacResponse['txhash']);
+    } finally {
+        console.log("Withdraw Complete");
+    }
 }
 
 async function queryBalances(deploymentDetails, accAddress) {

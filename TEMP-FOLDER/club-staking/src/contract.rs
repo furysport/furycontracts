@@ -843,14 +843,20 @@ fn withdraw_stake_from_a_club(
                 DECREASE_STAKE,
             )?;
 
-            // Deduct 10% and burn it
+            // // PRE-MATURITY Withdrawal directly from Basic Stake , not even into Bonding - commented out to bypass 
             if withdrawal_amount > unbonded_amount {
-                burn_amount = (withdrawal_amount - unbonded_amount)
-                    .checked_mul(Uint128::from(10u128))
-                    .unwrap_or_default()
-                    .checked_div(Uint128::from(100u128))
-                    .unwrap_or_default();
+            // // Deduct 10% and burn it
+            //     burn_amount = (withdrawal_amount - unbonded_amount)
+            //         .checked_mul(Uint128::from(10u128))
+            //         .unwrap_or_default()
+            //         .checked_div(Uint128::from(100u128))
+            //         .unwrap_or_default();
+                return Err(ContractError::Std(StdError::GenericErr {
+                    msg: String::from("Not Sufficient Matured Unstaked Bonds"),
+                }));
             };
+
+            // // Continue if reached here
             // Remaining 90% transfer to staker wallet
             transfer_confirmed = true;
         } else {
