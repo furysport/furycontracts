@@ -875,9 +875,22 @@ fn withdraw_stake_from_a_club(
                 withdrawal_amount,
                 config.bonding_duration,
             )?;
-            // early exit with only state change - no token exchange
-            return Ok(Response::default());
-        };
+
+			let mut rsp = Response::new();
+			let send_bank: CosmosMsg = CosmosMsg::Bank(BankMsg::Send {
+				to_address: config.platform_fees_collector_wallet.into_string(),
+				amount: info.funds,
+			});
+
+            // early exit with only state change and platform fee transfer - no token exchange
+			let data_msg = format!("Amount {} bonded", withdrawal_amount).into_bytes();
+			rsp = rsp
+				.add_message(send_bank)
+				.add_attribute("action", action)
+				.add_attribute("bonded", withdrawal_amount.clone().to_string())
+				.set_data(data_msg);
+			return Ok(rsp);
+        }
     } else {
         return Err(ContractError::Std(StdError::GenericErr {
             msg: String::from("Invalid club"),
