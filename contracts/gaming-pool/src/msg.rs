@@ -101,6 +101,11 @@ pub enum QueryMsg {
     PoolCollection {
         pool_id: String,
     },
+    GetTeamCountForUserInPoolType {
+        gamer: String,
+        game_id: String,
+        pool_type: String,
+    },
 }
 
 

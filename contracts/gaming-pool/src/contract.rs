@@ -1134,6 +1134,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         }
         QueryMsg::AllPoolsInGame {} => to_binary(&query_all_pools_in_game(deps.storage)?),
         QueryMsg::PoolCollection { pool_id } => to_binary(&query_pool_collection(deps.storage, pool_id)?),
+        QueryMsg::GetTeamCountForUserInPoolType { game_id, gamer, pool_type } => to_binary(&get_team_count_for_user_in_pool_type(deps.storage, gamer, game_id, pool_type)?),
     }
 }
 

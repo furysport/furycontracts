@@ -103,15 +103,73 @@ let test_create_and_query_pool = async function (time) {
 }
 
 
-let test_save_and_query_team_detail = async function (time) {
-    console.log("Testing Save and Query Team Details")
-    gaming_contract_address = await deploy_contract(GamingContractPath, gaming_init)
-    console.log(`Gaming Address:${gaming_contract_address}`)
-    let query_resposne = await queryContract(gaming_contract_address, {
-        game_details: {}
+// let test_save_and_query_team_detail = async function (time) {
+//     console.log("Testing Save and Query Team Details")
+//     gaming_contract_address = await deploy_contract(GamingContractPath, gaming_init)
+//     console.log(`Gaming Address:${gaming_contract_address}`)
+//     let query_resposne = await queryContract(gaming_contract_address, {
+//         game_details: {}
+//     })
+//     assert.isTrue(gaming_init['game_id'] === query_resposne['game_id'])
+//     assert.isTrue(1 === query_resposne['game_status'])
+//     console.log("Assert Success")
+//     sleep(time)
+// }
+
+let test_get_team_count_for_user_in_pool_type = async function (time) {
+    console.log("Test Get Team Count In Pool Type")
+    executeContract(walletTest1, gaming_contract_address, {
+        save_team_details: {
+            'gamer': "Gamer001",
+            'pool_id': "1",
+            'team_id': "Team001",
+            'game_id': "Game001",
+            'pool_type': "oneToOne",
+            'reward_amount': "144262",
+            'claimed_reward': false,
+            'refund_amount': "0",
+            'claimed_refund': false,
+            'team_points': 100,
+            'team_rank': 2
+
+        }
     })
-    assert.isTrue(gaming_init['game_id'] === query_resposne['game_id'])
-    assert.isTrue(1 === query_resposne['game_status'])
+    sleep(time)
+    executeContract(walletTest1, gaming_contract_address, {
+        save_team_details: {
+            'gamer': "Gamer001",
+            'pool_id': "1",
+            'team_id': "Team002",
+            'game_id': "Game001",
+            'pool_type': "oneToOne",
+            'reward_amount': "144262",
+            'claimed_reward': false,
+            'refund_amount': "0",
+            'claimed_refund': false,
+            'team_points': 100,
+            'team_rank': 2
+
+        }
+    })
+    sleep(time)
+    executeContract(walletTest1, gaming_contract_address, {
+        save_team_details: {
+            'gamer': "Gamer001",
+            'pool_id': "1",
+            'team_id': "Team002",
+            'game_id': "Game001",
+            'pool_type': "oneToOne",
+            'reward_amount': "144262",
+            'claimed_reward': false,
+            'refund_amount': "0",
+            'claimed_refund': false,
+            'team_points': 100,
+            'team_rank': 2
+
+        }
+    })
+
+
     console.log("Assert Success")
     sleep(time)
 }
