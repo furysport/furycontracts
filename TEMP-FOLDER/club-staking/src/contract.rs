@@ -774,7 +774,10 @@ fn withdraw_stake_from_a_club(
 
             let existing_bonds = s_bonds.clone();
             let mut updated_bonds = Vec::new();
-            let mut bonded_bonds = Vec::new();
+
+            /// PRE-MATURITY BOND are extracted here
+            // let mut bonded_bonds = Vec::new();
+            
             for bond in existing_bonds {
                 let mut updated_bond = bond.1.clone();
                 if staker_addr == bond.1.bonder_address {
@@ -800,7 +803,7 @@ fn withdraw_stake_from_a_club(
                         }
                     } else {
                         /// PRE-MATURITY BOND ENCASH AT DISCOUNT - enable the following line
-                        /// bonded_bonds.push(updated_bond);
+                        // bonded_bonds.push(updated_bond);
                         /// PRE-MATURITY BOND ENCASH AT DISCOUNT - bypased or masked using this line
                         updated_bonds.push(updated_bond);
                     }
@@ -809,23 +812,23 @@ fn withdraw_stake_from_a_club(
                 }
             }
 
-            /// This section Checks the Pre-Maturity Bonds for possible encashment (may get bypassed)
-            for bond in bonded_bonds {
-                let mut updated_bond = bond.clone();
-                if amount_remaining > Uint128::zero() {
-                    if bond.bonded_amount > amount_remaining {
-                        bonded_amount = amount_remaining;
-                        updated_bond.bonded_amount -= amount_remaining;
-                        amount_remaining = Uint128::zero();
-                        updated_bonds.push(updated_bond);
-                    } else {
-                        bonded_amount += bond.bonded_amount;
-                        amount_remaining -= bond.bonded_amount;
-                    }
-                } else {
-                    updated_bonds.push(updated_bond);
-                }
-            }
+            /// This section Checks the Pre-Maturity Bonds for possible encashment
+            // for bond in bonded_bonds {
+            //     let mut updated_bond = bond.clone();
+            //     if amount_remaining > Uint128::zero() {
+            //         if bond.bonded_amount > amount_remaining {
+            //             bonded_amount = amount_remaining;
+            //             updated_bond.bonded_amount -= amount_remaining;
+            //             amount_remaining = Uint128::zero();
+            //             updated_bonds.push(updated_bond);
+            //         } else {
+            //             bonded_amount += bond.bonded_amount;
+            //             amount_remaining -= bond.bonded_amount;
+            //         }
+            //     } else {
+            //         updated_bonds.push(updated_bond);
+            //     }
+            // }
 
 
             CLUB_BONDING_DETAILS.save(deps.storage, club_name.clone(), &updated_bonds)?;
