@@ -281,6 +281,11 @@ async function performOperationsOnClubStaking(deploymentDetails) {
     await queryBalances(deploymentDetails, deploymentDetails.sameerWallet);
     console.log("Balances of platform_fee_collector");
     await queryBalances(deploymentDetails, deploymentDetails.adminWallet);
+    await withdrawStakeFromAClub(deploymentDetails);
+    console.log("Balances of staker");
+    await queryBalances(deploymentDetails, deploymentDetails.sameerWallet);
+    console.log("Balances of platform_fee_collector");
+    await queryBalances(deploymentDetails, deploymentDetails.adminWallet);
 }
 
 async function queryAllClubOwnerships(deploymentDetails) {
@@ -353,6 +358,21 @@ async function stakeOnAClub(deploymentDetails) {
     console.log(`platformFees = ${JSON.stringify(platformFees)}`);
     let soacResponse = await executeContract(sameer_wallet, deploymentDetails.clubStakingAddress, soacRequest, { 'uusd': Number(platformFees) });
     console.log("Stake on a club transaction hash = " + soacResponse['txhash']);
+}
+
+async function withdrawStakeFromAClub(deploymentDetails) {
+    let wsfacRequest = {
+        stake_withdraw_from_a_club: {
+            staker: sameer_wallet.key.accAddress,
+            club_name: "ClubB",
+            amount: "10000",
+            immediate_withdrawal: false,
+        }
+    };
+    let platformFees = await queryContract(deploymentDetails.clubStakingAddress, { query_platform_fees: { msg: Buffer.from(JSON.stringify(wsfacRequest)).toString('base64') } });
+    console.log(`platformFees = ${JSON.stringify(platformFees)}`);
+    let wsfacResponse = await executeContract(sameer_wallet, deploymentDetails.clubStakingAddress, wsfacRequest, { 'uusd': Number(platformFees) });
+    console.log("Stake on a club transaction hash = " + wsfacResponse['txhash']);
 }
 
 async function queryBalances(deploymentDetails, accAddress) {
