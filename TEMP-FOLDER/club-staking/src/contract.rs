@@ -484,23 +484,14 @@ fn buy_a_club(
     let exec = WasmMsg::Execute {
         contract_addr: config.minting_contract_address.to_string(),
         msg: to_binary(&transfer_msg).unwrap(),
-        funds: vec![
-            // Coin {
-            //     denom: token_info.name.to_string(),
-            //     amount: price,
-            // },
-        ],
-        // TODO Add a memo inthe transfer msg that this is club staking fee
+        funds: vec![],
     };
 
-    // let send: SubMsg = SubMsg::new(exec);
     let send_wasm: CosmosMsg = CosmosMsg::Wasm(exec);
     let send_bank: CosmosMsg = CosmosMsg::Bank(BankMsg::Send {
         to_address: config.platform_fees_collector_wallet.into_string(),
         amount: info.funds,
     });
-    //send.id = 1000;
-    //send.reply_on = ReplyOn::Error;
     let data_msg = format!("Club fees {} received", price).into_bytes();
     return Ok(Response::new()
         .add_message(send_wasm)
@@ -510,7 +501,6 @@ fn buy_a_club(
         .add_attribute("club_name", club_name)
         .add_attribute("fees", price.to_string())
         .set_data(data_msg));
-    //return Ok(Response::default());
 }
 
 #[entry_point]
@@ -595,6 +585,7 @@ fn stake_on_a_club(
     let config = CONFIG.load(deps.storage)?;
 
     let staker_addr = deps.api.addr_validate(&staker)?;
+	let contract_address =  env.clone().contract.address.into_string();
 
     let required_ust_fees: Uint128;
     //To bypass calls from unit tests
@@ -654,20 +645,31 @@ fn stake_on_a_club(
             &staker_addr,
             |balance: Option<Uint128>| -> StdResult<_> { Ok(balance.unwrap_or_default() + amount) },
         )?;
-
-        // Nothing required to transfer anything staking fund has arrived in the staking contract
     } else {
         return Err(ContractError::Std(StdError::GenericErr {
             msg: String::from("The club is not available for staking"),
         }));
     }
 
+    let transfer_msg = Cw20ExecuteMsg::TransferFrom {
+        owner: info.sender.into_string(),
+        recipient: contract_address,
+        amount: amount,
+    };
+    let exec = WasmMsg::Execute {
+        contract_addr: config.minting_contract_address.to_string(),
+        msg: to_binary(&transfer_msg).unwrap(),
+        funds: vec![],
+    };
+
+    let send_wasm: CosmosMsg = CosmosMsg::Wasm(exec);
     let send_bank: CosmosMsg = CosmosMsg::Bank(BankMsg::Send {
         to_address: config.platform_fees_collector_wallet.into_string(),
         amount: info.funds,
     });
     let data_msg = format!("Club stake {} received", amount).into_bytes();
     return Ok(Response::new()
+        .add_message(send_wasm)
         .add_message(send_bank)
         .add_attribute("action", "stake_on_a_club")
         .add_attribute("staker", staker)
@@ -824,7 +826,7 @@ fn withdraw_stake_from_a_club(
             // update the staking details
             save_staking_details(
                 deps.storage,
-                env,
+                env.clone(),
                 staker.clone(),
                 club_name.clone(),
                 (withdrawal_amount - unbonded_amount) - bonded_amount,

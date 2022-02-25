@@ -260,32 +260,36 @@ async function instantiateClubStaking(deploymentDetails) {
 
 async function performOperationsOnClubStaking(deploymentDetails) {
     await queryAllClubOwnerships(deploymentDetails);
-    console.log("Balances of buyer");
+    console.log("Balances of buyer before buy club");
     await queryBalances(deploymentDetails, deploymentDetails.nitinWallet);
-    console.log("Balances of club_fee_collector");
+    console.log("Balances of club_fee_collector before buy club");
     await queryBalances(deploymentDetails, deploymentDetails.teamWallet);
-    console.log("Balances of platform_fee_collector");
+    console.log("Balances of platform_fee_collector before buy club");
     await queryBalances(deploymentDetails, deploymentDetails.adminWallet);
     await buyAClub(deploymentDetails);
-    console.log("Balances of buyer");
+    console.log("Balances of buyer after buy club");
     await queryBalances(deploymentDetails, deploymentDetails.nitinWallet);
-    console.log("Balances of club_fee_collector");
+    console.log("Balances of club_fee_collector after buy club");
     await queryBalances(deploymentDetails, deploymentDetails.teamWallet);
-    console.log("Balances of platform_fee_collector");
+    console.log("Balances of platform_fee_collector after buy club");
     await queryBalances(deploymentDetails, deploymentDetails.adminWallet);
     await queryAllClubOwnerships(deploymentDetails);
-    console.log("Balances of staker");
+    console.log("Balances of staker before club stake");
     await queryBalances(deploymentDetails, deploymentDetails.sameerWallet);
     await stakeOnAClub(deploymentDetails);
-    console.log("Balances of staker");
+    console.log("Balances of staker after club stake");
     await queryBalances(deploymentDetails, deploymentDetails.sameerWallet);
-    console.log("Balances of platform_fee_collector");
+    console.log("Balances of platform_fee_collector after club stake");
     await queryBalances(deploymentDetails, deploymentDetails.adminWallet);
+    console.log("Balances of contract after club stake");
+    await queryBalances(deploymentDetails, deploymentDetails.clubStakingAddress);
     await withdrawStakeFromAClub(deploymentDetails);
-    console.log("Balances of staker");
+    console.log("Balances of staker after withdraw stake");
     await queryBalances(deploymentDetails, deploymentDetails.sameerWallet);
-    console.log("Balances of platform_fee_collector");
+    console.log("Balances of platform_fee_collector after withdraw stake");
     await queryBalances(deploymentDetails, deploymentDetails.adminWallet);
+    console.log("Balances of contract after withdraw stake");
+    await queryBalances(deploymentDetails, deploymentDetails.clubStakingAddress);
 }
 
 async function queryAllClubOwnerships(deploymentDetails) {
@@ -332,6 +336,7 @@ async function buyAClub(deploymentDetails) {
         let bacResponse = await executeContract(nitin_wallet, deploymentDetails.clubStakingAddress, bacRequest, { 'uusd': Number(platformFees) });
         console.log("Buy a club transaction hash = " + bacResponse['txhash']);
         deploymentDetails.clubBought = true;
+		writeArtifact(deploymentDetails, terraClient.chainID);
     }
 }
 
@@ -366,13 +371,13 @@ async function withdrawStakeFromAClub(deploymentDetails) {
             staker: sameer_wallet.key.accAddress,
             club_name: "ClubB",
             amount: "10000",
-            immediate_withdrawal: false,
+            immediate_withdrawal: false
         }
     };
     let platformFees = await queryContract(deploymentDetails.clubStakingAddress, { query_platform_fees: { msg: Buffer.from(JSON.stringify(wsfacRequest)).toString('base64') } });
     console.log(`platformFees = ${JSON.stringify(platformFees)}`);
     let wsfacResponse = await executeContract(sameer_wallet, deploymentDetails.clubStakingAddress, wsfacRequest, { 'uusd': Number(platformFees) });
-    console.log("Stake on a club transaction hash = " + wsfacResponse['txhash']);
+    console.log("Withdraw Stake on a club transaction hash = " + wsfacResponse['txhash']);
 }
 
 async function queryBalances(deploymentDetails, accAddress) {
