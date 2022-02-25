@@ -799,12 +799,17 @@ fn withdraw_stake_from_a_club(
                             updated_bonds.push(updated_bond);
                         }
                     } else {
-                        bonded_bonds.push(updated_bond);
+                        /// PRE-MATURITY BOND ENCASH AT DISCOUNT - enable the following line
+                        /// bonded_bonds.push(updated_bond);
+                        /// PRE-MATURITY BOND ENCASH AT DISCOUNT - bypased or masked using this line
+                        updated_bonds.push(updated_bond);
                     }
                 } else {
                     updated_bonds.push(updated_bond);
                 }
             }
+
+            /// This section Checks the Pre-Maturity Bonds for possible encashment (may get bypassed)
             for bond in bonded_bonds {
                 let mut updated_bond = bond.clone();
                 if amount_remaining > Uint128::zero() {
@@ -821,6 +826,8 @@ fn withdraw_stake_from_a_club(
                     updated_bonds.push(updated_bond);
                 }
             }
+
+
             CLUB_BONDING_DETAILS.save(deps.storage, club_name.clone(), &updated_bonds)?;
 
             // update the staking details
