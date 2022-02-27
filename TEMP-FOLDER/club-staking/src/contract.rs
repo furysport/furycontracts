@@ -1155,7 +1155,8 @@ fn calculate_and_distribute_rewards(
     println!("next timestamp = {:?}", next_reward_time);
     CLUB_REWARD_NEXT_TIMESTAMP.save(deps.storage, &next_reward_time)?;
 
-    let total_reward = REWARD.may_load(deps.storage)?.unwrap_or_default();
+    let total_reward = REWARD.may_load(deps.storage)?.unwrap_or_default(); 
+            
     // No need to calculate if there is no reward amount
     if total_reward == Uint128::zero() {
         return Ok(Response::new().add_attribute("response", "no accumulated rewards"));
@@ -1199,7 +1200,7 @@ fn calculate_and_distribute_rewards(
                 .checked_div(total_staking_for_this_club)
                 .unwrap_or_default();
             let mut updated_stake = stake.clone();
-            updated_stake.reward_amount += reward_for_this_winner;
+            updated_stake.staked_amount += reward_for_this_winner;
             reward_given_so_far += reward_for_this_winner;
             updated_stakes.push(updated_stake);
         }
@@ -1228,10 +1229,10 @@ fn calculate_and_distribute_rewards(
                     .unwrap_or_default()
                     .checked_div(total_staking)
                     .unwrap_or_default();
-                stake.reward_amount += reward_for_this_stake;
+                stake.staked_amount += reward_for_this_stake;
                 println!(
                     "reward for {:?} is {:?} ",
-                    stake.staker_address, stake.reward_amount
+                    stake.staker_address, reward_for_this_stake
                 );
                 reward_given_so_far += reward_for_this_stake;
                 all_stakes.push(stake);

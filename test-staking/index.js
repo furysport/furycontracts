@@ -243,7 +243,7 @@ async function instantiateClubStaking(deploymentDetails) {
             platform_fees_collector_wallet: deploymentDetails.adminWallet,
             club_fee_collector_wallet: deploymentDetails.teamWallet,
             club_reward_next_timestamp: "1640447808000000000",
-            reward_periodicity: 300,
+            reward_periodicity: 300, 
             club_price: "100000",
             bonding_duration: 120,
             platform_fees: "100",
@@ -284,6 +284,11 @@ async function performOperationsOnClubStaking(deploymentDetails) {
     await queryBalances(deploymentDetails, deploymentDetails.adminWallet);
     console.log("Balances of contract after club stake");
     await queryBalances(deploymentDetails, deploymentDetails.clubStakingAddress);
+    console.log("Balances of contract after club stake");
+	await queryAllClubStakes(deploymentDetails);
+	await distributeRewards(deploymentDetails);
+	await queryAllClubStakes(deploymentDetails);
+	await queryAllClubOwnerships(deploymentDetails);
     await withdrawStakeFromAClub(deploymentDetails);
     console.log("Balances of staker after withdraw stake");
     await queryBalances(deploymentDetails, deploymentDetails.sameerWallet);
@@ -408,6 +413,29 @@ async function withdrawStakeFromAClub(deploymentDetails) {
     } finally {
         console.log("Withdraw Complete");
     }
+}
+
+async function distributeRewards(deploymentDetails) {
+/*
+    let iraRequest = {
+        increase_reward_amount: {
+            reward_from: deploymentDetails.minting_contract_address,
+            amount: "1000",
+        }
+    };
+
+    let iraResponse = await executeContract(sameer_wallet, deploymentDetails.clubStakingAddress, wsfacRequest, { 'uusd': Number(platformFees) });
+*/
+    //ADD DELAY small to check failure of quick withdraw - 30sec
+    await new Promise(resolve => setTimeout(resolve, 30000));
+
+    let cadrRequest = {
+        calculate_and_distribute_rewards: {
+        }
+    };
+
+	let cadrResponse = await executeContract(mint_wallet, deploymentDetails.clubStakingAddress, cadrRequest);
+	console.log("distribute reward transaction hash = " + cadrResponse['txhash']);
 }
 
 async function queryBalances(deploymentDetails, accAddress) {
