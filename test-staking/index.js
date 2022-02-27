@@ -416,10 +416,9 @@ async function withdrawStakeFromAClub(deploymentDetails) {
 }
 
 async function distributeRewards(deploymentDetails) {
-/*
     let iraRequest = {
         increase_reward_amount: {
-            reward_from: mint_wallet
+            reward_from: mint_wallet.key.accAddress
         }
     };
 	let msgString = Buffer.from(JSON.stringify(iraRequest)).toString('base64');
@@ -432,8 +431,7 @@ async function distributeRewards(deploymentDetails) {
 		}
 	};
 
-    let iraResponse = await executeContract(mint_wallet, deploymentDetails.minting_contract_address, viaMsg);
-*/
+    let iraResponse = await executeContract(mint_wallet, deploymentDetails.furyContractAddress, viaMsg);
 
     //ADD DELAY small to check failure of quick withdraw - 30sec
     await new Promise(resolve => setTimeout(resolve, 30000));
