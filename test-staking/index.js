@@ -419,7 +419,7 @@ async function distributeRewards(deploymentDetails) {
 /*
     let iraRequest = {
         increase_reward_amount: {
-            reward_from: "reward_from_gaming"
+            reward_from: mint_wallet
         }
     };
 	let msgString = Buffer.from(JSON.stringify(iraRequest)).toString('base64');
