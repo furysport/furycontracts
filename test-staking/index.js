@@ -419,13 +419,22 @@ async function distributeRewards(deploymentDetails) {
 /*
     let iraRequest = {
         increase_reward_amount: {
-            reward_from: deploymentDetails.minting_contract_address,
-            amount: "1000",
+            reward_from: "reward_from_gaming"
         }
     };
+	let msgString = Buffer.from(JSON.stringify(iraRequest)).toString('base64');
+            
+	let viaMsg = {
+		send : {
+			contract: deploymentDetails.clubStakingAddress, 
+			amount: "1000",
+			msg: msgString
+		}
+	};
 
-    let iraResponse = await executeContract(sameer_wallet, deploymentDetails.clubStakingAddress, wsfacRequest, { 'uusd': Number(platformFees) });
+    let iraResponse = await executeContract(mint_wallet, deploymentDetails.minting_contract_address, viaMsg);
 */
+
     //ADD DELAY small to check failure of quick withdraw - 30sec
     await new Promise(resolve => setTimeout(resolve, 30000));
 
