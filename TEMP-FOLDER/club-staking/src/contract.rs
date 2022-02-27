@@ -1203,11 +1203,6 @@ fn calculate_and_distribute_rewards(
             }
             None => {}
         }
-        let reward_for_club_owner = total_reward
-            .checked_mul(Uint128::from(1u128))
-            .unwrap_or_default()
-            .checked_div(Uint128::from(100u128))
-            .unwrap_or_default();
         let reward_for_all_winners = total_reward
             .checked_mul(Uint128::from(19u128))
             .unwrap_or_default()
@@ -1215,7 +1210,7 @@ fn calculate_and_distribute_rewards(
             .unwrap_or_default();
         let total_staking_for_this_club = winner_club.1;
         let mut updated_stakes = Vec::new();
-        for stake in stakes {
+        for stake in stakes.clone() {
             let reward_for_this_winner = reward_for_all_winners
                 .checked_mul(stake.staked_amount)
                 .unwrap_or_default()
@@ -1225,18 +1220,9 @@ fn calculate_and_distribute_rewards(
             updated_stake.staked_amount += reward_for_this_winner;
             reward_given_so_far += reward_for_this_winner;
 			println!(
-				"reward for {:?} is {:?} ",
-				stake.staker_address, reward_for_this_winner
+				"reward for {:?} out of 19 percent for winning club {:?} is {:?} ",
+				stake.staker_address, winner_club_name.clone(), reward_for_this_winner
 			);
-			if stake.staker_address == winner_club_details.owner_address {
-				//Increase owner reward by additional 1% 
-				updated_stake.staked_amount += reward_for_club_owner;
-				reward_given_so_far += reward_for_club_owner;
-				println!(
-					"reward for {:?} is {:?} ",
-					stake.staker_address, reward_for_club_owner
-				);
-			}
             updated_stakes.push(updated_stake);
         }
         CLUB_STAKING_DETAILS.save(deps.storage, winner_club_name.clone(), &updated_stakes)?;
@@ -1266,7 +1252,7 @@ fn calculate_and_distribute_rewards(
                     .unwrap_or_default();
                 stake.staked_amount += reward_for_this_stake;
                 println!(
-                    "reward for {:?} is {:?} ",
+                    "reward out of 80 percent for {:?} is {:?} ",
                     stake.staker_address, reward_for_this_stake
                 );
                 reward_given_so_far += reward_for_this_stake;
@@ -1274,6 +1260,23 @@ fn calculate_and_distribute_rewards(
             }
             CLUB_STAKING_DETAILS.save(deps.storage, club_name, &all_stakes)?;
         }
+
+        let reward_for_club_owner = total_reward - reward_given_so_far;
+        let mut updated_stakes = Vec::new();
+        for stake in stakes {
+            let mut updated_stake = stake.clone();
+			if stake.staker_address == winner_club_details.owner_address {
+				//Increase owner reward by remaining amount 
+				updated_stake.staked_amount += reward_for_club_owner;
+				reward_given_so_far += reward_for_club_owner;
+				println!(
+					"remaining reward for owner {:?} is {:?} ",
+					stake.staker_address, reward_for_club_owner
+				);
+			}
+            updated_stakes.push(updated_stake);
+        }
+        CLUB_STAKING_DETAILS.save(deps.storage, winner_club_name.clone(), &updated_stakes)?;
 
         let new_reward = Uint128::zero();
         REWARD.save(deps.storage, &new_reward)?;
@@ -3234,22 +3237,22 @@ mod tests {
                     let staked_amount = stake.staked_amount;
 					println!("staker : {:?} staked_amount : {:?}", staker_address.clone(), staked_amount);
                     if staker_address == "Staker001" {
-                        assert_eq!(staked_amount, Uint128::from(460049u128));
+                        assert_eq!(staked_amount, Uint128::from(460693u128));
                     }
                     if staker_address == "Staker002" {
-                        assert_eq!(staked_amount, Uint128::from(153349u128));
+                        assert_eq!(staked_amount, Uint128::from(153564u128));
                     }
                     if staker_address == "Staker003" {
-                        assert_eq!(staked_amount, Uint128::from(585517u128));
+                        assert_eq!(staked_amount, Uint128::from(586336u128));
                     }
                     if staker_address == "Staker004" {
-                        assert_eq!(staked_amount, Uint128::from(139408u128));
+                        assert_eq!(staked_amount, Uint128::from(139603u128));
                     }
                     if staker_address == "Staker005" {
-                        assert_eq!(staked_amount, Uint128::from(1392806u128));
+                        assert_eq!(staked_amount, Uint128::from(820000u128));
                     }
                     if staker_address == "Staker006" {
-                        assert_eq!(staked_amount, Uint128::from(84926u128));
+                        assert_eq!(staked_amount, Uint128::from(50000u128));
                     }
                     if staker_address == "Owner001" {
                         assert_eq!(staked_amount, Uint128::from(0u128));
@@ -3258,7 +3261,7 @@ mod tests {
                         assert_eq!(staked_amount, Uint128::from(0u128));
                     }
                     if staker_address == "Owner003" {
-                        assert_eq!(staked_amount, Uint128::from(13940u128));
+                        assert_eq!(staked_amount, Uint128::from(10004u128));
                     }
                 }
             }
