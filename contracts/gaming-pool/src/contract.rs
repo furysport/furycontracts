@@ -156,7 +156,23 @@ pub fn execute(
         } => save_team_details(
             deps.storage, env, gamer, pool_id, team_id, game_id, pool_type,
             reward_amount, claimed_reward, refund_amount, claimed_refund,
-            team_points, team_rank)
+            team_points, team_rank),
+        ExecuteMsg::GamePoolBidSubmit {
+            gamer,
+            pool_type,
+            pool_id,
+            team_id,
+            amount
+        } => game_pool_bid_submit(
+            deps,
+            env,
+            info,
+            gamer,
+            pool_type,
+            pool_id,
+            team_id,
+            amount,
+        ),
     }
 }
 
@@ -678,7 +694,7 @@ fn game_pool_bid_submit(
         |balance: Option<Uint128>| -> StdResult<_> { Ok(balance.unwrap_or_default() + pool_fee) },
     )?;
 
-    // Nothing required to transfer anything gaming fund has arrived in the gaming contract
+    // Nothing required to transfer anything gamin fund has arrived in the gaming contract
     return Ok(Response::new().add_attribute("pool_id", pool_id_return.clone()));
 }
 
