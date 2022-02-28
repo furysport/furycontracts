@@ -16,6 +16,12 @@ import path from 'path';
 
 export const ARTIFACTS_PATH = 'artifacts'
 
+var gas_used = 0;
+
+export function getGasUsed() {
+  return gas_used;
+}
+
 export function writeArtifact(data, name = 'artifact') {
   writeFileSync(path.join(ARTIFACTS_PATH, `${name}.json`), JSON.stringify(data, null, 2))
 }
@@ -101,7 +107,8 @@ export async function sendTransaction(senderWallet, msgs, verbose = false) {
       `\n${chalk.yellow("raw_log")}: ${result.raw_log}`
     );
   }
-
+  gas_used += Number(result['gas_used']);
+  console.log("Gas = " + result['gas_used']);
   return result;
 }
 

@@ -2,7 +2,7 @@ import * as readline from 'node:readline';
 import { promisify } from 'util';
 import { ajay_wallet, ClubStakingContractPath, liquidity_wallet, marketing_wallet, MintingContractPath, mintInitMessage, mint_wallet, nitin_wallet, sameer_wallet, team_wallet, terraClient, treasury_wallet } from './constants.js';
 import { primeAccountsWithFunds } from "./primeCustomAccounts.js";
-import { executeContract, instantiateContract, queryContract, readArtifact, storeCode, writeArtifact } from './utils.js';
+import { executeContract, getGasUsed, instantiateContract, queryContract, readArtifact, storeCode, writeArtifact } from './utils.js';
 
 const rl = readline.createInterface({
     input: process.stdin,
@@ -30,6 +30,7 @@ async function main() {
         console.log(error);
     } finally {
         rl.close();
+        console.log(`Total gas used = ${getGasUsed()}`);
     }
 }
 

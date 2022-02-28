@@ -1389,35 +1389,35 @@ pub fn query_platform_fees(deps: Deps, msg: Binary) -> StdResult<Uint128> {
             return Ok(Uint128::zero());
         }
         Ok(ExecuteMsg::BuyAClub {
-            buyer,
-            seller,
-            club_name,
+            buyer: _,
+            seller: _,
+            club_name: _,
         }) => {
             platform_fees_percentage = config.platform_fees + config.transaction_fees;
             fury_amount_provided = config.club_price;
         }
         Ok(ExecuteMsg::StakeOnAClub {
-            staker,
-            club_name,
+            staker: _,
+            club_name: _,
             amount,
         }) => {
             platform_fees_percentage = config.platform_fees + config.transaction_fees + config.control_fees;
             fury_amount_provided = amount;
         }
-        Ok(ExecuteMsg::ReleaseClub { owner, club_name }) => {
+        Ok(ExecuteMsg::ReleaseClub { owner: _, club_name: _ }) => {
             return Ok(Uint128::zero());
         }
-        Ok(ExecuteMsg::ClaimOwnerRewards { owner, club_name }) => {
+        Ok(ExecuteMsg::ClaimOwnerRewards { owner: _, club_name: _ }) => {
             return Ok(Uint128::zero());
         }
-        Ok(ExecuteMsg::ClaimPreviousOwnerRewards { previous_owner }) => {
+        Ok(ExecuteMsg::ClaimPreviousOwnerRewards { previous_owner: _ }) => {
             return Ok(Uint128::zero());
         }
         Ok(ExecuteMsg::StakeWithdrawFromAClub {
-            staker,
-            club_name,
+            staker: _,
+            club_name: _,
             amount,
-            immediate_withdrawal,
+            immediate_withdrawal: _,
         }) => {
             platform_fees_percentage = config.platform_fees + config.transaction_fees;
             fury_amount_provided = amount;
@@ -1428,7 +1428,7 @@ pub fn query_platform_fees(deps: Deps, msg: Binary) -> StdResult<Uint128> {
         Ok(ExecuteMsg::CalculateAndDistributeRewards {}) => {
             return Ok(Uint128::zero());
         }
-        Ok(ExecuteMsg::ClaimRewards { staker, club_name }) => {
+        Ok(ExecuteMsg::ClaimRewards { staker: _, club_name: _ }) => {
             return Ok(Uint128::zero());
         }
         Err(err) => {
