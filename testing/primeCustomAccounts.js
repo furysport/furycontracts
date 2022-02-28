@@ -5,20 +5,23 @@ import {
     walletTest4,
     walletTest5,
     walletTest6,
-    minting_wallet,
+    walletTest7,
+    mint_wallet,
     treasury_wallet,
     liquidity_wallet,
     marketing_wallet,
-    gamified_airdrop_wallet,
-    private_category_wallet,
-    terraClient,
-    privatecategory
+    nitin_wallet,
+    ajay_wallet,
+    sameer_wallet
 } from './constants.js';
 
 import { MsgSend, LCDClient } from '@terra-money/terra.js';
 
 // To use LocalTerra
-const terra = terraClient
+const terra = new LCDClient({
+    URL: 'http://localhost:1317',
+    chainID: 'localterra'
+});
 
 export const primeAccountsWithFunds = async () => {
     var txHash = [];
@@ -26,20 +29,21 @@ export const primeAccountsWithFunds = async () => {
     txHash.push(await fundTreasuryWallet());
     txHash.push(await fundLiquidityWallet());
     txHash.push(await fundMarketingWallet());
-    txHash.push(await fundGamifiedAirdropWallet());
-    txHash.push(await fundPrivateCategoryWallet());
+    txHash.push(await fundNitinWallet());
+    txHash.push(await fundAjayWallet());
+    txHash.push(await fundSameerWallet());
     console.log("leaving primeCustomAccounts");
     return txHash;
 }
 
 function fundMintingWallet() {
-    console.log(`Funding ${minting_wallet.key.accAddress}`);
+    console.log(`Funding ${mint_wallet.key.accAddress}`);
     return new Promise(resolve => {
         // create a simple message that moves coin balances
         const send1 = new MsgSend(
             walletTest1.key.accAddress,
-            minting_wallet.key.accAddress,
-            { uluna: 500000000, uusd: 5000000000000 }
+            mint_wallet.key.accAddress,
+            { uluna: 50000000000, uusd: 50000000000 }
         );
 
         walletTest1
@@ -61,7 +65,7 @@ function fundTreasuryWallet() {
         const send2 = new MsgSend(
             walletTest2.key.accAddress,
             treasury_wallet.key.accAddress,
-            { uluna: 500000000, uusd: 5000000000000 }
+            { uluna: 50000000000, uusd: 50000000000 }
         );
 
         walletTest2
@@ -83,7 +87,7 @@ function fundLiquidityWallet() {
         const send = new MsgSend(
             walletTest3.key.accAddress,
             liquidity_wallet.key.accAddress,
-            { uluna: 500000000, uusd: 5000000000000 }
+            { uluna: 50000000000, uusd: 50000000000 }
         );
 
         walletTest3
@@ -105,7 +109,7 @@ function fundMarketingWallet() {
         const send = new MsgSend(
             walletTest4.key.accAddress,
             marketing_wallet.key.accAddress,
-            { uluna: 500000000, uusd: 5000000000000 }
+            { uluna: 50000000000, uusd: 50000000000 }
         );
 
         walletTest4
@@ -119,15 +123,15 @@ function fundMarketingWallet() {
                 resolve(result.txhash);
             });
     })
-} 
+}
 
-function fundGamifiedAirdropWallet() {
-    console.log(`Funding ${gamified_airdrop_wallet.key.accAddress}`);
+function fundNitinWallet() {
+    console.log(`Funding ${nitin_wallet.key.accAddress}`);
     return new Promise(resolve => {
         const send = new MsgSend(
             walletTest5.key.accAddress,
-            gamified_airdrop_wallet.key.accAddress,
-            { uluna: 500000000, uusd: 5000000000000 }
+            nitin_wallet.key.accAddress,
+            { uluna: 50000000000, uusd: 50000000000 }
         );
 
         walletTest5
@@ -142,16 +146,39 @@ function fundGamifiedAirdropWallet() {
             });
     })
 }
-function fundPrivateCategoryWallet() {
-    console.log(`Funding ${private_category_wallet.key.accAddress}`);
+
+function fundAjayWallet() {
+    console.log(`Funding ${ajay_wallet.key.accAddress}`);
     return new Promise(resolve => {
         const send = new MsgSend(
             walletTest6.key.accAddress,
-            private_category_wallet.key.accAddress,
-            { uluna: 50000000, uusd: 50000000000 }
+            ajay_wallet.key.accAddress,
+            { uluna: 50000000000, uusd: 50000000000 }
         );
 
         walletTest6
+            .createAndSignTx({
+                msgs: [send],
+                memo: 'Initial Funding!',
+            })
+            .then(tx => terra.tx.broadcast(tx))
+            .then(result => {
+                console.log(result.txhash);
+                resolve(result.txhash);
+            });
+    })
+}
+
+function fundSameerWallet() {
+    console.log(`Funding ${sameer_wallet.key.accAddress}`);
+    return new Promise(resolve => {
+        const send = new MsgSend(
+            walletTest7.key.accAddress,
+            sameer_wallet.key.accAddress,
+            { uluna: 50000000000, uusd: 50000000000 }
+        );
+
+        walletTest7
             .createAndSignTx({
                 msgs: [send],
                 memo: 'Initial Funding!',

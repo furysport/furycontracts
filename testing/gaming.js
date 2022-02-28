@@ -34,6 +34,14 @@ import * as readline from 'node:readline';
 import * as chai from 'chai';
 import {Coin} from '@terra-money/terra.js';
 
+
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+});
+const question = promisify(rl.question).bind(rl);
+
+
 const assert = chai.assert;
 
 // Init and Vars
