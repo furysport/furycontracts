@@ -1,10 +1,8 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{
-    attr, from_binary, to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Order, Response,
-    StdError, StdResult, Storage, SubMsg, Timestamp, Uint128, WasmMsg,
-};
-
+use cosmwasm_std::{attr, from_binary, to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Order, Response, StdError, StdResult, Storage, SubMsg, Timestamp, Uint128, WasmMsg, CosmosMsg, BankMsg};
+use astroport::pair::PoolResponse;
+use astroport::pair::QueryMsg::Pool;
 use cw2::set_contract_version;
 use cw20::{
     AllowanceResponse, BalanceResponse, Cw20Coin, Cw20ExecuteMsg, Cw20ReceiveMsg, Expiration,
@@ -53,6 +51,7 @@ const GAME_POOL_OPEN: u64 = 1u64;
 const GAME_POOL_CLOSED: u64 = 2u64;
 const GAME_CANCELLED: u64 = 3u64;
 const GAME_COMPLETED: u64 = 4u64;
+const HUNDRED_PERCENT: u128 = 10000u128;
 
 const DUMMY_TEAM_ID: &str = "DUMMY_TEAM_ID";
 
@@ -68,6 +67,8 @@ pub fn instantiate(
     let config = Config {
         admin_address: deps.api.addr_validate(&msg.admin_address)?,
         minting_contract_address: deps.api.addr_validate(&msg.minting_contract_address)?,
+        platform_fees_collector_wallet: deps.api.addr_validate(&msg.platform_fees_collector_wallet)?,
+        astro_proxy_address: deps.api.addr_validate(&msg.astro_proxy_address)?,
         platform_fee: msg.platform_fee,
         game_id: msg.game_id.clone(),
     };
@@ -555,6 +556,35 @@ fn create_pool(
     return Ok(Response::new().add_attribute("pool_id", pool_id_str.clone()));
 }
 
+
+pub fn query_platform_fees(
+    deps: Deps,
+    fury_amount_provided: Uint128,
+    platform_fees_percentage: Uint128,
+) -> StdResult<Uint128> {
+    let config = CONFIG.load(deps.storage)?;
+    let pool_rsp: PoolResponse = deps
+        .querier
+        .query_wasm_smart(config.astro_proxy_address, &Pool {})?;
+    let mut uust_count = Uint128::zero();
+    let mut ufury_count = Uint128::zero();
+    for asset in pool_rsp.assets {
+        if (asset.info.is_native_token()) {
+            uust_count = asset.amount;
+        }
+        if (!asset.info.is_native_token()) {
+            ufury_count = asset.amount;
+        }
+    }
+    let ust_equiv_for_fury = fury_amount_provided
+        .checked_mul(uust_count)?
+        .checked_div(ufury_count)?;
+    return Ok(ust_equiv_for_fury
+        .checked_mul(platform_fees_percentage)?
+        .checked_div(Uint128::from(HUNDRED_PERCENT))?);
+}
+
+
 fn game_pool_bid_submit(
     deps: DepsMut,
     env: Env,
@@ -566,17 +596,10 @@ fn game_pool_bid_submit(
     amount: Uint128,
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
-    // let sig  =  "{amount}/{user_addr/{expiry}}"
-
-    if info.sender != config.minting_contract_address {
-        return Err(ContractError::Unauthorized {
-            invoker: info.sender.to_string(),
-        });
-    }
     // Calculate
-    let platform_fee = config.platform_fee;
+    let platform_fee = config.platform_fee; //  Should be in %
     let game_id = config.game_id;
-
+    let mut messages = Vec::new(); //  Use this to append any execute messaages in the funciton
     let gd = GAME_DETAILS.may_load(deps.storage, game_id.clone())?;
     let game;
     match gd {
@@ -609,16 +632,22 @@ fn game_pool_bid_submit(
             }));
         }
     }
+
+    let required_ust_fees = query_platform_fees(
+        deps.as_ref(),
+        amount,
+        platform_fee,
+    )?;
+
     let pool_fee = pool_type_details.pool_fee;
     let max_teams_for_pool = pool_type_details.max_teams_for_pool;
     let max_teams_for_gamer = pool_type_details.max_teams_for_gamer;
-
-    if amount != pool_fee + platform_fee {
+    let amount_required = pool_fee + required_ust_fees;
+    if amount != amount_required {
         return Err(ContractError::Std(StdError::GenericErr {
             msg: String::from("Amount being bid does not match the pool fee and the platform fee"),
         }));
     }
-
     let user_team_count;
     let uct = get_team_count_for_user_in_pool_type(
         deps.storage,
@@ -687,8 +716,29 @@ fn game_pool_bid_submit(
         |balance: Option<Uint128>| -> StdResult<_> { Ok(balance.unwrap_or_default() + pool_fee) },
     )?;
 
+    // Sending the funds to platfrom fee collector wallet
+    let transfer_msg = Cw20ExecuteMsg::TransferFrom {
+        owner: info.sender.into_string(),
+        recipient: config.platform_fees_collector_wallet.to_string(),
+        amount,
+    };
+    let exec = WasmMsg::Execute {
+        contract_addr: config.minting_contract_address.to_string(),
+        msg: to_binary(&transfer_msg).unwrap(),
+        funds: vec![],
+    };
+
+    messages.push(CosmosMsg::Wasm(exec));
+    // Sending the UST fees to the collector
+    messages.push(CosmosMsg::Bank(BankMsg::Send {
+        to_address: config.platform_fees_collector_wallet.into_string(),
+        amount: info.funds,
+    }));
+
     // Nothing required to transfer anything gaming fund has arrived in the gaming contract
-    return Ok(Response::new().add_attribute("pool_id", pool_id_return.clone()));
+    return Ok(Response::new()
+        .add_attribute("pool_id", pool_id_return.clone())
+        .add_messages(messages));
 }
 
 fn save_team_details(

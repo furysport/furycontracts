@@ -1,4 +1,4 @@
-use cosmwasm_std::{Binary, Uint128};
+use cosmwasm_std::{Addr, Binary, Uint128};
 use cw0::Expiration;
 use cw20::{Cw20ReceiveMsg, Logo};
 use schemars::JsonSchema;
@@ -16,6 +16,8 @@ pub struct InstantiateMarketingInfo {
 pub struct InstantiateMsg {
     pub admin_address: String,
     pub minting_contract_address: String,
+    pub platform_fees_collector_wallet: String,
+    pub astro_proxy_address: String,
     pub platform_fee: Uint128,
     pub game_id: String,
 }

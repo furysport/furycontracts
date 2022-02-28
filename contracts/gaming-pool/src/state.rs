@@ -10,6 +10,8 @@ use cw20::AllowanceResponse;
 pub struct Config {
     pub admin_address: Addr,
     pub minting_contract_address: Addr,
+    pub platform_fees_collector_wallet: Addr,
+    pub astro_proxy_address: Addr,
     pub platform_fee: Uint128,
     pub game_id: String,
 }
