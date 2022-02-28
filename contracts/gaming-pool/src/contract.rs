@@ -156,7 +156,14 @@ pub fn execute(
         } => save_team_details(
             deps.storage, env, gamer, pool_id, team_id, game_id, pool_type,
             reward_amount, claimed_reward, refund_amount, claimed_refund,
-            team_points, team_rank)
+            team_points, team_rank),
+        ExecuteMsg::GamePoolBidSubmitCommand {
+            gamer,
+            pool_type,
+            pool_id,
+            team_id,
+            amount
+        } => game_pool_bid_submit(deps, env, info, gamer, pool_type, pool_id, team_id, amount)
     }
 }
 
@@ -493,7 +500,6 @@ fn create_pool(
         });
     }
     let game_id = config.game_id;
-
     let gd = GAME_DETAILS.may_load(deps.storage, game_id.clone())?;
     let mut game;
     match gd {
@@ -560,11 +566,14 @@ fn game_pool_bid_submit(
     amount: Uint128,
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
+    // let sig  =  "{amount}/{user_addr/{expiry}}"
+
     if info.sender != config.minting_contract_address {
         return Err(ContractError::Unauthorized {
             invoker: info.sender.to_string(),
         });
     }
+    // Calculate
     let platform_fee = config.platform_fee;
     let game_id = config.game_id;
 

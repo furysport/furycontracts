@@ -65,6 +65,14 @@ pub enum ExecuteMsg {
         team_points: u64,
         team_rank: u64,
     },
+    GamePoolBidSubmitCommand {
+        gamer: String,
+        pool_type: String,
+        pool_id: String,
+        team_id: String,
+        amount: Uint128,
+
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
