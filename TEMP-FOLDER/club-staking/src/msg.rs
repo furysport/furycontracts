@@ -116,10 +116,10 @@ pub struct IncreaseRewardAmountCommand {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub enum ProxyQueryMsgs {
-    GetFuryEquivalentToUst {
+    get_fury_equivalent_to_ust {
         ust_count: Uint128,
     },
-    GetUstEquivalentToFury {
+    get_ust_equivalent_to_fury {
         fury_count: Uint128,
     },
 }

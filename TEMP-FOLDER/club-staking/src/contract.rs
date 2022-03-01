@@ -1437,7 +1437,7 @@ pub fn query_platform_fees(deps: Deps, msg: Binary) -> StdResult<Uint128> {
     }
     let ust_equiv_for_fury : Uint128 = deps
         .querier
-        .query_wasm_smart(config.astro_proxy_address, &ProxyQueryMsgs::GetUstEquivalentToFury {
+        .query_wasm_smart(config.astro_proxy_address, &ProxyQueryMsgs::get_ust_equivalent_to_fury {
             fury_count: fury_amount_provided,
         })?;
 
