@@ -214,19 +214,8 @@ let test_game_pool_bid_submit_when_pool_team_in_range = async function (time) {
                 {
                     "wallet_address": "rake_1",
                     "wallet_name": "rake_1",
-                    "percentage": 1,
-                },
-                {
-                    "wallet_address": "rake_2",
-                    "wallet_name": "rake_2",
-                    "percentage": 2,
-                },
-                {
-                    "wallet_address": "rake_3",
-                    "wallet_name": "rake_3",
-                    "percentage": 3,
-                },
-
+                    "percentage": 100,
+                }
             ]
         }
     })
@@ -251,6 +240,51 @@ let test_game_pool_bid_submit_when_pool_team_in_range = async function (time) {
     sleep(time)
 }
 
+const test_game_lock_once_pool_is_closed = async function (time) {
+    console.log("Testing game lock once pool is filled/closed.")
+
+    let response = await executeContract(walletTest1, gaming_contract_address, {
+        lock_game: {
+            game_id: "Game001"
+        }
+    })
+    console.log(response)
+    console.log("Assert Success")
+    sleep(time)
+}
+
+const reward_distribution_for_locked_game = async function (time) {
+    let response = await executeContract(walletTest1, gaming_contract_address, {
+            "game_pool_reward_distribute" : {
+                "game_id" : "6",
+                "pool_id" : "1",
+                "game_winners" :
+                [
+                    {
+                        "gamer_address": "terra1ttjw6nscdmkrx3zhxqx3md37phldgwhggm345k",
+                        "game_id": "6",
+                        "team_id": "1",
+                        "reward_amount": "300000",
+                        "refund_amount": "0",
+                        "team_rank": 2,
+                        "team_points": 125
+                    },
+                    {
+                        "gamer_address": "terra1ttjw6nscdmkrx3zhxqx3md37phldgwhggm345k",
+                        "game_id": "6",
+                        "team_id": "2",
+                        "reward_amount": "400000",
+                        "refund_amount": "0",
+                        "team_rank": 1,
+                        "team_points": 150
+                    }
+                ]
+            }        
+    })
+    console.log(response)
+    console.log("Assert Success")
+    sleep(time)
+}
 // let test_create_and_query_game = async function (time) {
 //     console.log("Testing Create and Query Game")
 //     gaming_contract_address = await deploy_contract(GamingContractPath, gaming_init)
@@ -269,3 +303,5 @@ await test_create_and_query_game(sleep_time)
 await test_create_and_query_pool(sleep_time)
 await test_get_team_count_for_user_in_pool_type(sleep_time)
 await test_game_pool_bid_submit_when_pool_team_in_range(sleep_time)
+await test_game_lock_once_pool_is_closed(sleep_time)
+await reward_distribution_for_locked_game(sleep_time)

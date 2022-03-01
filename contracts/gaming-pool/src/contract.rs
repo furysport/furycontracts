@@ -3364,6 +3364,8 @@ mod tests {
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
             game_id: "Game001".to_string(),
+            astro_proxy_address:"",
+            platform_fees_collector_wallet:""
         };
         let rewardInfo = mock_info("rewardInfo", &[]);
         let ownerXInfo = mock_info("cwtoken11111", &[coin(1000, "stake")]);
