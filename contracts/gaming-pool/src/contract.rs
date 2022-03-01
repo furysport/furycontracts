@@ -1,3 +1,4 @@
+use std::ops::Add;
 use astroport::pair::PoolResponse;
 use astroport::pair::QueryMsg::Pool;
 use cosmwasm_std::{
@@ -20,12 +21,7 @@ use crate::allowances::{
 };
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, ProxyQueryMsgs, QueryMsg, ReceivedMsg};
-use crate::state::{
-    Config, CONFIG, CONTRACT_POOL_COUNT, GAME_DETAILS, GAME_RESULT_DUMMY, GameDetails,
-    GameResult, GAMING_FUNDS, PLATFORM_WALLET_PERCENTAGES, POOL_DETAILS, POOL_TEAM_DETAILS,
-    POOL_TYPE_DETAILS, PoolDetails, PoolTeamDetails, PoolTypeDetails, WalletPercentage,
-    WalletTransferDetails,
-};
+use crate::state::{Config, CONFIG, CONTRACT_POOL_COUNT, FeeDetails, GAME_DETAILS, GAME_RESULT_DUMMY, GameDetails, GameResult, GAMING_FUNDS, PLATFORM_WALLET_PERCENTAGES, POOL_DETAILS, POOL_TEAM_DETAILS, POOL_TYPE_DETAILS, PoolDetails, PoolTeamDetails, PoolTypeDetails, WalletPercentage, WalletTransferDetails};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:gaming-pool";
@@ -76,6 +72,7 @@ pub fn instantiate(
             .addr_validate(&msg.platform_fees_collector_wallet)?,
         astro_proxy_address: deps.api.addr_validate(&msg.astro_proxy_address)?,
         platform_fee: msg.platform_fee,
+        transaction_fee: msg.transaction_fee,
         game_id: msg.game_id.clone(),
     };
     CONFIG.save(deps.storage, &config)?;
@@ -564,19 +561,25 @@ fn create_pool(
 
 pub fn query_platform_fees(
     deps: Deps,
-    fury_amount_provided: Uint128,
+    pool_fee: Uint128,
     platform_fees_percentage: Uint128,
-) -> StdResult<Uint128> {
+    transaction_fee_percentage: Uint128,
+) -> StdResult<FeeDetails> {
     let config = CONFIG.load(deps.storage)?;
     let ust_equiv_for_fury: Uint128 = deps.querier.query_wasm_smart(
         config.astro_proxy_address,
         &ProxyQueryMsgs::get_ust_equivalent_to_fury {
-            fury_count: fury_amount_provided,
+            fury_count: pool_fee,
         },
     )?;
-    return Ok(ust_equiv_for_fury
-        .checked_mul(platform_fees_percentage)?
-        .checked_div(Uint128::from(HUNDRED_PERCENT))?);
+    return Ok(FeeDetails {
+        platform_fee: ust_equiv_for_fury
+            .checked_mul(platform_fees_percentage)?
+            .checked_div(Uint128::from(HUNDRED_PERCENT))?,
+        transaction_fee: ust_equiv_for_fury
+            .checked_mul(transaction_fee_percentage)?
+            .checked_div(Uint128::from(HUNDRED_PERCENT))?,
+    });
 }
 
 fn game_pool_bid_submit(
@@ -613,7 +616,6 @@ fn game_pool_bid_submit(
         }));
     }
 
-
     let pool_type_details;
     let mut ptd = POOL_TYPE_DETAILS.may_load(deps.storage, pool_type.clone())?;
     match ptd.clone() {
@@ -626,24 +628,32 @@ fn game_pool_bid_submit(
             }));
         }
     }
-    let mut required_ust_fees;
+    let mut required_platform_fee_ust;
+    let mut transaction_fee;
     match testing {
         true => {
-            required_ust_fees = config.platform_fee;
+            required_platform_fee_ust = config.platform_fee;
+            transaction_fee = Uint128::zero();
         }
         false => {
-            required_ust_fees = query_platform_fees(deps.as_ref(), ptd.unwrap().pool_fee, platform_fee)?;
+            let fee_details = query_platform_fees(
+                deps.as_ref(),
+                ptd.unwrap().pool_fee,
+                platform_fee,
+                config.transaction_fee)?;
+            required_platform_fee_ust = fee_details.platform_fee;
+            transaction_fee = fee_details.transaction_fee;
         }
     }
     let gamer_addr = deps.api.addr_validate(&gamer)?;
 
-    // for f in info.funds {
-    //     if f.denom == "uusd" {
-    //         if f.amount < required_ust_fees {
-    //             return Err(ContractError::InsufficientFeesUst {});
-    //         }
-    //     }
-    // }
+    for f in info.funds.clone() {
+        if f.denom == "uusd" {
+            if f.amount < required_platform_fee_ust.add(transaction_fee) {
+                return Err(ContractError::InsufficientFeesUst {});
+            }
+        }
+    }
 
     let pool_fee: Uint128 = deps.querier.query_wasm_smart(
         config.astro_proxy_address,

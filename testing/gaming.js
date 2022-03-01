@@ -48,6 +48,7 @@ const gaming_init = {
     "minting_contract_address": fury_contract_address, //  This should be a contract But We passed wallet so it wont raise error on addr validate
     "admin_address": walletTest1.key.accAddress,
     "platform_fee": "1",
+    "transaction_fee": "1",
     "game_id": "Game001",
     "platform_fees_collector_wallet": walletTest3.key.accAddress,
     "astro_proxy_address": proxy_contract_address,
@@ -271,7 +272,7 @@ let test_game_pool_bid_submit_when_pool_team_in_range = async function (time) {
             amount: `${funds_to_send_in_fury}`
         }
     }, {
-        "uusd": 100
+        "uusd": 1
     })
 
 
