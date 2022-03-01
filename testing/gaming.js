@@ -1,19 +1,13 @@
 import {
     mintInitMessage,
     MintingContractPath,
-    VnDContractPath,
     walletTest1,
     walletTest2,
     walletTest3,
-    gamified_airdrop_wallet,
-    whitelist_airdrop_wallet,
     GamingContractPath,
-    minting_wallet,
     treasury_wallet,
     marketing_wallet,
-    terraClient,
-    private_category_wallet,
-    partnership_wallet, deployer
+    deployer, mint_wallet
 } from './constants.js';
 import {
     storeCode,
@@ -25,14 +19,14 @@ import {
     writeArtifact
 } from "./utils.js";
 
-import { primeAccountsWithFunds } from "./primeCustomAccounts.js";
+import {primeAccountsWithFunds} from "./primeCustomAccounts.js";
 
-import { promisify } from 'util';
+import {promisify} from 'util';
 
 import * as readline from 'node:readline';
 
 import * as chai from 'chai';
-import { Coin } from '@terra-money/terra.js';
+import {Coin} from '@terra-money/terra.js';
 
 
 const rl = readline.createInterface({
@@ -43,15 +37,20 @@ const question = promisify(rl.question).bind(rl);
 
 
 const assert = chai.assert;
-
 // Init and Vars
 const sleep_time = 0
 let gaming_contract_address = ""
+let proxy_contract_address = "terra127gs5ej23jd69685a3lyetnhlfe9nweg9p5z6a"
+let fury_contract_address = "terra1nc5qec6n7wnx3v29eu0mutahlq8lrer0w54y39"
+
+
 const gaming_init = {
-    "minting_contract_address": walletTest1.key.accAddress, //  This should be a contract But We passed wallet so it wont raise error on addr validate
+    "minting_contract_address": fury_contract_address, //  This should be a contract But We passed wallet so it wont raise error on addr validate
     "admin_address": walletTest1.key.accAddress,
-    "platform_fee": "300000",
+    "platform_fee": "1",
     "game_id": "Game001",
+    "platform_fees_collector_wallet": walletTest3.key.accAddress,
+    "astro_proxy_address": proxy_contract_address,
 
 }
 
@@ -205,7 +204,7 @@ const set_pool_headers_for_H2H_pool_type = async function (time) {
     const response = await executeContract(walletTest1, gaming_contract_address, {
         set_pool_type_params: {
             'pool_type': "H2H",
-            'pool_fee': "1000000",
+            'pool_fee': "100",
             'min_teams_for_pool': 2,
             'max_teams_for_pool': 2,
             'max_teams_for_gamer': 2,
@@ -223,26 +222,59 @@ const set_pool_headers_for_H2H_pool_type = async function (time) {
     if (time) sleep(time)
 }
 
+async function transferFuryTokens(toAddress, amount) {
+    let transferFuryToTreasuryMsg = {
+        transfer: {
+            recipient: toAddress.key.accAddress,
+            amount: amount
+        }
+    };
+    console.log(`transferFuryToTreasuryMsg = ${JSON.stringify(transferFuryToTreasuryMsg)}`);
+    let response = await executeContract(mint_wallet, fury_contract_address, transferFuryToTreasuryMsg);
+    console.log(`transferFuryToTreasuryMsg Response - ${response['txhash']}`);
+}
+
+
 let test_game_pool_bid_submit_when_pool_team_in_range = async function (time) {
     console.log("Test game pool bid submit when pool team in range")
     set_pool_headers_for_H2H_pool_type();
-    let msg = {
-        game_pool_bid_submit_command: {
-            'gamer': "terra1ttjw6nscdmkrx3zhxqx3md37phldgwhggm345k",
-            'pool_type': "H2H",
-            'pool_id': "1",
-            'team_id': "1",
-            poolFee: poolFee,
-        }
-    }
 
-    let response = await executeContract(walletTest1, gaming_contract_address, {
-        cw20_receive_msg: {
-            sender: walletTest1.key.accAddress,
-            amount: "10",
-            msg: convertBinaryToObject(JSON.stringify(msg))
+    // Add method to provide the wallet one fury token
+    console.log("Sending fury Tokens from Minter to wallet 1")
+    let response = await transferFuryTokens(walletTest1, "5000000000")
+    console.log(response)
+    console.log("Getting Funds To Send In Fury")
+    let funds_to_send_in_fury = await queryContract(proxy_contract_address,
+        {
+            get_fury_equivalent_to_ust: {
+                "ust_count": "100"
+            }
+        });
+
+    console.log(`Fees Received:${funds_to_send_in_fury}`)
+    let increaseAllowanceMsg = {
+        increase_allowance: {
+            spender: gaming_contract_address,
+            amount: `${funds_to_send_in_fury}`
         }
+    };
+    console.log("Increasing Allowance For the Gaming Pool Contract ")
+    let incrAllowResp = await executeContract(walletTest1, fury_contract_address, increaseAllowanceMsg);
+    console.log(incrAllowResp)
+    console.log("Submitting Game Pool Bid")
+    response = await executeContract(walletTest1, gaming_contract_address, {
+        game_pool_bid_submit_command: {
+            gamer: walletTest2.key.accAddress,
+            pool_type: "H2H",
+            pool_id: "1",
+            team_id: "Team001",
+            amount: `${funds_to_send_in_fury}`
+        }
+    }, {
+        "uusd": 100
     })
+
+
     console.log(response)
     console.log("Assert Success")
     sleep(time)
@@ -310,5 +342,5 @@ await test_create_and_query_pool(sleep_time)
 await test_get_team_count_for_user_in_pool_type(sleep_time)
 await set_pool_headers_for_H2H_pool_type(sleep_time)
 await test_game_pool_bid_submit_when_pool_team_in_range(sleep_time)
-await test_game_lock_once_pool_is_closed(sleep_time)
-await reward_distribution_for_locked_game(sleep_time)
+// await test_game_lock_once_pool_is_closed(sleep_time)
+// await reward_distribution_for_locked_game(sleep_time)

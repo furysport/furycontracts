@@ -5,6 +5,7 @@ import {MnemonicKey} from '@terra-money/terra.js';
 // Contracts
 export const MintingContractPath = "../artifacts/cw20_base.wasm"
 export const ClubStakingContractPath = "../artifacts/club_staking.wasm"
+export const GamingContractPath = "../artifacts/gaming_pool.wasm"
 
 export const terraClient = new LocalTerra();
 

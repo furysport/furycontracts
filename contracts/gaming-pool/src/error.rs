@@ -8,7 +8,7 @@ pub enum ContractError {
 
     #[error("Unauthorized")]
     Unauthorized {
-        invoker: String 
+        invoker: String
     },
 
     #[error("Cannot set to own account")]
@@ -37,4 +37,7 @@ pub enum ContractError {
 
     #[error("Invalid png header")]
     InvalidPngHeader {},
+
+    #[error("Insufficient fees in UST sent")]
+    InsufficientFeesUst {},
 }

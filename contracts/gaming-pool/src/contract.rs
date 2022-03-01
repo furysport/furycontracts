@@ -179,7 +179,7 @@ pub fn execute(
             pool_id,
             team_id,
             amount,
-        } => game_pool_bid_submit(deps, env, info, gamer, pool_type, pool_id, team_id, amount),
+        } => game_pool_bid_submit(deps, env, info, gamer, pool_type, pool_id, team_id, amount, false),
     }
 }
 
@@ -201,6 +201,7 @@ fn received_message(
             gpbsc.pool_id,
             gpbsc.team_id,
             amount,
+            false,
         ),
     }
 }
@@ -587,6 +588,7 @@ fn game_pool_bid_submit(
     pool_id: String,
     team_id: String,
     amount: Uint128,
+    testing: bool,
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
     // Calculate
@@ -611,11 +613,10 @@ fn game_pool_bid_submit(
         }));
     }
 
-    let gamer_addr = deps.api.addr_validate(&gamer)?;
 
     let pool_type_details;
-    let ptd = POOL_TYPE_DETAILS.may_load(deps.storage, pool_type.clone())?;
-    match ptd {
+    let mut ptd = POOL_TYPE_DETAILS.may_load(deps.storage, pool_type.clone())?;
+    match ptd.clone() {
         Some(ptd) => {
             pool_type_details = ptd;
         }
@@ -625,13 +626,37 @@ fn game_pool_bid_submit(
             }));
         }
     }
+    let mut required_ust_fees;
+    match testing {
+        true => {
+            required_ust_fees = config.platform_fee;
+        }
+        false => {
+            required_ust_fees = query_platform_fees(deps.as_ref(), ptd.unwrap().pool_fee, platform_fee)?;
+        }
+    }
+    let gamer_addr = deps.api.addr_validate(&gamer)?;
 
-    let required_ust_fees = query_platform_fees(deps.as_ref(), amount, platform_fee)?;
+    // for f in info.funds {
+    //     if f.denom == "uusd" {
+    //         if f.amount < required_ust_fees {
+    //             return Err(ContractError::InsufficientFeesUst {});
+    //         }
+    //     }
+    // }
 
-    let pool_fee = pool_type_details.pool_fee;
+    let pool_fee: Uint128 = deps.querier.query_wasm_smart(
+        config.astro_proxy_address,
+        &ProxyQueryMsgs::get_fury_equivalent_to_ust {
+            ust_count: pool_type_details.pool_fee,
+        },
+    )?;
+    // let platform_fee = pool_fee
+    //     .checked_mul(platform_fee)?;
+    // let transaction_fee = pool_fee.checked_mul(config.transaction_fee)?;
     let max_teams_for_pool = pool_type_details.max_teams_for_pool;
     let max_teams_for_gamer = pool_type_details.max_teams_for_gamer;
-    let amount_required = pool_fee + required_ust_fees;
+    let amount_required = pool_fee;
     if amount < amount_required {
         return Err(ContractError::Std(StdError::GenericErr {
             msg: String::from("Amount being bid does not match the pool fee and the platform fee"),
@@ -644,6 +669,7 @@ fn game_pool_bid_submit(
         game_id.clone(),
         pool_type.clone(),
     );
+
     match uct {
         Ok(uct) => {
             user_team_count = uct;
@@ -1819,6 +1845,7 @@ mod tests {
             poolId.to_string(),
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
+            false,
         );
         let queryRes = query_pool_details(&mut deps.storage, "1".to_string());
         match queryRes {
