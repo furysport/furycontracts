@@ -1,8 +1,12 @@
-#[cfg(not(feature = "library"))]
-use cosmwasm_std::entry_point;
-use cosmwasm_std::{attr, from_binary, to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Order, Response, StdError, StdResult, Storage, SubMsg, Timestamp, Uint128, WasmMsg, CosmosMsg, BankMsg};
 use astroport::pair::PoolResponse;
 use astroport::pair::QueryMsg::Pool;
+#[cfg(not(feature = "library"))]
+use cosmwasm_std::entry_point;
+use cosmwasm_std::{
+    attr, from_binary, to_binary, Addr, BankMsg, Binary, CosmosMsg, Deps, DepsMut, Env,
+    MessageInfo, Order, Response, StdError, StdResult, Storage, SubMsg, Timestamp, Uint128,
+    WasmMsg,
+};
 use cw2::set_contract_version;
 use cw20::{
     AllowanceResponse, BalanceResponse, Cw20Coin, Cw20ExecuteMsg, Cw20ReceiveMsg, Expiration,
@@ -15,7 +19,7 @@ use crate::allowances::{
     execute_send_from, execute_transfer_from, query_allowance,
 };
 use crate::error::ContractError;
-use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, ReceivedMsg};
+use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, ReceivedMsg, ProxyQueryMsgs};
 use crate::state::{
     Config, GameDetails, GameResult, PoolDetails, PoolTeamDetails, PoolTypeDetails,
     WalletPercentage, WalletTransferDetails, CONFIG, CONTRACT_POOL_COUNT, GAME_DETAILS,
@@ -67,7 +71,9 @@ pub fn instantiate(
     let config = Config {
         admin_address: deps.api.addr_validate(&msg.admin_address)?,
         minting_contract_address: deps.api.addr_validate(&msg.minting_contract_address)?,
-        platform_fees_collector_wallet: deps.api.addr_validate(&msg.platform_fees_collector_wallet)?,
+        platform_fees_collector_wallet: deps
+            .api
+            .addr_validate(&msg.platform_fees_collector_wallet)?,
         astro_proxy_address: deps.api.addr_validate(&msg.astro_proxy_address)?,
         platform_fee: msg.platform_fee,
         game_id: msg.game_id.clone(),
@@ -133,9 +139,7 @@ pub fn execute(
         ),
         ExecuteMsg::CancelGame {} => cancel_game(deps, env, info),
         ExecuteMsg::LockGame {} => lock_game(deps, env, info),
-        ExecuteMsg::CreatePool { pool_type } => {
-            create_pool(deps, env, info, pool_type)
-        }
+        ExecuteMsg::CreatePool { pool_type } => create_pool(deps, env, info, pool_type),
         ExecuteMsg::ClaimReward { gamer } => claim_reward(deps, info, gamer),
         ExecuteMsg::ClaimRefund { gamer } => claim_refund(deps, info, gamer),
         ExecuteMsg::GamePoolRewardDistribute {
@@ -153,18 +157,29 @@ pub fn execute(
             refund_amount,
             claimed_refund,
             team_points,
-            team_rank
+            team_rank,
         } => save_team_details(
-            deps.storage, env, gamer, pool_id, team_id, game_id, pool_type,
-            reward_amount, claimed_reward, refund_amount, claimed_refund,
-            team_points, team_rank),
+            deps.storage,
+            env,
+            gamer,
+            pool_id,
+            team_id,
+            game_id,
+            pool_type,
+            reward_amount,
+            claimed_reward,
+            refund_amount,
+            claimed_refund,
+            team_points,
+            team_rank,
+        ),
         ExecuteMsg::GamePoolBidSubmitCommand {
             gamer,
             pool_type,
             pool_id,
             team_id,
-            amount
-        } => game_pool_bid_submit(deps, env, info, gamer, pool_type, pool_id, team_id, amount)
+            amount,
+        } => game_pool_bid_submit(deps, env, info, gamer, pool_type, pool_id, team_id, amount),
     }
 }
 
@@ -253,11 +268,7 @@ fn set_pool_type_params(
     return Ok(Response::default());
 }
 
-fn cancel_game(
-    deps: DepsMut,
-    env: Env,
-    info: MessageInfo,
-) -> Result<Response, ContractError> {
+fn cancel_game(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
     if info.sender != config.admin_address {
         return Err(ContractError::Unauthorized {
@@ -367,15 +378,10 @@ fn cancel_game(
     }
     return Ok(Response::new()
         .add_attribute("game_id", game_id.clone())
-        .add_attribute("game_status", "GAME_CANCELLED".to_string())
-    );
+        .add_attribute("game_status", "GAME_CANCELLED".to_string()));
 }
 
-fn lock_game(
-    deps: DepsMut,
-    env: Env,
-    info: MessageInfo,
-) -> Result<Response, ContractError> {
+fn lock_game(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
     if info.sender != config.admin_address {
         return Err(ContractError::Unauthorized {
@@ -484,8 +490,7 @@ fn lock_game(
     }
     return Ok(Response::new()
         .add_attribute("game_id", game_id.clone())
-        .add_attribute("game_status", "GAME_POOL_CLOSED".to_string())
-    );
+        .add_attribute("game_status", "GAME_POOL_CLOSED".to_string()));
 }
 
 fn create_pool(
@@ -556,34 +561,22 @@ fn create_pool(
     return Ok(Response::new().add_attribute("pool_id", pool_id_str.clone()));
 }
 
-
 pub fn query_platform_fees(
     deps: Deps,
     fury_amount_provided: Uint128,
     platform_fees_percentage: Uint128,
 ) -> StdResult<Uint128> {
     let config = CONFIG.load(deps.storage)?;
-    let pool_rsp: PoolResponse = deps
-        .querier
-        .query_wasm_smart(config.astro_proxy_address, &Pool {})?;
-    let mut uust_count = Uint128::zero();
-    let mut ufury_count = Uint128::zero();
-    for asset in pool_rsp.assets {
-        if (asset.info.is_native_token()) {
-            uust_count = asset.amount;
+    let ust_equiv_for_fury: Uint128 = deps.querier.query_wasm_smart(
+        config.astro_proxy_address,
+        &ProxyQueryMsgs::get_ust_equivalent_to_fury {
+            fury_count: fury_amount_provided,
         }
-        if (!asset.info.is_native_token()) {
-            ufury_count = asset.amount;
-        }
-    }
-    let ust_equiv_for_fury = fury_amount_provided
-        .checked_mul(uust_count)?
-        .checked_div(ufury_count)?;
+    )?;
     return Ok(ust_equiv_for_fury
         .checked_mul(platform_fees_percentage)?
         .checked_div(Uint128::from(HUNDRED_PERCENT))?);
 }
-
 
 fn game_pool_bid_submit(
     deps: DepsMut,
@@ -633,11 +626,7 @@ fn game_pool_bid_submit(
         }
     }
 
-    let required_ust_fees = query_platform_fees(
-        deps.as_ref(),
-        amount,
-        platform_fee,
-    )?;
+    let required_ust_fees = query_platform_fees(deps.as_ref(), amount, platform_fee)?;
 
     let pool_fee = pool_type_details.pool_fee;
     let max_teams_for_pool = pool_type_details.max_teams_for_pool;
@@ -1104,8 +1093,7 @@ fn game_pool_reward_distribute(
         .add_attribute("game_status", "GAME_COMPLETED".to_string())
         .add_attribute("game_id", game_id.clone())
         .add_attribute("pool_status", "POOL_REWARD_DISTRIBUTED".to_string())
-        .add_attribute("pool_id", pool_id.clone())
-    );
+        .add_attribute("pool_id", pool_id.clone()));
 }
 
 fn transfer_to_multiple_wallets(
@@ -1129,9 +1117,7 @@ fn transfer_to_multiple_wallets(
         rsp = rsp.add_submessage(send);
     }
     let data_msg = format!("Amount transferred").into_bytes();
-    Ok(rsp
-        .add_attribute("action", action)
-        .set_data(data_msg))
+    Ok(rsp.add_attribute("action", action).set_data(data_msg))
 }
 
 fn transfer_from_contract_to_wallet(
@@ -1165,7 +1151,6 @@ fn transfer_from_contract_to_wallet(
         .set_data(data_msg));
 }
 
-
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
@@ -1176,9 +1161,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::PoolTypeDetails { pool_type } => {
             to_binary(&query_pool_type_details(deps.storage, pool_type)?)
         }
-        QueryMsg::AllPoolTypeDetails {} => {
-            to_binary(&query_all_pool_type_details(deps.storage)?)
-        }
+        QueryMsg::AllPoolTypeDetails {} => to_binary(&query_all_pool_type_details(deps.storage)?),
         QueryMsg::AllTeams {} => to_binary(&query_all_teams(deps.storage)?),
         QueryMsg::QueryReward { gamer } => to_binary(&query_reward(deps.storage, gamer)?),
         QueryMsg::QueryRefund { gamer } => to_binary(&query_refund(deps.storage, gamer)?),
@@ -1192,8 +1175,19 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
             to_binary(&query_team_details(deps.storage, pool_id, team_id)?)
         }
         QueryMsg::AllPoolsInGame {} => to_binary(&query_all_pools_in_game(deps.storage)?),
-        QueryMsg::PoolCollection { pool_id } => to_binary(&query_pool_collection(deps.storage, pool_id)?),
-        QueryMsg::GetTeamCountForUserInPoolType { game_id, gamer, pool_type } => to_binary(&get_team_count_for_user_in_pool_type(deps.storage, gamer, game_id, pool_type)?),
+        QueryMsg::PoolCollection { pool_id } => {
+            to_binary(&query_pool_collection(deps.storage, pool_id)?)
+        }
+        QueryMsg::GetTeamCountForUserInPoolType {
+            game_id,
+            gamer,
+            pool_type,
+        } => to_binary(&get_team_count_for_user_in_pool_type(
+            deps.storage,
+            gamer,
+            game_id,
+            pool_type,
+        )?),
     }
 }
 
@@ -1208,9 +1202,7 @@ pub fn query_pool_type_details(
     };
 }
 
-pub fn query_all_pool_type_details(
-    storage: &dyn Storage,
-) -> StdResult<Vec<PoolTypeDetails>> {
+pub fn query_all_pool_type_details(storage: &dyn Storage) -> StdResult<Vec<PoolTypeDetails>> {
     let mut all_pool_types = Vec::new();
     let all_pool_type_names: Vec<String> = POOL_TYPE_DETAILS
         .keys(storage, None, None, Order::Ascending)
@@ -1418,9 +1410,7 @@ fn query_team_details(
     return Err(StdError::generic_err("Pool Team Details not found"));
 }
 
-fn query_all_pools_in_game(
-    storage: &dyn Storage,
-) -> StdResult<Vec<PoolDetails>> {
+fn query_all_pools_in_game(storage: &dyn Storage) -> StdResult<Vec<PoolDetails>> {
     let config = CONFIG.load(storage)?;
     let game_id = config.game_id;
 
@@ -1438,14 +1428,11 @@ fn query_all_pools_in_game(
     return Ok(all_pool_details);
 }
 
-fn query_pool_collection(
-    storage: &dyn Storage,
-    pool_id: String,
-) -> StdResult<Uint128> {
+fn query_pool_collection(storage: &dyn Storage, pool_id: String) -> StdResult<Uint128> {
     let pd = POOL_DETAILS.may_load(storage, pool_id.clone())?;
     let pool;
     match pd {
-        Some(pd) => { pool = pd }
+        Some(pd) => pool = pd,
         None => return Err(StdError::generic_err("No pool details found")),
     };
 
@@ -1458,7 +1445,8 @@ fn query_pool_collection(
         None => return Err(StdError::generic_err("No pool type details found")),
     };
 
-    let pool_collection = pool_type.pool_fee
+    let pool_collection = pool_type
+        .pool_fee
         .checked_mul(Uint128::from(pool.current_teams_count))
         .unwrap_or_default();
     return Ok(pool_collection);
@@ -1526,7 +1514,6 @@ mod tests {
             instantiate_msg,
         );
 
-
         let rsp = create_pool(
             deps.as_mut(),
             mock_env(),
@@ -1576,7 +1563,6 @@ mod tests {
             adminInfo.clone(),
             instantiate_msg,
         );
-
 
         let rsp = create_pool(
             deps.as_mut(),
@@ -1656,7 +1642,6 @@ mod tests {
             adminInfo.clone(),
             instantiate_msg,
         );
-
 
         let rsp = create_pool(
             deps.as_mut(),
@@ -1794,7 +1779,6 @@ mod tests {
             rake_list,
         );
 
-
         let rsp = create_pool(
             deps.as_mut(),
             mock_env(),
@@ -1889,7 +1873,6 @@ mod tests {
             1,
             rake_list,
         );
-
 
         let rsp = create_pool(
             deps.as_mut(),
@@ -2007,7 +1990,6 @@ mod tests {
             10,
             rake_list.clone(),
         );
-
 
         // create multiple pool
         let mut pool_id_1 = String::new();
@@ -2459,11 +2441,7 @@ mod tests {
         game_results.push(game_result_2);
         game_results.push(game_result_3);
 
-        let lock_game_rsp = lock_game(
-            deps.as_mut(),
-            mock_env(),
-            adminInfo.clone(),
-        );
+        let lock_game_rsp = lock_game(deps.as_mut(), mock_env(), adminInfo.clone());
         match lock_game_rsp {
             Ok(lock_game_rsp) => {
                 //Since max allowed team for gamer under this pooltype is 2 so it will not allow 3rd team creation under this pooltype.
@@ -2598,13 +2576,10 @@ mod tests {
         );
 
         let cancelInfo = mock_info("cancelInfo", &[]);
-        let cancel_rsp = cancel_game(
-            deps.as_mut(),
-            mock_env(),
-            adminInfo.clone(),
-        );
+        let cancel_rsp = cancel_game(deps.as_mut(), mock_env(), adminInfo.clone());
 
-        let claim_refund_rsp = claim_refund(deps.as_mut(), owner1Info.clone(), "Gamer002".to_string());
+        let claim_refund_rsp =
+            claim_refund(deps.as_mut(), owner1Info.clone(), "Gamer002".to_string());
         match claim_refund_rsp {
             Ok(claim_refund_rsp) => {
                 let amt = claim_refund_rsp.attributes[0].value.clone();
@@ -2767,11 +2742,7 @@ mod tests {
         game_results.push(game_result_2);
         game_results.push(game_result_3);
 
-        let lock_game_rsp = lock_game(
-            deps.as_mut(),
-            mock_env(),
-            adminInfo.clone(),
-        );
+        let lock_game_rsp = lock_game(deps.as_mut(), mock_env(), adminInfo.clone());
         match lock_game_rsp {
             Ok(lock_game_rsp) => {
                 //Since max allowed team for gamer under this pooltype is 2 so it will not allow 3rd team creation under this pooltype.
@@ -2788,11 +2759,8 @@ mod tests {
         }
 
         let cancelInfo = mock_info("cancelInfo", &[]);
-        let game_pool_reward_distribute_rsp = cancel_game(
-            deps.as_mut(),
-            mock_env(),
-            adminInfo.clone(),
-        );
+        let game_pool_reward_distribute_rsp =
+            cancel_game(deps.as_mut(), mock_env(), adminInfo.clone());
 
         match game_pool_reward_distribute_rsp {
             Ok(game_pool_reward_distribute_rsp) => {}
@@ -2981,11 +2949,7 @@ mod tests {
         game_results.push(game_result_2);
         game_results.push(game_result_3);
 
-        let lock_game_rsp = lock_game(
-            deps.as_mut(),
-            mock_env(),
-            adminInfo.clone(),
-        );
+        let lock_game_rsp = lock_game(deps.as_mut(), mock_env(), adminInfo.clone());
         match lock_game_rsp {
             Ok(lock_game_rsp) => {
                 //Since max allowed team for gamer under this pooltype is 2 so it will not allow 3rd team creation under this pooltype.
@@ -3040,7 +3004,10 @@ mod tests {
             Ok(claim_reward_rsp) => {
                 //Since max allowed team for gamer under this pooltype is 2 so it will not allow 3rd team creation under this pooltype.
                 //assert_eq!(pool_detail_1.current_teams_count, 3u32);
-                assert_eq!(claim_reward_rsp.attributes[0].value.clone(), "1000".to_string());
+                assert_eq!(
+                    claim_reward_rsp.attributes[0].value.clone(),
+                    "1000".to_string()
+                );
             }
             Err(e) => {
                 println!("error parsing header: {:?}", e);
@@ -3217,11 +3184,7 @@ mod tests {
         game_results.push(game_result_2);
         game_results.push(game_result_3);
 
-        let lock_game_rsp = lock_game(
-            deps.as_mut(),
-            mock_env(),
-            adminInfo.clone(),
-        );
+        let lock_game_rsp = lock_game(deps.as_mut(), mock_env(), adminInfo.clone());
         match lock_game_rsp {
             Ok(lock_game_rsp) => {
                 //Since max allowed team for gamer under this pooltype is 2 so it will not allow 3rd team creation under this pooltype.
@@ -3317,7 +3280,10 @@ mod tests {
             Err(e) => {
                 let outstr = format!("error parsing header: {:?}", e);
                 println!("{:?}", outstr);
-                assert_eq!(outstr, "error parsing header: Std(GenericErr { msg: \"No reward for this user\" })");
+                assert_eq!(
+                    outstr,
+                    "error parsing header: Std(GenericErr { msg: \"No reward for this user\" })"
+                );
             }
         }
     }
@@ -3477,11 +3443,7 @@ mod tests {
         game_results.push(game_result_2);
         game_results.push(game_result_3);
 
-        let lock_game_rsp = lock_game(
-            deps.as_mut(),
-            mock_env(),
-            adminInfo.clone(),
-        );
+        let lock_game_rsp = lock_game(deps.as_mut(), mock_env(), adminInfo.clone());
         match lock_game_rsp {
             Ok(lock_game_rsp) => {
                 //Since max allowed team for gamer under this pooltype is 2 so it will not allow 3rd team creation under this pooltype.
@@ -3500,7 +3462,7 @@ mod tests {
         for team in team_details {
             //let mut gamer_addr = team[0].gamer_address.clone();
             let gamer_addr = Addr::unchecked(team[0].gamer_address.clone().as_str()); //owner1Info //deps.api.addr_validate(&gamer);
-            //let address = deps.api.addr_validate(team[0].gamer_address.clone().as_str());
+                                                                                      //let address = deps.api.addr_validate(team[0].gamer_address.clone().as_str());
             let gf_res = GAMING_FUNDS.load(&mut deps.storage, &gamer_addr);
             //let mut global_pool_id;
             match gf_res {
@@ -3665,11 +3627,7 @@ mod tests {
         game_results.push(game_result_2);
         game_results.push(game_result_3);
 
-        let lock_game_rsp = lock_game(
-            deps.as_mut(),
-            mock_env(),
-            adminInfo.clone(),
-        );
+        let lock_game_rsp = lock_game(deps.as_mut(), mock_env(), adminInfo.clone());
         match lock_game_rsp {
             Ok(lock_game_rsp) => {
                 //Since max allowed team for gamer under this pooltype is 2 so it will not allow 3rd team creation under this pooltype.
@@ -3701,8 +3659,7 @@ mod tests {
             }
         }
 
-        let mut query_game_status_res =
-            query_game_details(&mut deps.storage);
+        let mut query_game_status_res = query_game_details(&mut deps.storage);
         match query_game_status_res {
             Ok(query_game_status_res) => {
                 assert_eq!(query_game_status_res.game_status, GAME_COMPLETED);
@@ -3713,11 +3670,7 @@ mod tests {
             }
         }
 
-        let game_cancel_rsp = cancel_game(
-            deps.as_mut(),
-            mock_env(),
-            adminInfo.clone(),
-        );
+        let game_cancel_rsp = cancel_game(deps.as_mut(), mock_env(), adminInfo.clone());
 
         match game_cancel_rsp {
             Ok(game_cancel_rsp) => {
@@ -4082,11 +4035,7 @@ mod tests {
         game_results.push(game_result_2);
         game_results.push(game_result_3);
 
-        let lock_game_rsp = lock_game(
-            deps.as_mut(),
-            mock_env(),
-            adminInfo.clone(),
-        );
+        let lock_game_rsp = lock_game(deps.as_mut(), mock_env(), adminInfo.clone());
         match lock_game_rsp {
             Ok(lock_game_rsp) => {
                 //Since max allowed team for gamer under this pooltype is 2 so it will not allow 3rd team creation under this pooltype.

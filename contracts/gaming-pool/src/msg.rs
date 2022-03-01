@@ -132,3 +132,13 @@ pub struct GamePoolBidSubmitCommand {
     pub pool_id: String,
     pub team_id: String,
 }
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub enum ProxyQueryMsgs {
+    get_fury_equivalent_to_ust {
+        ust_count: Uint128,
+    },
+    get_ust_equivalent_to_fury {
+        fury_count: Uint128,
+    },
+}
