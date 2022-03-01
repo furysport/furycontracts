@@ -25,14 +25,14 @@ import {
     writeArtifact
 } from "./utils.js";
 
-import {primeAccountsWithFunds} from "./primeCustomAccounts.js";
+import { primeAccountsWithFunds } from "./primeCustomAccounts.js";
 
-import {promisify} from 'util';
+import { promisify } from 'util';
 
 import * as readline from 'node:readline';
 
 import * as chai from 'chai';
-import {Coin} from '@terra-money/terra.js';
+import { Coin } from '@terra-money/terra.js';
 
 
 const rl = readline.createInterface({
@@ -101,7 +101,7 @@ let test_create_and_query_pool = async function (time) {
     console.log("Create Pool")
     let response = await executeContract(walletTest1, gaming_contract_address, {
         create_pool: {
-            "pool_type": "oneToOne"
+            "pool_type": "H2H"
         }
     })
     console.log(`Pool Create TX : ${response.txhash}`)
@@ -114,7 +114,7 @@ let test_create_and_query_pool = async function (time) {
     })
     assert.isTrue(response['pool_id'] === new_pool_id)
     assert.isTrue(response['game_id'] === "Game001")
-    assert.isTrue(response['pool_type'] === "oneToOne")
+    assert.isTrue(response['pool_type'] === "H2H")
     assert.isTrue(response['current_teams_count'] === 0)
     assert.isTrue(response['rewards_distributed'] === false)
     console.log("Assert Success")
@@ -201,30 +201,38 @@ let test_get_team_count_for_user_in_pool_type = async function (time) {
 
 }
 
-let test_game_pool_bid_submit_when_pool_team_in_range = async function (time) {
-    console.log("Test game pool bid submit when pool team in range")
-    await executeContract(walletTest1, gaming_contract_address, {
+const set_pool_headers_for_H2H_pool_type = async function (time) {
+    const response = await executeContract(walletTest1, gaming_contract_address, {
         set_pool_type_params: {
-            'pool_type': "oneToOne",
-            'pool_fee': "144262",
+            'pool_type': "H2H",
+            'pool_fee': "1000000",
             'min_teams_for_pool': 2,
-            'max_teams_for_pool': 10,
+            'max_teams_for_pool': 2,
             'max_teams_for_gamer': 2,
             'wallet_percentages': [
                 {
-                    "wallet_address": "rake_1",
+                    "wallet_address": "terra1uyuy363rzun7e6txdjdemqj9zua9j7wxl2lp0m",
                     "wallet_name": "rake_1",
                     "percentage": 100,
                 }
             ]
         }
     })
+    console.log(response)
+    console.log("Assert Success")
+    if (time) sleep(time)
+}
+
+let test_game_pool_bid_submit_when_pool_team_in_range = async function (time) {
+    console.log("Test game pool bid submit when pool team in range")
+    set_pool_headers_for_H2H_pool_type();
     let msg = {
         game_pool_bid_submit_command: {
-            'gamer': "",
-            'pool_type': "",
-            'pool_id': "",
-            'team_id': "",
+            'gamer': "terra1ttjw6nscdmkrx3zhxqx3md37phldgwhggm345k",
+            'pool_type': "H2H",
+            'pool_id': "1",
+            'team_id': "1",
+            poolFee: poolFee,
         }
     }
 
@@ -244,9 +252,7 @@ const test_game_lock_once_pool_is_closed = async function (time) {
     console.log("Testing game lock once pool is filled/closed.")
 
     let response = await executeContract(walletTest1, gaming_contract_address, {
-        lock_game: {
-            game_id: "Game001"
-        }
+        lock_game: {}
     })
     console.log(response)
     console.log("Assert Success")
@@ -255,31 +261,31 @@ const test_game_lock_once_pool_is_closed = async function (time) {
 
 const reward_distribution_for_locked_game = async function (time) {
     let response = await executeContract(walletTest1, gaming_contract_address, {
-            "game_pool_reward_distribute" : {
-                "game_id" : "6",
-                "pool_id" : "1",
-                "game_winners" :
+        "game_pool_reward_distribute": {
+            "game_id": "Gamer001",
+            "pool_id": "1",
+            "game_winners":
                 [
                     {
                         "gamer_address": "terra1ttjw6nscdmkrx3zhxqx3md37phldgwhggm345k",
-                        "game_id": "6",
+                        "game_id": "Gamer001",
                         "team_id": "1",
-                        "reward_amount": "300000",
-                        "refund_amount": "0",
-                        "team_rank": 2,
-                        "team_points": 125
-                    },
-                    {
-                        "gamer_address": "terra1ttjw6nscdmkrx3zhxqx3md37phldgwhggm345k",
-                        "game_id": "6",
-                        "team_id": "2",
-                        "reward_amount": "400000",
+                        "reward_amount": "2000000",
                         "refund_amount": "0",
                         "team_rank": 1,
                         "team_points": 150
+                    },
+                    {
+                        "gamer_address": "terra1ttjw6nscdmkrx3zhxqx3md37phldgwhggm345k",
+                        "game_id": "Gamer001",
+                        "team_id": "2",
+                        "reward_amount": "0",
+                        "refund_amount": "0",
+                        "team_rank": 2,
+                        "team_points": 125
                     }
                 ]
-            }        
+        }
     })
     console.log(response)
     console.log("Assert Success")
@@ -302,6 +308,7 @@ const reward_distribution_for_locked_game = async function (time) {
 await test_create_and_query_game(sleep_time)
 await test_create_and_query_pool(sleep_time)
 await test_get_team_count_for_user_in_pool_type(sleep_time)
+await set_pool_headers_for_H2H_pool_type(sleep_time)
 await test_game_pool_bid_submit_when_pool_team_in_range(sleep_time)
 await test_game_lock_once_pool_is_closed(sleep_time)
 await reward_distribution_for_locked_game(sleep_time)
