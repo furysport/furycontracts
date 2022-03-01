@@ -113,3 +113,14 @@ pub enum ReceivedMsg {
 pub struct IncreaseRewardAmountCommand {
     pub reward_from: String,
 }
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub enum ProxyQueryMsgs {
+    GetFuryEquivalentToUst {
+        ust_count: Uint128,
+    },
+    GetUstEquivalentToFury {
+        fury_count: Uint128,
+    },
+}
+

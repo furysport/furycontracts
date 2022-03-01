@@ -16,7 +16,7 @@ use astroport::pair::QueryMsg::Pool;
 //     execute_send_from, execute_transfer_from, query_allowance,
 // };
 use crate::error::ContractError;
-use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, ReceivedMsg};
+use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, ReceivedMsg, ProxyQueryMsgs};
 use crate::state::{
     ClubBondingDetails, ClubOwnershipDetails, ClubPreviousOwnerDetails, ClubStakingDetails, Config,
     CLUB_BONDING_DETAILS, CLUB_OWNERSHIP_DETAILS, CLUB_PREVIOUS_OWNER_DETAILS,
@@ -1435,23 +1435,12 @@ pub fn query_platform_fees(deps: Deps, msg: Binary) -> StdResult<Uint128> {
             return Err(StdError::generic_err(format!("{:?}", err)));
         }
     }
-    let pool_rsp: PoolResponse = deps
+    let ust_equiv_for_fury : Uint128 = deps
         .querier
-        .query_wasm_smart(config.astro_proxy_address, &Pool {})?;
+        .query_wasm_smart(config.astro_proxy_address, &ProxyQueryMsgs::GetUstEquivalentToFury {
+            fury_count: fury_amount_provided,
+        })?;
 
-    let mut uust_count = Uint128::zero();
-    let mut ufury_count = Uint128::zero();
-    for asset in pool_rsp.assets {
-        if (asset.info.is_native_token()) {
-            uust_count = asset.amount;
-        }
-        if (!asset.info.is_native_token()) {
-            ufury_count = asset.amount;
-        }
-    }
-    let ust_equiv_for_fury = fury_amount_provided
-        .checked_mul(uust_count)?
-        .checked_div(ufury_count)?;
     return Ok(ust_equiv_for_fury
         .checked_mul(platform_fees_percentage)?
         .checked_div(Uint128::from(HUNDRED_PERCENT))?);
