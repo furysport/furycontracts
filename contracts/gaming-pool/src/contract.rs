@@ -20,7 +20,7 @@ use crate::allowances::{
     execute_send_from, execute_transfer_from, query_allowance,
 };
 use crate::error::ContractError;
-use crate::msg::{ExecuteMsg, InstantiateMsg, ProxyQueryMsgs, QueryMsg, ReceivedMsg};
+use crate::msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, ProxyQueryMsgs, QueryMsg, ReceivedMsg};
 use crate::state::{Config, CONFIG, CONTRACT_POOL_COUNT, FeeDetails, GAME_DETAILS, GAME_RESULT_DUMMY, GameDetails, GameResult, GAMING_FUNDS, PLATFORM_WALLET_PERCENTAGES, POOL_DETAILS, POOL_TEAM_DETAILS, POOL_TYPE_DETAILS, PoolDetails, PoolTeamDetails, PoolTypeDetails, WalletPercentage, WalletTransferDetails};
 
 // version info for migration info
@@ -565,18 +565,12 @@ pub fn query_platform_fees(
     platform_fees_percentage: Uint128,
     transaction_fee_percentage: Uint128,
 ) -> StdResult<FeeDetails> {
-    let config = CONFIG.load(deps.storage)?;
-    let ust_equiv_for_fury: Uint128 = deps.querier.query_wasm_smart(
-        config.astro_proxy_address,
-        &ProxyQueryMsgs::get_ust_equivalent_to_fury {
-            fury_count: pool_fee,
-        },
-    )?;
+
     return Ok(FeeDetails {
-        platform_fee: ust_equiv_for_fury
+        platform_fee: pool_fee
             .checked_mul(platform_fees_percentage)?
             .checked_div(Uint128::from(HUNDRED_PERCENT))?,
-        transaction_fee: ust_equiv_for_fury
+        transaction_fee: pool_fee
             .checked_mul(transaction_fee_percentage)?
             .checked_div(Uint128::from(HUNDRED_PERCENT))?,
     });
@@ -1157,6 +1151,24 @@ fn transfer_to_multiple_wallets(
     let data_msg = format!("Amount transferred").into_bytes();
     Ok(rsp.add_attribute("action", action).set_data(data_msg))
 }
+
+// This is the safe way of contract migration
+// We can add expose specific state properties to
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, ContractError> {
+    let ver = cw2::get_contract_version(deps.storage)?;
+    // ensure we are migrating from an allowed contract
+    // if ver.contract != CONTRACT_NAME {
+    //     return Err(StdError::generic_err("Can only upgrade from same type").into());
+    // }
+    // // note: better to do proper semver compare, but string compare *usually* works
+    // if ver.version >= CONTRACT_VERSION.to_string() {
+    //     return Err(StdError::generic_err("Cannot upgrade from a newer version").into());
+    // }
+    cw2::set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+    Ok(Response::default())
+}
+
 
 fn transfer_from_contract_to_wallet(
     store: &dyn Storage,

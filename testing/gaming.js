@@ -1,32 +1,11 @@
-import {
-    mintInitMessage,
-    MintingContractPath,
-    walletTest1,
-    walletTest2,
-    walletTest3,
-    GamingContractPath,
-    treasury_wallet,
-    marketing_wallet,
-    deployer, mint_wallet
-} from './constants.js';
-import {
-    storeCode,
-    queryContract,
-    executeContract,
-    instantiateContract,
-    sendTransaction,
-    readArtifact,
-    writeArtifact
-} from "./utils.js";
-
-import {primeAccountsWithFunds} from "./primeCustomAccounts.js";
+import {GamingContractPath, mint_wallet, walletTest1, walletTest2, walletTest3} from './constants.js';
+import {executeContract, instantiateContract, queryContract, storeCode} from "./utils.js";
 
 import {promisify} from 'util';
 
 import * as readline from 'node:readline';
 
 import * as chai from 'chai';
-import {Coin} from '@terra-money/terra.js';
 
 
 const rl = readline.createInterface({
@@ -337,11 +316,25 @@ const reward_distribution_for_locked_game = async function (time) {
 //     sleep(time)
 // }
 
+async function test_migrate(time) {
+    console.log("Testing Migrate")
+    console.log("Uploading New Contract")
+    let contract_id = await storeCode(walletTest1, GamingContractPath,) //  Uploading the new contract
+    console.log("Executing the migrate")
+    let r = await migrateContract(deployer, gaming_contract_address, contract_id, {})
+    console.log(r)
+    console.log("Success")
+    sleep(time)
+
+
+}
+
 
 await test_create_and_query_game(sleep_time)
 await test_create_and_query_pool(sleep_time)
 await test_get_team_count_for_user_in_pool_type(sleep_time)
 await set_pool_headers_for_H2H_pool_type(sleep_time)
 await test_game_pool_bid_submit_when_pool_team_in_range(sleep_time)
+await test_migrate(sleep_time)
 // await test_game_lock_once_pool_is_closed(sleep_time)
 // await reward_distribution_for_locked_game(sleep_time)

@@ -3,7 +3,7 @@ import chalk from "chalk";
 import {isTxError} from "@terra-money/terra.js/dist/client/lcd/api/TxAPI.js";
 import {
   MsgExecuteContract,
-  MsgInstantiateContract,
+  MsgInstantiateContract, MsgMigrateContract,
   MsgStoreCode
 } from "@terra-money/terra.js/dist/core/wasm/msgs/index.js";
 import {terraClient,} from "./constants.js";
@@ -45,6 +45,12 @@ export async function storeCode(deployerWallet, filepath) {
     new MsgStoreCode(deployerWallet.key.accAddress, code),
   ]);
   return parseInt(result.logs[0].eventsByType.store_code.code_id[0]);
+}
+export async function migrateContract(senderWallet, contractAddress, new_code_id, migrate_msg, verbose = false) {
+  let msg_list = [
+    new MsgMigrateContract(senderWallet.key.accAddress, contractAddress, new_code_id, migrate_msg),
+  ]
+  return await sendTransaction(senderWallet, msg_list, verbose);
 }
 
 /**
