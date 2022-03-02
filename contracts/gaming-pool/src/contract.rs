@@ -1506,7 +1506,7 @@ fn query_pool_collection(storage: &dyn Storage, pool_id: String) -> StdResult<Ui
         .unwrap_or_default();
     return Ok(pool_collection);
 }
-
+/*
 #[cfg(test)]
 mod tests {
     use cosmwasm_std::coin;
@@ -4348,4 +4348,5 @@ mod tests {
             assert_eq!(wallet.wallet_name, "rake_3".to_string());
         }
     }
-}
+}*/
+
