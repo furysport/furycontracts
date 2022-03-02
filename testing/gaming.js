@@ -227,7 +227,7 @@ let test_game_pool_bid_submit_when_pool_team_in_range = async function (time) {
     let funds_to_send_in_fury = await queryContract(proxy_contract_address,
         {
             get_fury_equivalent_to_ust: {
-                "ust_count": "100"
+                "ust_count": "100000000"
             }
         });
 
@@ -251,7 +251,7 @@ let test_game_pool_bid_submit_when_pool_team_in_range = async function (time) {
             amount: `${funds_to_send_in_fury}`
         }
     }, {
-        "uusd": 1
+        "uusd": "1300000"      //this is 1.3% of fee including trasaction and platform fee
     })
 
 
