@@ -3,7 +3,7 @@ mod tests {
     use cosmwasm_std::{coin, Uint128};
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
     use cosmwasm_std::{coins, from_binary, Addr, CosmosMsg, StdError, SubMsg, WasmMsg};
-    use crate::contract::instantiate;
+    use crate::contract::{CLAIMED_REWARD, GAME_CANCELLED, GAME_COMPLETED, GAME_POOL_OPEN, INITIAL_REFUND_AMOUNT, instantiate};
     use crate::execute::{cancel_game, claim_refund, claim_reward, create_pool, game_pool_bid_submit, game_pool_reward_distribute, lock_game, save_team_details, set_platform_fee_wallets, set_pool_type_params};
 
     use crate::msg::{InstantiateMarketingInfo, InstantiateMsg};
