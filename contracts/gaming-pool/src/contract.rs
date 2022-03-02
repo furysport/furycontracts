@@ -1558,12 +1558,15 @@ mod tests {
         let mut deps = mock_dependencies(&[]);
         let owner1Info = mock_info("Owner001", &[coin(1000, "stake")]);
         let platform_fee = Uint128::from(300000u128);
+        let transaction_fee = Uint128::from(100000u128);
+
         let instantiate_msg = InstantiateMsg {
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
             game_id: "Game001".to_string(),
             platform_fees_collector_wallet: "FEE_WALLET".to_string(),
+            transaction_fee: transaction_fee,
             astro_proxy_address: "ASTROPORT".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
