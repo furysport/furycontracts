@@ -1,4 +1,5 @@
-use cosmwasm_std::{Addr, Binary, Uint128};
+use astroport::asset::Asset;
+use cosmwasm_std::{Addr, Binary, Decimal, Uint128};
 use cw0::Expiration;
 use cw20::{Cw20ReceiveMsg, Logo};
 use schemars::JsonSchema;
@@ -145,4 +146,26 @@ pub enum ProxyQueryMsgs {
     get_ust_equivalent_to_fury {
         fury_count: Uint128,
     },
+}
+
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum ProxyExecuteMsg {
+    /// Swap an offer asset to the other
+    Swap {
+        offer_asset: Asset,
+        belief_price: Option<Decimal>,
+        max_spread: Option<Decimal>,
+        to: Option<String>,
+    },
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum AssetInfo {
+    /// Token
+    Token { contract_addr: Addr },
+    /// Native token
+    NativeToken { denom: String },
 }

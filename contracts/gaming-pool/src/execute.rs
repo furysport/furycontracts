@@ -1,9 +1,14 @@
 use std::ops::Add;
+use astroport::asset::{Asset, AssetInfo};
 use cosmwasm_std::{BankMsg, CosmosMsg, Deps, DepsMut, Env, from_binary,
                    MessageInfo, Order, Response, StdError, StdResult, Storage,
                    SubMsg, to_binary, Uint128, WasmMsg};
 use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg};
-use crate::contract::{CLAIMED_REFUND, CLAIMED_REWARD, DUMMY_WALLET, GAME_CANCELLED, GAME_COMPLETED, GAME_POOL_CLOSED, GAME_POOL_OPEN, HUNDRED_PERCENT, INITIAL_REFUND_AMOUNT, INITIAL_REWARD_AMOUNT, INITIAL_TEAM_POINTS, INITIAL_TEAM_RANK, REWARDS_DISTRIBUTED, REWARDS_NOT_DISTRIBUTED, UNCLAIMED_REFUND, UNCLAIMED_REWARD};
+use crate::contract::{CLAIMED_REFUND, CLAIMED_REWARD, DUMMY_WALLET, GAME_CANCELLED,
+                      GAME_COMPLETED, GAME_POOL_CLOSED, GAME_POOL_OPEN, HUNDRED_PERCENT,
+                      INITIAL_REFUND_AMOUNT, INITIAL_REWARD_AMOUNT, INITIAL_TEAM_POINTS,
+                      INITIAL_TEAM_RANK, REWARDS_DISTRIBUTED, REWARDS_NOT_DISTRIBUTED,
+                      UNCLAIMED_REFUND, UNCLAIMED_REWARD};
 use crate::ContractError;
 use crate::msg::{ProxyQueryMsgs, ReceivedMsg};
 use crate::query::{get_team_count_for_user_in_pool_type, query_pool_details};
@@ -11,6 +16,8 @@ use crate::state::{CONFIG, CONTRACT_POOL_COUNT, FeeDetails, GAME_DETAILS, GameDe
                    GameResult, GAMING_FUNDS, PLATFORM_WALLET_PERCENTAGES, POOL_DETAILS,
                    POOL_TEAM_DETAILS, POOL_TYPE_DETAILS, PoolDetails, PoolTeamDetails,
                    PoolTypeDetails, WalletPercentage, WalletTransferDetails};
+use astroport::pair::ExecuteMsg as AstroPortExecute;
+
 
 pub fn received_message(
     deps: DepsMut,
@@ -419,11 +426,12 @@ pub fn game_pool_bid_submit(
     testing: bool,
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
-    // Calculate
     let platform_fee = config.platform_fee; //  Should be in %
     let game_id = config.game_id;
     let mut messages = Vec::new(); //  Use this to append any execute messaages in the funciton
     let gd = GAME_DETAILS.may_load(deps.storage, game_id.clone())?;
+
+
     let game;
     match gd {
         Some(gd) => {
@@ -548,7 +556,7 @@ pub fn game_pool_bid_submit(
         // Now save the team details
         save_team_details(
             deps.storage,
-            env,
+            env.clone(),
             gamer.clone(),
             pool_id.clone(),
             team_id.clone(),
@@ -572,20 +580,38 @@ pub fn game_pool_bid_submit(
         |balance: Option<Uint128>| -> StdResult<_> { Ok(balance.unwrap_or_default() + pool_fee) },
     )?;
 
-    // Sending the funds to platfrom fee collector wallet
     let transfer_msg = Cw20ExecuteMsg::TransferFrom {
         owner: info.sender.into_string(),
-        recipient: config.platform_fees_collector_wallet.to_string(),
+        recipient: env.contract.address.clone().to_string(),
         amount,
     };
 
-    let exec = WasmMsg::Execute {
+
+    let swap_message = AstroPortExecute::Swap {
+        offer_asset: Asset {
+            info: AssetInfo::Token {
+                contract_addr: config.minting_contract_address.clone()
+            },
+            amount,
+        },
+        belief_price: None,
+        max_spread: None,
+        to: Option::from(env.contract.address.clone().to_string()),
+    };
+
+
+    messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
         contract_addr: config.minting_contract_address.to_string(),
         msg: to_binary(&transfer_msg).unwrap(),
         funds: vec![],
-    };
-
-    messages.push(CosmosMsg::Wasm(exec));
+    }));
+    messages.push(CosmosMsg::Wasm(
+        WasmMsg::Execute {
+            contract_addr: config.minting_contract_address.to_string(),
+            msg: to_binary(&swap_message).unwrap(),
+            funds: vec![],
+        }
+    ));
     // Sending the UST fees to the collector
     messages.push(CosmosMsg::Bank(BankMsg::Send {
         to_address: config.platform_fees_collector_wallet.into_string(),
