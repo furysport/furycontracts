@@ -1,19 +1,19 @@
-use std::ops::Add;
 use astroport::pair::PoolResponse;
 use astroport::pair::QueryMsg::Pool;
-use cosmwasm_std::{
-    Addr, attr, BankMsg, Binary, CosmosMsg, Deps, DepsMut, Env, from_binary, MessageInfo,
-    Order, Response, StdError, StdResult, Storage, SubMsg, Timestamp, to_binary, Uint128,
-    WasmMsg,
-};
-use cosmwasm_std::Coin;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
+use cosmwasm_std::Coin;
+use cosmwasm_std::{
+    attr, from_binary, to_binary, Addr, BankMsg, Binary, CosmosMsg, Deps, DepsMut, Env,
+    MessageInfo, Order, Response, StdError, StdResult, Storage, SubMsg, Timestamp, Uint128,
+    WasmMsg,
+};
+use std::ops::Add;
 
+use cw2::set_contract_version;
 use cw20::{
     AllowanceResponse, BalanceResponse, Cw20Coin, Cw20ExecuteMsg, Cw20ReceiveMsg, Expiration,
 };
-use cw2::set_contract_version;
 
 use crate::allowances::{
     deduct_allowance, execute_burn_from, execute_decrease_allowance, execute_increase_allowance,
@@ -21,7 +21,12 @@ use crate::allowances::{
 };
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, ProxyQueryMsgs, QueryMsg, ReceivedMsg};
-use crate::state::{Config, CONFIG, CONTRACT_POOL_COUNT, FeeDetails, GAME_DETAILS, GAME_RESULT_DUMMY, GameDetails, GameResult, GAMING_FUNDS, PLATFORM_WALLET_PERCENTAGES, POOL_DETAILS, POOL_TEAM_DETAILS, POOL_TYPE_DETAILS, PoolDetails, PoolTeamDetails, PoolTypeDetails, WalletPercentage, WalletTransferDetails};
+use crate::state::{
+    Config, FeeDetails, GameDetails, GameResult, PoolDetails, PoolTeamDetails, PoolTypeDetails,
+    WalletPercentage, WalletTransferDetails, CONFIG, CONTRACT_POOL_COUNT, GAME_DETAILS,
+    GAME_RESULT_DUMMY, GAMING_FUNDS, PLATFORM_WALLET_PERCENTAGES, POOL_DETAILS, POOL_TEAM_DETAILS,
+    POOL_TYPE_DETAILS,
+};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:gaming-pool";
@@ -176,7 +181,9 @@ pub fn execute(
             pool_id,
             team_id,
             amount,
-        } => game_pool_bid_submit(deps, env, info, gamer, pool_type, pool_id, team_id, amount, false),
+        } => game_pool_bid_submit(
+            deps, env, info, gamer, pool_type, pool_id, team_id, amount, false,
+        ),
     }
 }
 
@@ -565,7 +572,6 @@ pub fn query_platform_fees(
     platform_fees_percentage: Uint128,
     transaction_fee_percentage: Uint128,
 ) -> StdResult<FeeDetails> {
-
     return Ok(FeeDetails {
         platform_fee: pool_fee
             .checked_mul(platform_fees_percentage)?
@@ -634,7 +640,8 @@ fn game_pool_bid_submit(
                 deps.as_ref(),
                 ptd.unwrap().pool_fee,
                 platform_fee,
-                config.transaction_fee)?;
+                config.transaction_fee,
+            )?;
             required_platform_fee_ust = fee_details.platform_fee;
             transaction_fee = fee_details.transaction_fee;
         }
@@ -741,7 +748,6 @@ fn game_pool_bid_submit(
         recipient: config.platform_fees_collector_wallet.to_string(),
         amount,
     };
-
 
     let exec = WasmMsg::Execute {
         contract_addr: config.minting_contract_address.to_string(),
@@ -1169,7 +1175,6 @@ pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, Co
     Ok(Response::default())
 }
 
-
 fn transfer_from_contract_to_wallet(
     store: &dyn Storage,
     wallet_owner: String,
@@ -1504,9 +1509,9 @@ fn query_pool_collection(storage: &dyn Storage, pool_id: String) -> StdResult<Ui
 
 #[cfg(test)]
 mod tests {
-    use cosmwasm_std::{Addr, coins, CosmosMsg, from_binary, StdError, SubMsg, WasmMsg};
     use cosmwasm_std::coin;
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
+    use cosmwasm_std::{coins, from_binary, Addr, CosmosMsg, StdError, SubMsg, WasmMsg};
 
     use crate::msg::InstantiateMarketingInfo;
 
@@ -1516,7 +1521,7 @@ mod tests {
     fn test_create_and_query_game() {
         let mut deps = mock_dependencies(&[]);
         let platform_fee = Uint128::from(300000u128);
-
+        let transaction_fee = Uint128::from(100000u128);
         let owner1Info = mock_info("Owner001", &[coin(1000, "stake")]);
         let instantiate_msg = InstantiateMsg {
             minting_contract_address: "cwtoken11111".to_string(),
@@ -1524,6 +1529,7 @@ mod tests {
             astro_proxy_address: "ASTROPORT".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
+            transaction_fee: transaction_fee,
             game_id: "Game001".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
@@ -1604,7 +1610,10 @@ mod tests {
         let mut deps = mock_dependencies(&[]);
         let owner1Info = mock_info("Owner001", &[coin(1000, "stake")]);
         let platform_fee = Uint128::from(300000u128);
+        let transaction_fee = Uint128::from(100000u128);
         let instantiate_msg = InstantiateMsg {
+            transaction_fee: transaction_fee,
+
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
@@ -1685,7 +1694,10 @@ mod tests {
         let mut deps = mock_dependencies(&[]);
         let owner1Info = mock_info("Owner001", &[coin(1000, "stake")]);
         let platform_fee = Uint128::from(300000u128);
+        let transaction_fee = Uint128::from(100000u128);
         let instantiate_msg = InstantiateMsg {
+            transaction_fee: transaction_fee,
+
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
@@ -1789,7 +1801,10 @@ mod tests {
         let owner1Info = mock_info("Gamer001", &[coin(1000, "stake")]);
         let platform_fee = Uint128::from(300000u128);
 
+        let transaction_fee = Uint128::from(100000u128);
         let instantiate_msg = InstantiateMsg {
+            transaction_fee: transaction_fee,
+
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
@@ -1887,7 +1902,10 @@ mod tests {
         let owner1Info = mock_info("Gamer001", &[coin(1000, "stake")]);
         let platform_fee = Uint128::from(300000u128);
 
+        let transaction_fee = Uint128::from(100000u128);
         let instantiate_msg = InstantiateMsg {
+            transaction_fee: transaction_fee,
+
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
@@ -1995,7 +2013,10 @@ mod tests {
         let owner1Info = mock_info("Gamer001", &[coin(1000, "stake")]);
         let platform_fee = Uint128::from(300000u128);
 
+        let transaction_fee = Uint128::from(100000u128);
         let instantiate_msg = InstantiateMsg {
+            transaction_fee: transaction_fee,
+
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
@@ -2247,7 +2268,10 @@ mod tests {
         let owner1Info = mock_info("Gamer002", &[coin(1000, "stake")]);
         let platform_fee = Uint128::from(300000u128);
 
+        let transaction_fee = Uint128::from(100000u128);
         let instantiate_msg = InstantiateMsg {
+            transaction_fee: transaction_fee,
+
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
@@ -2366,7 +2390,10 @@ mod tests {
         let owner1Info = mock_info("Gamer002", &[coin(1000, "stake")]);
         let platform_fee = Uint128::from(300000u128);
 
+        let transaction_fee = Uint128::from(100000u128);
         let instantiate_msg = InstantiateMsg {
+            transaction_fee: transaction_fee,
+
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
@@ -2566,7 +2593,10 @@ mod tests {
         let owner1Info = mock_info("Gamer002", &[coin(1000, "stake")]);
         let platform_fee = Uint128::from(300000u128);
 
+        let transaction_fee = Uint128::from(100000u128);
         let instantiate_msg = InstantiateMsg {
+            transaction_fee: transaction_fee,
+
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
@@ -2671,7 +2701,10 @@ mod tests {
         let owner1Info = mock_info("Gamer002", &[coin(1000, "stake")]);
         let platform_fee = Uint128::from(300000u128);
 
+        let transaction_fee = Uint128::from(100000u128);
         let instantiate_msg = InstantiateMsg {
+            transaction_fee: transaction_fee,
+
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
@@ -2867,7 +2900,10 @@ mod tests {
         let owner1Info = mock_info("Gamer002", &[coin(1000, "stake")]);
         let platform_fee = Uint128::from(300000u128);
 
+        let transaction_fee = Uint128::from(100000u128);
         let instantiate_msg = InstantiateMsg {
+            transaction_fee: transaction_fee,
+
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
@@ -2934,7 +2970,10 @@ mod tests {
             }
         }
         let platform_fee = Uint128::from(300000u128);
+        let transaction_fee = Uint128::from(100000u128);
         let instantiate_msg = InstantiateMsg {
+            transaction_fee: transaction_fee,
+
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
@@ -3119,7 +3158,10 @@ mod tests {
         let owner1Info = mock_info("Gamer002", &[coin(1000, "stake")]);
         let platform_fee = Uint128::from(300000u128);
 
+        let transaction_fee = Uint128::from(100000u128);
         let instantiate_msg = InstantiateMsg {
+            transaction_fee: transaction_fee,
+
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
@@ -3373,7 +3415,10 @@ mod tests {
         let owner1Info = mock_info("Gamer002", &[coin(1000, "stake")]);
         let platform_fee = Uint128::from(300000u128);
 
+        let transaction_fee = Uint128::from(100000u128);
         let instantiate_msg = InstantiateMsg {
+            transaction_fee: transaction_fee,
+
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
@@ -3440,7 +3485,10 @@ mod tests {
             }
         }
         let platform_fee = Uint128::from(300000u128);
+        let transaction_fee = Uint128::from(100000u128);
         let instantiate_msg = InstantiateMsg {
+            transaction_fee: transaction_fee,
+
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
@@ -3545,7 +3593,7 @@ mod tests {
         for team in team_details {
             //let mut gamer_addr = team[0].gamer_address.clone();
             let gamer_addr = Addr::unchecked(team[0].gamer_address.clone().as_str()); //owner1Info //deps.api.addr_validate(&gamer);
-            //let address = deps.api.addr_validate(team[0].gamer_address.clone().as_str());
+                                                                                      //let address = deps.api.addr_validate(team[0].gamer_address.clone().as_str());
             let gf_res = GAMING_FUNDS.load(&mut deps.storage, &gamer_addr);
             //let mut global_pool_id;
             match gf_res {
@@ -3567,7 +3615,10 @@ mod tests {
         let owner1Info = mock_info("Gamer002", &[coin(1000, "stake")]);
         let platform_fee = Uint128::from(300000u128);
 
+        let transaction_fee = Uint128::from(100000u128);
         let instantiate_msg = InstantiateMsg {
+            transaction_fee: transaction_fee,
+
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
@@ -3777,7 +3828,10 @@ mod tests {
         let owner1Info = mock_info("Gamer002", &[coin(1000, "stake")]);
         let platform_fee = Uint128::from(300000u128);
 
+        let transaction_fee = Uint128::from(100000u128);
         let instantiate_msg = InstantiateMsg {
+            transaction_fee: transaction_fee,
+
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
@@ -3973,7 +4027,10 @@ mod tests {
         let owner1Info = mock_info("Gamer002", &[coin(1000, "stake")]);
         let platform_fee = Uint128::from(300000u128);
 
+        let transaction_fee = Uint128::from(100000u128);
         let instantiate_msg = InstantiateMsg {
+            transaction_fee: transaction_fee,
+
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
@@ -4040,7 +4097,10 @@ mod tests {
             }
         }
         let platform_fee = Uint128::from(300000u128);
+        let transaction_fee = Uint128::from(100000u128);
         let instantiate_msg = InstantiateMsg {
+            transaction_fee: transaction_fee,
+
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
@@ -4202,14 +4262,16 @@ mod tests {
         let mut deps = mock_dependencies(&[]);
         let platform_fee = Uint128::from(300000u128);
 
+        let transaction_fee = Uint128::from(100000u128);
         let instantiate_msg = InstantiateMsg {
+            transaction_fee: transaction_fee,
+
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
             game_id: "Game001".to_string(),
             platform_fees_collector_wallet: "FEE_WALLET".to_string(),
             astro_proxy_address: "ASTROPORT".to_string(),
-
         };
 
         let adminInfo = mock_info("admin11111", &[]);
