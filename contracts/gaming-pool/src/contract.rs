@@ -1975,7 +1975,6 @@ mod tests {
 
         let rewardInfo = mock_info("rewardInfo", &[]);
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             owner1Info.clone(),
@@ -1987,7 +1986,6 @@ mod tests {
             false
         );
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             owner1Info.clone(),
@@ -2139,7 +2137,6 @@ mod tests {
         let ownerXInfo = mock_info("cwtoken11111", &[coin(1000, "stake")]);
         // Adding same team twice in same pool
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             ownerXInfo.clone(),
@@ -2151,7 +2148,6 @@ mod tests {
             false
         );
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             ownerXInfo.clone(),
@@ -2163,7 +2159,6 @@ mod tests {
             false
         );
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             ownerXInfo.clone(),
@@ -2175,7 +2170,6 @@ mod tests {
             false
         );
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             ownerXInfo.clone(),
@@ -2200,7 +2194,6 @@ mod tests {
 
         // Adding multile team to pool_2 for Game001. some of team is already added in pool_1
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             ownerXInfo.clone(),
@@ -2212,7 +2205,6 @@ mod tests {
             false
         );
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             ownerXInfo.clone(),
@@ -2224,7 +2216,6 @@ mod tests {
             false
         );
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             ownerXInfo.clone(),
@@ -2249,7 +2240,6 @@ mod tests {
 
         // Adding same team to another pool of same pool type
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             ownerXInfo.clone(),
@@ -2261,7 +2251,6 @@ mod tests {
             false
         );
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             ownerXInfo.clone(),
@@ -2363,7 +2352,6 @@ mod tests {
         let ownerXInfo = mock_info("cwtoken11111", &[coin(1000, "stake")]);
         // Adding same team twice in same pool
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             ownerXInfo.clone(),
@@ -2375,7 +2363,6 @@ mod tests {
             false
         );
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             ownerXInfo.clone(),
@@ -2387,7 +2374,6 @@ mod tests {
             false
         );
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             ownerXInfo.clone(),
@@ -2491,7 +2477,6 @@ mod tests {
         let ownerXInfo = mock_info("cwtoken11111", &[coin(1000, "stake")]);
         // Adding same team twice in same pool
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             ownerXInfo.clone(),
@@ -2503,7 +2488,6 @@ mod tests {
             false
         );
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             ownerXInfo.clone(),
@@ -2515,7 +2499,6 @@ mod tests {
             false
         );
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             ownerXInfo.clone(),
@@ -2700,7 +2683,6 @@ mod tests {
         let ownerXInfo = mock_info("cwtoken11111", &[coin(1000, "stake")]);
         // Adding same team twice in same pool
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             ownerXInfo.clone(),
@@ -2810,7 +2792,6 @@ mod tests {
         let ownerXInfo = mock_info("cwtoken11111", &[coin(1000, "stake")]);
         // Adding same team twice in same pool
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             ownerXInfo.clone(),
@@ -2822,7 +2803,6 @@ mod tests {
             false
         );
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             ownerXInfo.clone(),
@@ -2834,7 +2814,6 @@ mod tests {
             false
         );
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             ownerXInfo.clone(),
@@ -3033,7 +3012,6 @@ mod tests {
         let ownerXInfo = mock_info("cwtoken11111", &[coin(1000, "stake")]);
         // Adding same team twice in same pool
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             ownerXInfo.clone(),
@@ -3045,7 +3023,6 @@ mod tests {
             false
         );
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             ownerXInfo.clone(),
@@ -3057,7 +3034,6 @@ mod tests {
             false
         );
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             ownerXInfo.clone(),
@@ -3279,7 +3255,6 @@ mod tests {
         let ownerXInfo = mock_info("cwtoken11111", &[coin(1000, "stake")]);
         // Adding same team twice in same pool
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             ownerXInfo.clone(),
@@ -3291,7 +3266,6 @@ mod tests {
             false
         );
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             ownerXInfo.clone(),
@@ -3303,7 +3277,6 @@ mod tests {
             false
         );
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             ownerXInfo.clone(),
@@ -3554,7 +3527,6 @@ mod tests {
         let ownerXInfo = mock_info("cwtoken11111", &[coin(1000, "stake")]);
         // Adding same team twice in same pool
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             ownerXInfo.clone(),
@@ -3566,7 +3538,6 @@ mod tests {
             false
         );
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             ownerXInfo.clone(),
@@ -3578,7 +3549,6 @@ mod tests {
             false
         );
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             ownerXInfo.clone(),
@@ -3749,7 +3719,6 @@ mod tests {
         let ownerXInfo = mock_info("cwtoken11111", &[coin(1000, "stake")]);
         // Adding same team twice in same pool
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             ownerXInfo.clone(),
@@ -3761,7 +3730,6 @@ mod tests {
             false
         );
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             ownerXInfo.clone(),
@@ -3773,7 +3741,6 @@ mod tests {
             false
         );
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             ownerXInfo.clone(),
@@ -4022,7 +3989,6 @@ mod tests {
         let ownerXInfo = mock_info("cwtoken11111", &[coin(1000, "stake")]);
         // Adding same team twice in same pool
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             ownerXInfo.clone(),
@@ -4034,7 +4000,6 @@ mod tests {
             false
         );
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             ownerXInfo.clone(),
@@ -4046,7 +4011,6 @@ mod tests {
             false
         );
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             ownerXInfo.clone(),
@@ -4184,7 +4148,6 @@ mod tests {
         let ownerXInfo = mock_info("cwtoken11111", &[coin(1000, "stake")]);
         // Adding same team twice in same pool
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             ownerXInfo.clone(),
@@ -4196,7 +4159,6 @@ mod tests {
             false
         );
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             ownerXInfo.clone(),
@@ -4208,7 +4170,6 @@ mod tests {
             false
         );
         game_pool_bid_submit(
-            false,
             deps.as_mut(),
             mock_env(),
             ownerXInfo.clone(),
