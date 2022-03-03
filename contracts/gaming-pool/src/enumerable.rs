@@ -1,5 +1,5 @@
 use cosmwasm_std::{Deps, Order, StdResult};
-use cw20::{AllAccountsResponse, AllAllowancesResponse, AllowanceInfo};
+use cw20::{AllAllowancesResponse, AllowanceInfo};
 
 use crate::state::{ALLOWANCES};
 use cw_storage_plus::Bound;

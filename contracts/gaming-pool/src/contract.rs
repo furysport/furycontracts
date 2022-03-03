@@ -1,40 +1,26 @@
-use std::ops::Add;
-
-use astroport::pair::PoolResponse;
-use astroport::pair::QueryMsg::Pool;
 use cosmwasm_std::{
-    Addr, attr, BankMsg, Binary, CosmosMsg, Deps, DepsMut, Env, from_binary, MessageInfo,
-    Order, Response, StdError, StdResult, Storage, SubMsg, Timestamp, to_binary, Uint128,
-    WasmMsg,
+    to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult, Uint128,
 };
-use cosmwasm_std::Coin;
+
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 
-use cw20::{
-    AllowanceResponse, BalanceResponse, Cw20Coin, Cw20ExecuteMsg, Cw20ReceiveMsg, Expiration,
-};
 use cw2::set_contract_version;
 
-use crate::allowances::{
-    deduct_allowance, execute_burn_from, execute_decrease_allowance, execute_increase_allowance,
-    execute_send_from, execute_transfer_from, query_allowance,
-};
 use crate::error::ContractError;
-use crate::execute::{cancel_game, claim_refund, claim_reward, create_pool, game_pool_bid_submit,
-                     game_pool_reward_distribute, lock_game, received_message, save_team_details,
-                     set_platform_fee_wallets, set_pool_type_params};
-use crate::msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, ProxyQueryMsgs, QueryMsg, ReceivedMsg};
-use crate::query::{get_team_count_for_user_in_pool_type, query_all_pool_type_details,
-                   query_all_pools_in_game, query_all_teams, query_game_details, query_game_result,
-                   query_pool_collection, query_pool_details, query_pool_team_details,
-                   query_pool_type_details, query_refund, query_reward, query_team_details};
-use crate::state::{
-    Config, CONFIG, CONTRACT_POOL_COUNT, FeeDetails, GAME_DETAILS, GAME_RESULT_DUMMY, GameDetails,
-    GameResult, GAMING_FUNDS, PLATFORM_WALLET_PERCENTAGES, POOL_DETAILS, POOL_TEAM_DETAILS,
-    POOL_TYPE_DETAILS, PoolDetails, PoolTeamDetails, PoolTypeDetails, WalletPercentage,
-    WalletTransferDetails,
+use crate::execute::{
+    cancel_game, claim_refund, claim_reward, create_pool, game_pool_bid_submit,
+    game_pool_reward_distribute, lock_game, received_message, save_team_details,
+    set_platform_fee_wallets, set_pool_type_params,
 };
+use crate::msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
+use crate::query::{
+    get_team_count_for_user_in_pool_type, query_all_pool_type_details, query_all_pools_in_game,
+    query_all_teams, query_game_details, query_game_result, query_pool_collection,
+    query_pool_details, query_pool_team_details, query_pool_type_details, query_refund,
+    query_reward, query_team_details,
+};
+use crate::state::{Config, GameDetails, GameResult, CONFIG, GAME_DETAILS, GAME_RESULT_DUMMY};
 
 // version info for migration info
 pub const CONTRACT_NAME: &str = "crates.io:gaming-pool";
@@ -195,12 +181,12 @@ pub fn execute(
     }
 }
 
-
 // This is the safe way of contract migration
 // We can add expose specific state properties to
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, ContractError> {
+pub fn migrate(deps: DepsMut, _env: Env, _msg: MigrateMsg) -> Result<Response, ContractError> {
     let ver = cw2::get_contract_version(deps.storage)?;
+    println!("Contract: {}, Version: {}", ver.contract, ver.version);
     // ensure we are migrating from an allowed contract
     // if ver.contract != CONTRACT_NAME {
     //     return Err(StdError::generic_err("Can only upgrade from same type").into());
@@ -212,7 +198,6 @@ pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, Co
     cw2::set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     Ok(Response::default())
 }
-
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
@@ -253,4 +238,3 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         )?),
     }
 }
-

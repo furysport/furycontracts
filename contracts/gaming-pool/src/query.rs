@@ -200,9 +200,9 @@ pub fn query_game_details(storage: &dyn Storage) -> StdResult<GameDetails> {
     let config = CONFIG.load(storage)?;
     let game_id = config.game_id;
 
-    let gameDetail = GAME_DETAILS.may_load(storage, game_id)?;
-    match gameDetail {
-        Some(gameDetail) => return Ok(gameDetail),
+    let game_detail = GAME_DETAILS.may_load(storage, game_id)?;
+    match game_detail {
+        Some(game_detail) => return Ok(game_detail),
         None => return Err(StdError::generic_err("No Game detail found")),
     };
 }
