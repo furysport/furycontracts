@@ -335,7 +335,8 @@ async function buyAClub(deploymentDetails) {
         let bacRequest = {
             buy_a_club: {
                 buyer: nitin_wallet.key.accAddress,
-                club_name: "ClubB"
+                club_name: "ClubB",
+                auto_stake: true
             }
         };
         let platformFees = await queryContract(deploymentDetails.clubStakingAddress, { query_platform_fees: { msg: Buffer.from(JSON.stringify(bacRequest)).toString('base64') } });
@@ -363,7 +364,8 @@ async function stakeOnAClub(deploymentDetails) {
         stake_on_a_club: {
             staker: sameer_wallet.key.accAddress,
             club_name: "ClubB",
-            amount: "100000"
+            amount: "100000",
+            auto_stake: true
         }
     };
     let platformFees = await queryContract(deploymentDetails.clubStakingAddress, { query_platform_fees: { msg: Buffer.from(JSON.stringify(soacRequest)).toString('base64') } });
