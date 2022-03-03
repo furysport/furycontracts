@@ -270,7 +270,28 @@ const test_game_lock_once_pool_is_closed = async function (time) {
     console.log("Assert Success")
     sleep(time)
 }
+const test_game_lock_once_pool_is_canceled = async function (time) {
+    console.log("Testing game lock once pool is Cancelled.")
 
+    let response = await executeContract(walletTest1, gaming_contract_address, {
+        cancel_game: {}
+    })
+    console.log(response)
+    console.log("Assert Success")
+    sleep(time)
+}
+//     ExecuteMsg::ClaimReward { gamer } => claim_reward(deps, info, gamer, env),
+//     ExecuteMsg::ClaimRefund { gamer } => claim_refund(deps, info, gamer, env),
+const claim = async function (time) {
+    console.log("Claim")
+
+    let response = await executeContract(walletTest1, gaming_contract_address, {
+        claim: {}
+    })
+    console.log(response)
+    console.log("Assert Success")
+    sleep(time)
+}
 const reward_distribution_for_locked_game = async function (time) {
     let response = await executeContract(walletTest1, gaming_contract_address, {
         "game_pool_reward_distribute": {
@@ -328,6 +349,7 @@ async function test_migrate(time) {
 
 
 }
+
 async function test_game_pool_reward_distribute(time) {
     console.log("Game Pool Reward Distribute")
     let game_winners = [
@@ -369,7 +391,6 @@ async function test_game_pool_reward_distribute(time) {
     console.log(response)
 }
 
-
 await test_create_and_query_game(sleep_time)
 await test_create_and_query_pool(sleep_time)
 await test_get_team_count_for_user_in_pool_type(sleep_time)
@@ -377,4 +398,13 @@ await set_pool_headers_for_H2H_pool_type(sleep_time)
 await test_game_pool_bid_submit_when_pool_team_in_range(sleep_time)
 await test_game_lock_once_pool_is_closed(sleep_time)
 await reward_distribution_for_locked_game(sleep_time)
+// Claim
 await test_migrate(sleep_time)
+await test_create_and_query_game(sleep_time)
+await test_create_and_query_pool(sleep_time)
+await test_get_team_count_for_user_in_pool_type(sleep_time)
+await set_pool_headers_for_H2H_pool_type(sleep_time)
+await test_game_pool_bid_submit_when_pool_team_in_range(sleep_time)
+await test_game_lock_once_pool_is_closed(sleep_time)
+await test_game_lock_once_pool_is_canceled(sleep_time)
+// Refund

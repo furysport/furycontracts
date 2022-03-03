@@ -1,17 +1,20 @@
 use std::ops::Add;
+
 use astroport::asset::{Asset, AssetInfo};
+use astroport::pair::ExecuteMsg as AstroPortExecute;
 use cosmwasm_std::{BankMsg, Coin, CosmosMsg, Deps, DepsMut, Env, from_binary, MessageInfo, Order, Response, StdError, StdResult, Storage, SubMsg, to_binary, Uint128, WasmMsg};
+
 use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg};
+
 use crate::contract::{CLAIMED_REFUND, CLAIMED_REWARD, DUMMY_WALLET, GAME_CANCELLED, GAME_COMPLETED, GAME_POOL_CLOSED, GAME_POOL_OPEN, HUNDRED_PERCENT, INITIAL_REFUND_AMOUNT, INITIAL_REWARD_AMOUNT, INITIAL_TEAM_POINTS, INITIAL_TEAM_RANK, REWARDS_DISTRIBUTED, REWARDS_NOT_DISTRIBUTED, UNCLAIMED_REFUND, UNCLAIMED_REWARD};
 use crate::ContractError;
 use crate::msg::{ProxyQueryMsgs, ReceivedMsg};
+use crate::msg::AssetInfo::NativeToken;
 use crate::query::{get_team_count_for_user_in_pool_type, query_pool_details, query_pool_type_details};
 use crate::state::{CONFIG, CONTRACT_POOL_COUNT, FeeDetails, GAME_DETAILS, GameDetails,
                    GameResult, GAMING_FUNDS, PLATFORM_WALLET_PERCENTAGES, POOL_DETAILS,
                    POOL_TEAM_DETAILS, POOL_TYPE_DETAILS, PoolDetails, PoolTeamDetails,
                    PoolTypeDetails, WalletPercentage, WalletTransferDetails};
-use astroport::pair::ExecuteMsg as AstroPortExecute;
-use crate::msg::AssetInfo::NativeToken;
 
 pub fn received_message(
     deps: DepsMut,
@@ -1046,30 +1049,42 @@ pub fn transfer_from_contract_to_wallet(
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
     let mut messages = Vec::new();
-    // Amount Requested is in Fury Now we convert it to UST
-    let amount_to_swap_in_ust = deps.querier.query_wasm_smart(
-        config.astro_proxy_address.clone(),
-        &ProxyQueryMsgs::get_ust_equivalent_to_fury {
-            fury_count: amount,
-        },
-    )?;
-    // Swap from UST to FURY the amount here we use the amount_to_swap_in_ust and Send the Fury to the Reciepent After Swap
-    let swap_message = AstroPortExecute::Swap {
-        offer_asset: Asset {
-            info: AssetInfo::NativeToken {
-                denom: "uusd".to_string()
-            },
-            amount: amount_to_swap_in_ust,
-        },
-        belief_price: None,
-        max_spread: None,
-        to: Option::from(info.sender.to_string()),
+    // // Amount Requested is in Fury Now we convert it to UST
+    // let amount_to_swap_in_ust = deps.querier.query_wasm_smart(
+    //     config.astro_proxy_address.clone(),
+    //     &ProxyQueryMsgs::get_ust_equivalent_to_fury {
+    //         fury_count: amount,
+    //     },
+    // )?;
+    // // Swap from UST to FURY the amount here we use the amount_to_swap_in_ust and Send the Fury to the Reciepent After Swap
+    // let swap_message = AstroPortExecute::Swap {
+    //     offer_asset: Asset {
+    //         info: AssetInfo::NativeToken {
+    //             denom: "uusd".to_string()
+    //         },
+    //         amount: amount_to_swap_in_ust,
+    //     },
+    //     belief_price: None,
+    //     max_spread: None,
+    //     to: Option::from(info.sender.to_string()),
+    // };
+    // messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
+    //     contract_addr: config.astro_proxy_address.to_string(),
+    //     msg: to_binary(&swap_message).unwrap(),
+    //     funds: vec![],
+    // }));
+    // Sending Fury token to the contract
+    let transfer_msg = Cw20ExecuteMsg::TransferFrom {
+        owner: String::from(env.contract.address),
+        recipient: String::from(info.sender.clone()),
+        amount,
     };
-    messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
-        contract_addr: config.astro_proxy_address.to_string(),
-        msg: to_binary(&swap_message).unwrap(),
+    let exec = WasmMsg::Execute {
+        contract_addr: config.minting_contract_address.to_string(),
+        msg: to_binary(&transfer_msg).unwrap(),
         funds: vec![],
-    }));
+    };
+    messages.push(CosmosMsg::Wasm(exec));
 
     if is_refund {
         let refund = Coin {
