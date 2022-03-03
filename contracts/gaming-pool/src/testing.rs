@@ -1194,7 +1194,7 @@ mod tests {
         let cancelInfo = mock_info("cancelInfo", &[]);
         let cancel_rsp = cancel_game(deps.as_mut(), mock_env(), adminInfo.clone());
 
-        let claim_refund_rsp = claim_refund(deps.as_mut(), owner1Info.clone(), "Gamer002".to_string());
+        let claim_refund_rsp = claim_refund(deps.as_mut(), owner1Info.clone(), "Gamer002".to_string(), mock_env());
         match claim_refund_rsp {
             Ok(claim_refund_rsp) => {
                 let amt = claim_refund_rsp.attributes[0].value.clone();
@@ -1635,7 +1635,7 @@ mod tests {
         }
 
         let claim_reward_rsp =
-            claim_reward(deps.as_mut(), owner1Info.clone(), "Gamer002".to_string());
+            claim_reward(deps.as_mut(), owner1Info.clone(), "Gamer002".to_string(), mock_env());
         match claim_reward_rsp {
             Ok(claim_reward_rsp) => {
                 //Since max allowed team for gamer under this pooltype is 2 so it will not allow 3rd team creation under this pooltype.
@@ -1878,7 +1878,7 @@ mod tests {
         }
 
         let claim_reward_rsp =
-            claim_reward(deps.as_mut(), owner1Info.clone(), "Gamer002".to_string());
+            claim_reward(deps.as_mut(), owner1Info.clone(), "Gamer002".to_string(), mock_env());
         match claim_reward_rsp {
             Ok(claim_reward_rsp) => {
                 //Since max allowed team for gamer under this pooltype is 2 so it will not allow 3rd team creation under this pooltype.
@@ -1915,7 +1915,7 @@ mod tests {
         }
 
         let claim_reward_rsp_2 =
-            claim_reward(deps.as_mut(), owner1Info.clone(), "Gamer002".to_string());
+            claim_reward(deps.as_mut(), owner1Info.clone(), "Gamer002".to_string(), mock_env());
         match claim_reward_rsp_2 {
             Ok(claim_reward_rsp_2) => {
                 // IT should not come here
