@@ -1263,20 +1263,24 @@ fn calculate_and_distribute_rewards(
         let staking_details = CLUB_STAKING_DETAILS.load(deps.storage, club_name.clone())?;
         for mut stake in staking_details {
             let mut updated_stake = stake.clone();
+            let auto_stake = updated_stake.auto_stake;
             staker_address = deps.api.addr_validate(&stake.staker_address)?;
-    
             // Calculate for All Staker - 78% proportional
             let reward_for_this_stake = (all_stakers_reward.checked_mul(stake.staked_amount))
                 .unwrap_or_default()
                 .checked_div(total_staking)
                 .unwrap_or_default();
             reward_given_so_far += reward_for_this_stake;
-            updated_stake.staked_amount += reward_for_this_stake;
-            STAKING_FUNDS.update(
-                deps.storage,
-                &staker_address,
-                |balance: Option<Uint128>| -> StdResult<_> { Ok(balance.unwrap_or_default() + reward_for_this_stake) },
-            )?;
+            if auto_stake == SET_AUTO_STAKE {
+                updated_stake.staked_amount += reward_for_this_stake;
+                STAKING_FUNDS.update(
+                    deps.storage,
+                    &staker_address,
+                    |balance: Option<Uint128>| -> StdResult<_> { Ok(balance.unwrap_or_default() + reward_for_this_stake) },
+                )?;
+            } else {
+                updated_stake.reward_amount += reward_for_this_stake;
+            }
             cadr_response = cadr_response.add_attribute("reward",format!("all_78 {:?} {:?} {:?}",stake.staker_address,club_name,reward_for_this_stake));
             println!(
                 "reward out of 78 percent for {:?} is {:?} ",
@@ -1290,12 +1294,16 @@ fn calculate_and_distribute_rewards(
                     .checked_div(total_staking_in_club)
                     .unwrap_or_default();
                 reward_given_so_far += reward_for_this_stake;
-                updated_stake.staked_amount += reward_for_this_stake;
-                STAKING_FUNDS.update(
-                    deps.storage,
-                    &staker_address,
-                    |balance: Option<Uint128>| -> StdResult<_> { Ok(balance.unwrap_or_default() + reward_for_this_stake) },
-                )?;
+                if auto_stake == SET_AUTO_STAKE {
+                    updated_stake.staked_amount += reward_for_this_stake;
+                    STAKING_FUNDS.update(
+                        deps.storage,
+                        &staker_address,
+                        |balance: Option<Uint128>| -> StdResult<_> { Ok(balance.unwrap_or_default() + reward_for_this_stake) },
+                    )?;
+                } else {
+                    updated_stake.reward_amount += reward_for_this_stake;
+                }
                 cadr_response = cadr_response.add_attribute("reward",format!("winClub_19 {:?} {:?} {:?}",stake.staker_address,club_name,reward_for_this_stake));
                 println!(
                     "reward out of 19 percent for {:?} is {:?} ",
@@ -1310,12 +1318,17 @@ fn calculate_and_distribute_rewards(
                     updated_stake_winner_owner.push(updated_stake.clone());
                 } else {
                     reward_given_so_far += reward_for_other_owners;
-                    updated_stake.staked_amount += reward_for_other_owners;
-                    STAKING_FUNDS.update(
-                        deps.storage,
-                        &staker_address,
-                        |balance: Option<Uint128>| -> StdResult<_> { Ok(balance.unwrap_or_default() + reward_for_other_owners) },
-                    )?;
+                    if auto_stake == SET_AUTO_STAKE {
+                        updated_stake.staked_amount += reward_for_other_owners;
+                        STAKING_FUNDS.update(
+                            deps.storage,
+                            &staker_address,
+                            |balance: Option<Uint128>| -> StdResult<_> { Ok(balance.unwrap_or_default() + reward_for_other_owners) },
+                        )?;
+                    } else {
+                        updated_stake.reward_amount += reward_for_this_stake;
+                    }
+
                     cadr_response = cadr_response.add_attribute("reward",format!("owner_2 {:?} {:?} {:?}",stake.staker_address,club_name,reward_for_this_stake));
                     println!(
                         "reward out of 2 percent for {:?} is {:?} ",
@@ -1339,23 +1352,28 @@ fn calculate_and_distribute_rewards(
 
     // Calculate for Winning Owner 1% / Remainder
     // NOTE : winning_club_owner get remaining 1% (in case no other club, the owner shall get 1% + 2%)
-    let reward_for_winner_owner = total_reward - reward_given_so_far;
+    let reward_for_this_stake = total_reward - reward_given_so_far;
 
     if updated_stake_winner_owner.len() > 0 {
-        let mut winner_stake = updated_stake_winner_owner[0].clone();
-        winner_stake.staked_amount += reward_for_winner_owner; 
-        updated_stakes_winner_club.push(winner_stake.clone());
+        let mut updated_stake = updated_stake_winner_owner[0].clone();
+        let auto_stake = updated_stake.auto_stake;
+        staker_address = deps.api.addr_validate(&updated_stake.staker_address)?;
+        if auto_stake == SET_AUTO_STAKE {
+            updated_stake.staked_amount += reward_for_this_stake;
+            STAKING_FUNDS.update(
+                deps.storage,
+                &staker_address,
+                |balance: Option<Uint128>| -> StdResult<_> { Ok(balance.unwrap_or_default() + reward_for_this_stake) },
+            )?;
+        } else {
+            updated_stake.reward_amount += reward_for_this_stake;
+        }
+        updated_stakes_winner_club.push(updated_stake.clone());
         CLUB_STAKING_DETAILS.save(deps.storage, winner_club_name.clone(), &updated_stakes_winner_club)?;
-        staker_address = deps.api.addr_validate(&winner_stake.staker_address)?;
-        STAKING_FUNDS.update(
-            deps.storage,
-            &staker_address,
-            |balance: Option<Uint128>| -> StdResult<_> { Ok(balance.unwrap_or_default() + reward_for_winner_owner) },
-        )?;
-        cadr_response = cadr_response.add_attribute("reward",format!("owner_winner_1 {:?} {:?} {:?}",winner_stake.staker_address,winner_club_name,reward_for_winner_owner));
+        cadr_response = cadr_response.add_attribute("reward",format!("owner_winner_1 {:?} {:?} {:?}",updated_stake.staker_address,winner_club_name,reward_for_this_stake));
         println!(
             "reward out of 1 percent for {:?} is {:?} ",
-            winner_stake.staker_address, reward_for_winner_owner
+            updated_stake.staker_address, reward_for_this_stake
         );
     }
     REWARD.save(deps.storage, &Uint128::zero())?;
@@ -2471,7 +2489,7 @@ mod tests {
             ExecuteMsg::CalculateAndDistributeRewards {},
         )
         .unwrap();
-        assert_eq!(res, Response::default());
+        assert_eq!(res.messages, Response::default().messages); // no longer a totally empty default response
 
         let queryRes = query_all_stakes(&mut deps.storage);
         match queryRes {
@@ -2483,10 +2501,10 @@ mod tests {
                     let staked_amount = stake.staked_amount;
                     println!("staker : {:?} reward_amount : {:?} staked_amount : {:?}", staker_address.clone(), reward_amount, staked_amount);
                     if staker_address == "Staker001" {
-                        assert_eq!(reward_amount, Uint128::from(990000u128));
+                        assert_eq!(reward_amount, Uint128::from(970000u128));
                     }
                     if staker_address == "Owner001" {
-                        assert_eq!(reward_amount, Uint128::from(10000u128));
+                        assert_eq!(reward_amount, Uint128::from(30000u128));
                     }
                 }
             }
