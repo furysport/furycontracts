@@ -476,19 +476,19 @@ pub fn game_pool_bid_submit(
         info: AssetInfo::NativeToken { denom: "uusd".to_string() },
         amount: Uint128::zero(),
     };
-    let mut uusd_error = true;
-    for fund in info.funds.clone() {
-        if fund.denom == "uusd" {
-            if fund.amount < required_platform_fee_ust.add(transaction_fee) {
-                asset = Asset {
-                    info: AssetInfo::NativeToken { denom: fund.denom },
-                    amount: fund.amount,
-                };
-                uusd_error = false; // Disabling the error as the funds are correct
-            }
-        }
+    if info.funds.clone().len() > 1 {
+        return Err(ContractError::InvalidNumberOfCoinsSent {});
     }
-    if uusd_error {
+    let fund = info.funds.clone();
+
+    if fund[0].denom == "uusd" {
+        if fund[0].amount < required_platform_fee_ust.add(transaction_fee) {
+            asset = Asset {
+                info: AssetInfo::NativeToken { denom: fund[0].denom.clone() },
+                amount: fund[0].amount,
+            };
+        }
+    } else {
         return Err(ContractError::InsufficientFeesUst {});
     }
 
@@ -589,12 +589,12 @@ pub fn game_pool_bid_submit(
         recipient: env.clone().contract.address.to_string(),
         amount,
     };
-    let exec = WasmMsg::Execute {
-        contract_addr: config.minting_contract_address.to_string(),
-        msg: to_binary(&transfer_msg).unwrap(),
-        funds: vec![],
-    };
-    messages.push(CosmosMsg::Wasm(exec));
+    // let exec = WasmMsg::Execute {
+    //     contract_addr: config.minting_contract_address.to_string(),
+    //     msg: to_binary(&transfer_msg).unwrap(),
+    //     funds: vec![],
+    // };
+    // messages.push(CosmosMsg::Wasm(exec));
 
     // Swapping the new Fury to UST
 

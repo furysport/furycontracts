@@ -40,4 +40,7 @@ pub enum ContractError {
 
     #[error("Insufficient fees in UST sent")]
     InsufficientFeesUst {},
+
+    #[error("Invalid Number Of Coins Sent")]
+    InvalidNumberOfCoinsSent {},
 }
