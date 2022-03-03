@@ -32,11 +32,13 @@ pub enum ExecuteMsg {
         buyer: String,
         seller: Option<String>,
         club_name: String,
+        auto_stake: bool,
     },
     StakeOnAClub {
         staker: String,
         club_name: String,
         amount: Uint128,
+        auto_stake: bool,
     },
     ReleaseClub {
         owner: String,

@@ -83,6 +83,9 @@ pub struct ClubStakingDetails {
 
     /// reward amount in quantity of tokens
     pub reward_amount: Uint128,
+
+    /// whether rewards are auto-staked or do they need to be claimed
+    pub auto_stake: bool,
 }
 
 /// This is used for saving various bonding details for an unstaked club
