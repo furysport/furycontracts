@@ -32,25 +32,30 @@ export const mint_wallet = terraClient.wallet(mk1);
 
 const mk2 = new MnemonicKey({mnemonic: "kiwi habit donor choice control fruit fame hamster trip aerobic juice lens lawn popular fossil taste venture furnace october income advice window opera helmet",});
 export const treasury_wallet = terraClient.wallet(mk2);
+// terra1gsx5474vqlguv6fhsqcz28rszm43aj46yy6090
 
 const mk3 = new MnemonicKey({mnemonic: "job dilemma fold hurry solar strong solar priority lawsuit pass demise senior purpose useless outdoor jaguar identify enhance dirt vehicle fun nasty dragon still",});
 export const liquidity_wallet = terraClient.wallet(mk3);
+// terra196jgjjwelkf7s63pzhsy9e2gky0ggpr7wcdf9f
 
 const mk4 = new MnemonicKey({mnemonic: "snap merit day trash key reopen stamp normal diagram vacant economy donate winner sister aerobic artist cheese bright palace athlete mind snack crawl bridge",});
 export const marketing_wallet = terraClient.wallet(mk4);
+// terra1uphl9w7t7cceal4ey60wnn3jd4lt4ksyhrwv9f
 
 const mk5 = new MnemonicKey({mnemonic:"element final maximum lake rain jewel never typical bunker detect gold earn fancy grace heart surge auction debris embody lazy edit worry expose soon"});
 export const team_wallet = terraClient.wallet(mk5);
 
 const mkNitin = new MnemonicKey({mnemonic:"garden celery myth discover isolate dilemma width sugar enemy grief case kingdom boring guess next huge indoor cargo crime letter useful essay gold view"});
 export const nitin_wallet = terraClient.wallet(mkNitin);
+// terra1aqan94tvxfc0h8ux4w96sjaqpcs5x4qds0690v
 
 const mkAjay = new MnemonicKey({mnemonic:"purse blur pitch skirt upset master relief feel pole enroll coffee change tooth live bunker federal work dry struggle little design eyebrow hope essence"});
 export const ajay_wallet = terraClient.wallet(mkAjay);
+// terra1s2upge2nskedaw595qug8xrq96n2qn4vgu35cv
 
 const mkSameer = new MnemonicKey({mnemonic:"term salon nothing matrix flower click annual bomb anxiety glide castle okay payment degree umbrella clap cancel lock broom use ritual thrive price flavor"});
 export const sameer_wallet = terraClient.wallet(mkSameer);
-
+// terra1mdypjce5j5f7qamjlj726c7hgjd3mzltj2qvcc
 
 export const swapinitMessage = {
     pair_code_id: 321,
