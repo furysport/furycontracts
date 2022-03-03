@@ -1286,18 +1286,10 @@ fn calculate_and_distribute_rewards(
             CLUB_STAKING_DETAILS.save(deps.storage, club_name, &all_stakes)?;
         }
 
-
         //Increase owner reward by 1% - remainder of total reward
         let winner_club_reward = total_reward - reward_given_so_far;
-        winner_club_details.reward_amount += winner_club_reward;
         reward_given_so_far += winner_club_reward;
         println!("winner club owner reward = {:?}", winner_club_reward);
-        CLUB_OWNERSHIP_DETAILS.save(
-            deps.storage,
-            winner_club_details.club_name.clone(),
-            &winner_club_details,
-        )?;
-
 		let mut all_stakes = Vec::new();
 		let staking_details = CLUB_STAKING_DETAILS.load(deps.storage, winner_club_details.club_name.clone())?;
 		for mut stake in staking_details {
