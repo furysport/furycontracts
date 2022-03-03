@@ -147,8 +147,8 @@ pub fn execute(
         ExecuteMsg::CalculateAndDistributeRewards {} => {
             calculate_and_distribute_rewards(deps, env, info)
         }
-        ExecuteMsg::ClaimRewards { staker, club_name } => {
-            claim_rewards(deps, info, staker, club_name)
+        ExecuteMsg::ClaimStakerRewards { staker, club_name } => {
+            claim_staker_rewards(deps, info, staker, club_name)
         }
         ExecuteMsg::PeriodicallyRefundStakeouts {} => {
             periodically_refund_stakeouts(deps, env, info)
@@ -1092,7 +1092,7 @@ fn increase_reward_amount(
     return Ok(Response::default());
 }
 
-fn claim_rewards(
+fn claim_staker_rewards(
     deps: DepsMut,
     info: MessageInfo,
     staker: String,
@@ -1104,6 +1104,26 @@ fn claim_rewards(
     //Check if withdrawer is same as invoker
     if staker_addr != info.sender {
         return Err(ContractError::Unauthorized {});
+    }
+
+    let required_ust_fees = query_platform_fees(
+		deps.as_ref(),
+		to_binary(&ExecuteMsg::ClaimStakerRewards {
+			staker: staker.clone(),
+			club_name: club_name.clone(),
+		})?,
+	)?;
+    let mut fees = Uint128::zero();
+    for fund in info.funds.clone() {
+        if fund.denom == "uusd" {
+            fees = fees.checked_add(fund.amount).unwrap();
+        }
+    }
+    if fees < required_ust_fees {
+        return Err(ContractError::InsufficientFees {
+            required: required_ust_fees,
+            received: fees,
+        });
     }
 
     // Get the exising stakes for this club
@@ -1140,12 +1160,31 @@ fn claim_rewards(
             msg: String::from("No rewards for this user"),
         }));
     }
-    transfer_from_contract_to_wallet(
-        deps.storage,
-        staker.clone(),
-        amount,
-        "staking_reward_claim".to_string(),
-    )
+
+    let config = CONFIG.load(deps.storage)?;
+
+    let transfer_msg = Cw20ExecuteMsg::Transfer {
+        recipient: staker.clone(),
+        amount: amount,
+    };
+    let exec = WasmMsg::Execute {
+        contract_addr: config.minting_contract_address.to_string(),
+        msg: to_binary(&transfer_msg).unwrap(),
+        funds: vec![],
+    };
+    let send_wasm: CosmosMsg = CosmosMsg::Wasm(exec);
+    let send_bank: CosmosMsg = CosmosMsg::Bank(BankMsg::Send {
+        to_address: config.platform_fees_collector_wallet.into_string(),
+        amount: info.funds,
+    });
+    let data_msg = format!("Amount {} transferred", amount).into_bytes();
+    return Ok(Response::new()
+        .add_message(send_wasm)
+        .add_message(send_bank)
+        .add_attribute("action", "staking_reward_claim")
+        .add_attribute("staker", staker)
+        .add_attribute("amount", amount.to_string())
+        .set_data(data_msg));
 }
 
 fn calculate_and_distribute_rewards(
@@ -1470,6 +1509,10 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
             to_binary(&get_clubs_ranking_by_stakes(deps.storage)?)
         }
         QueryMsg::RewardAmount {} => to_binary(&query_reward_amount(deps.storage)?),
+        QueryMsg::QueryStakerRewards {
+            staker,
+            club_name,
+        } => to_binary(&query_staker_rewards(deps, staker, club_name)?),
     }
 }
 
@@ -1523,8 +1566,9 @@ pub fn query_platform_fees(deps: Deps, msg: Binary) -> StdResult<Uint128> {
         Ok(ExecuteMsg::CalculateAndDistributeRewards {}) => {
             return Ok(Uint128::zero());
         }
-        Ok(ExecuteMsg::ClaimRewards { staker: _, club_name: _ }) => {
-            return Ok(Uint128::zero());
+        Ok(ExecuteMsg::ClaimStakerRewards { staker, club_name }) => {
+            fury_amount_provided = query_staker_rewards(deps, staker, club_name)?;
+            platform_fees_percentage = config.platform_fees + config.transaction_fees;
         }
         Err(err) => {
             return Err(StdError::generic_err(format!("{:?}", err)));
@@ -1619,6 +1663,29 @@ fn get_clubs_ranking_by_stakes(storage: &dyn Storage) -> StdResult<Vec<(String, 
 fn query_reward_amount(storage: &dyn Storage) -> StdResult<Uint128> {
     let reward: Uint128 = REWARD.may_load(storage)?.unwrap_or_default();
     return Ok(reward);
+}
+
+fn query_staker_rewards(
+    deps: Deps,
+    staker: String,
+    club_name: String,
+) -> StdResult<Uint128> {
+    // Get the exising stakes for this club
+    let mut stakes = Vec::new();
+    let all_stakes = CLUB_STAKING_DETAILS.may_load(deps.storage, club_name.clone())?;
+    match all_stakes {
+        Some(some_stakes) => {
+            stakes = some_stakes;
+        }
+        None => {}
+    }
+	let mut amount = Uint128::zero();
+    for stake in stakes {
+        if staker == stake.staker_address {
+            amount += stake.reward_amount;
+        }
+    }
+	return Ok(amount);
 }
 
 fn query_club_ownership_details(

@@ -59,7 +59,7 @@ pub enum ExecuteMsg {
     },
     PeriodicallyRefundStakeouts {},
     CalculateAndDistributeRewards {},
-    ClaimRewards {
+    ClaimStakerRewards {
         staker: String,
         club_name: String,
     },
@@ -103,6 +103,10 @@ pub enum QueryMsg {
     RewardAmount {},
     QueryPlatformFees { 
         msg: Binary,
+    },
+    QueryStakerRewards {
+        staker: String,
+        club_name: String,
     },
 }
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
