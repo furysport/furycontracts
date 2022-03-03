@@ -1,15 +1,15 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    attr, from_binary, to_binary, BankMsg, Binary, CosmosMsg, Deps, DepsMut, Env, MessageInfo,
-    Order, Reply, ReplyOn, Response, StdError, StdResult, Storage, SubMsg, Uint128, WasmMsg,
+    from_binary, to_binary, BankMsg, Binary, CosmosMsg, Deps, DepsMut, Env, MessageInfo,
+    Order, Reply, Response, StdError, StdResult, Storage, SubMsg, Uint128, WasmMsg,
 };
 
 use cw2::set_contract_version;
 use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg};
 
-use astroport::pair::PoolResponse;
-use astroport::pair::QueryMsg::Pool;
+// use astroport::pair::PoolResponse;
+// use astroport::pair::QueryMsg::Pool;
 
 // use crate::allowances::{
 //     deduct_allowance, execute_burn_from, execute_decrease_allowance, execute_increase_allowance,
@@ -47,11 +47,12 @@ const CLUB_LOCKING_DURATION: u64 = 0u64;
 // No longer applicable so setting it to 0
 const CLUB_STAKING_DURATION: u64 = 0u64;
 
-// this is 7 day bonding period in seconds, after withdrawing a stake
+// this is 7 day bonding period in seconds, after withdrawing a stake 
 // TODO _ Revert after DEBUG : this is 1 hour for testing purposes only
 // const CLUB_BONDING_DURATION: u64 = 3600u64;
+// - now part of instantiation msg.bonding_duration
 
-use cosmwasm_std::{Coin, Timestamp};
+// use cosmwasm_std::{Coin, Timestamp};
 
 const HUNDRED_PERCENT: u128 = 10000u128;
 
@@ -798,7 +799,7 @@ fn withdraw_stake_from_a_club(
             let existing_bonds = s_bonds.clone();
             let mut updated_bonds = Vec::new();
 
-            /// PRE-MATURITY BOND are extracted here
+            // PRE-MATURITY BOND are extracted here
             // let mut bonded_bonds = Vec::new();
             
             for bond in existing_bonds {
@@ -825,9 +826,9 @@ fn withdraw_stake_from_a_club(
                             updated_bonds.push(updated_bond);
                         }
                     } else {
-                        /// PRE-MATURITY BOND ENCASH AT DISCOUNT - enable the following line
+                        // PRE-MATURITY BOND ENCASH AT DISCOUNT - enable the following line
                         // bonded_bonds.push(updated_bond);
-                        /// PRE-MATURITY BOND ENCASH AT DISCOUNT - bypased or masked using this line
+                        // PRE-MATURITY BOND ENCASH AT DISCOUNT - bypased or masked using this line
                         updated_bonds.push(updated_bond);
                     }
                 } else {
@@ -835,7 +836,7 @@ fn withdraw_stake_from_a_club(
                 }
             }
 
-            /// This section Checks the Pre-Maturity Bonds for possible encashment
+            // // This section Checks the Pre-Maturity Bonds for possible encashment
             // for bond in bonded_bonds {
             //     let mut updated_bond = bond.clone();
             //     if amount_remaining > Uint128::zero() {
@@ -1152,6 +1153,9 @@ fn calculate_and_distribute_rewards(
     env: Env,
     info: MessageInfo,
 ) -> Result<Response, ContractError> {
+
+    let mut cadr_response = Response::new();
+
     // Check if this is executed by main/transaction wallet
     let config = CONFIG.load(deps.storage)?;
     if info.sender != config.admin_address {
@@ -1186,140 +1190,177 @@ fn calculate_and_distribute_rewards(
             
     // No need to calculate if there is no reward amount
     if total_reward == Uint128::zero() {
-        return Ok(Response::new().add_attribute("response", "no accumulated rewards"));
+        return Ok(Response::new().add_attribute("response", "no accumulated rewards")
+            .add_attribute("next_timestamp", next_reward_time.to_string())
+            );
     }
 
     let mut reward_given_so_far = Uint128::zero();
     // Get the club ranking as per staking
     let top_rankers = get_clubs_ranking_by_stakes(deps.storage)?;
+
     // No need to proceed if there are no stakers
-    if top_rankers.len() > 0 {
-        let winner_club = &top_rankers[0];
-        let winner_club_name = winner_club.0.clone();
-        let mut winner_club_details =
-            query_club_ownership_details(deps.storage, winner_club_name.clone())?;
-        println!(
-            "winner club owner address = {:?}",
-            winner_club_details.owner_address
-        );
+    if top_rankers.len() == 0 {
+        return Err(ContractError::Std(StdError::GenericErr {
+            msg: String::from("No Club Stakes"),
+        }));
+    }
+    if top_rankers[0].1 == Uint128::zero() {
+        return Err(ContractError::Std(StdError::GenericErr {
+            msg: String::from("No Staked Tokens"),
+        }));
+    }
 
-        //Get all stakes for this club
-        let mut stakes: Vec<ClubStakingDetails> = Vec::new();
-        let all_stakes_for_winner =
-            CLUB_STAKING_DETAILS.may_load(deps.storage, winner_club_name.clone())?;
-        match all_stakes_for_winner {
-            Some(some_stakes) => {
-                stakes = some_stakes;
-            }
-            None => {}
-        }
-        let reward_for_all_winners = total_reward
-            .checked_mul(Uint128::from(19u128))
+    let mut other_club_count = Uint128::zero();
+    let mut total_staking = Uint128::zero();
+    for stake in top_rankers.clone() {
+        total_staking += stake.1;
+        other_club_count += Uint128::from(1u128);
+    }
+
+    let winner_club = top_rankers[0].clone();
+    let winner_club_name = winner_club.0.clone();
+    let total_staking_winner_club = winner_club.1;
+    other_club_count -= Uint128::from(1u128);
+
+    // distribute the 19% to stakers in winning club
+    let reward_for_all_winners = total_reward
+        .checked_mul(Uint128::from(19u128))
+        .unwrap_or_default()
+        .checked_div(Uint128::from(100u128))
+        .unwrap_or_default();
+
+    // distribute the 78% to all
+    let all_stakers_reward = total_reward
+        .checked_mul(Uint128::from(78u128))
+        .unwrap_or_default()
+        .checked_div(Uint128::from(100u128))
+        .unwrap_or_default();
+
+    // distribute the 2% to non winning owners equally
+    let mut reward_for_other_owners = Uint128::zero();
+    if other_club_count > Uint128::zero() {
+        reward_for_other_owners = total_reward
+            .checked_mul(Uint128::from(2u128))
             .unwrap_or_default()
             .checked_div(Uint128::from(100u128))
+            .unwrap_or_default()
+            .checked_div(other_club_count)
             .unwrap_or_default();
-        let total_staking_for_this_club = winner_club.1;
-        let mut updated_stakes = Vec::new();
-        for stake in stakes.clone() {
-            let auto_stake = stake.auto_stake;
-            let reward_for_this_winner = reward_for_all_winners
-                .checked_mul(stake.staked_amount)
-                .unwrap_or_default()
-                .checked_div(total_staking_for_this_club)
-                .unwrap_or_default();
+    }
+    let mut reward_for_other_owners = Uint128::zero();
+    let mut updated_stakes_winner_club = Vec::<ClubStakingDetails>::new();
+    let mut updated_stake_winner_owner = Vec::<ClubStakingDetails>::new();
+    let mut staker_address;
+
+    for ranker in top_rankers {
+        let club_name = ranker.0.clone();
+        let total_staking_in_club = ranker.1.clone();
+        let club_details = query_club_ownership_details(deps.storage, club_name.clone())?;
+        let club_owner_address = club_details.owner_address;
+
+        let mut all_stakes = Vec::new();
+        let staking_details = CLUB_STAKING_DETAILS.load(deps.storage, club_name.clone())?;
+        for mut stake in staking_details {
             let mut updated_stake = stake.clone();
-            if auto_stake == SET_AUTO_STAKE {
-                updated_stake.staked_amount += reward_for_this_winner;
-                updated_stake.staked_amount += updated_stake.reward_amount;
-                updated_stake.reward_amount = Uint128::zero();
-            } else {
-                updated_stake.reward_amount += reward_for_this_winner;
-            } 
-            reward_given_so_far += reward_for_this_winner;
+            staker_address = deps.api.addr_validate(&stake.staker_address)?;
+    
+            // Calculate for All Staker - 78% proportional
+            let reward_for_this_stake = (all_stakers_reward.checked_mul(stake.staked_amount))
+                .unwrap_or_default()
+                .checked_div(total_staking)
+                .unwrap_or_default();
+            reward_given_so_far += reward_for_this_stake;
+            updated_stake.staked_amount += reward_for_this_stake;
+            STAKING_FUNDS.update(
+                deps.storage,
+                &staker_address,
+                |balance: Option<Uint128>| -> StdResult<_> { Ok(balance.unwrap_or_default() + reward_for_this_stake) },
+            )?;
+            cadr_response = cadr_response.add_attribute("reward",format!("all_78 {:?} {:?} {:?}",stake.staker_address,club_name,reward_for_this_stake));
             println!(
-                "reward for {:?} out of 19 percent for winning club {:?} is {:?} auto_stake is {:?}",
-                stake.staker_address, winner_club_name.clone(), reward_for_this_winner, auto_stake
+                "reward out of 78 percent for {:?} is {:?} ",
+                updated_stake.staker_address, reward_for_this_stake
             );
-            updated_stakes.push(updated_stake);
-        }
-        CLUB_STAKING_DETAILS.save(deps.storage, winner_club_name.clone(), &updated_stakes)?;
 
-        // distribute the 80% to all
-        let remaining_reward = total_reward
-            .checked_mul(Uint128::from(80u128))
-            .unwrap_or_default()
-            .checked_div(Uint128::from(100u128))
-            .unwrap_or_default();
-        let mut total_staking = Uint128::zero();
-        let all_stakes = query_all_stakes(deps.storage)?;
-        for stake in all_stakes {
-            total_staking += stake.staked_amount;
+            // Calculate for Winner Club Staker 19% - proportional
+            if club_name == winner_club_name {
+                let reward_for_this_stake = (reward_for_all_winners.checked_mul(stake.staked_amount))
+                    .unwrap_or_default()
+                    .checked_div(total_staking_in_club)
+                    .unwrap_or_default();
+                reward_given_so_far += reward_for_this_stake;
+                updated_stake.staked_amount += reward_for_this_stake;
+                STAKING_FUNDS.update(
+                    deps.storage,
+                    &staker_address,
+                    |balance: Option<Uint128>| -> StdResult<_> { Ok(balance.unwrap_or_default() + reward_for_this_stake) },
+                )?;
+                cadr_response = cadr_response.add_attribute("reward",format!("winClub_19 {:?} {:?} {:?}",stake.staker_address,club_name,reward_for_this_stake));
+                println!(
+                    "reward out of 19 percent for {:?} is {:?} ",
+                    updated_stake.staker_address, reward_for_this_stake
+                );
+            }
+
+            // Calculate for Non-winning Owners 2% - equal
+            if updated_stake.staker_address == club_owner_address {
+                if club_name == winner_club_name {
+                    // preserve for update at the end of loop
+                    updated_stake_winner_owner.push(updated_stake.clone());
+                } else {
+                    reward_given_so_far += reward_for_other_owners;
+                    updated_stake.staked_amount += reward_for_other_owners;
+                    STAKING_FUNDS.update(
+                        deps.storage,
+                        &staker_address,
+                        |balance: Option<Uint128>| -> StdResult<_> { Ok(balance.unwrap_or_default() + reward_for_other_owners) },
+                    )?;
+                    cadr_response = cadr_response.add_attribute("reward",format!("owner_2 {:?} {:?} {:?}",stake.staker_address,club_name,reward_for_this_stake));
+                    println!(
+                        "reward out of 2 percent for {:?} is {:?} ",
+                        updated_stake.staker_address, reward_for_other_owners
+                    );
+                    all_stakes.push(updated_stake);
+                }
+            } else {
+                all_stakes.push(updated_stake);
+            }
+
         }
-        let all_clubs: Vec<String> = CLUB_STAKING_DETAILS
-            .keys(deps.storage, None, None, Order::Ascending)
-            .map(|k| String::from_utf8(k).unwrap())
-            .collect();
-        for club_name in all_clubs {
-            let mut all_stakes = Vec::new();
-            let staking_details = CLUB_STAKING_DETAILS.load(deps.storage, club_name.clone())?;
-            for mut stake in staking_details {
-				let auto_stake = stake.auto_stake;
-				let reward_for_this_stake = (remaining_reward.checked_mul(stake.staked_amount))
-					.unwrap_or_default()
-					.checked_div(total_staking)
-					.unwrap_or_default();
-				let mut updated_stake = stake.clone();
-				if auto_stake == SET_AUTO_STAKE {
-					updated_stake.staked_amount += reward_for_this_stake;
-					updated_stake.staked_amount += updated_stake.reward_amount;
-					updated_stake.reward_amount = Uint128::zero();
-				} else {
-					updated_stake.reward_amount += reward_for_this_stake;
-				} 
-				println!(
-					"reward out of 80 percent for {:?} is {:?} auto_stake is {:?}",
-					stake.staker_address, reward_for_this_stake, auto_stake
-				);
-				reward_given_so_far += reward_for_this_stake;
-				all_stakes.push(updated_stake);
-			}
+
+        if club_name == winner_club_name {
+            // preserve for update at the end of the loop
+            updated_stakes_winner_club = all_stakes.clone();
+        } else {
             CLUB_STAKING_DETAILS.save(deps.storage, club_name, &all_stakes)?;
         }
+    }
 
-        //Increase owner reward by 1% - remainder of total reward
-        let winner_club_reward = total_reward - reward_given_so_far;
-        reward_given_so_far += winner_club_reward;
-        println!("winner club owner reward = {:?}", winner_club_reward);
-		let mut all_stakes = Vec::new();
-		let staking_details = CLUB_STAKING_DETAILS.load(deps.storage, winner_club_details.club_name.clone())?;
-		for mut stake in staking_details {
-            let mut updated_stake = stake.clone();
-			let auto_stake = updated_stake.auto_stake;
-            if updated_stake.staker_address == winner_club_details.owner_address {
-				if auto_stake == SET_AUTO_STAKE {
-					updated_stake.staked_amount += winner_club_reward;
-					updated_stake.staked_amount += updated_stake.reward_amount;
-					updated_stake.reward_amount = Uint128::zero();
-				} else {
-					updated_stake.reward_amount += winner_club_reward;
-				} 
-				println!(
-					"reward for owner stake percent for {:?} is {:?} auto_stake is {:?}",
-					stake.staker_address, winner_club_reward, auto_stake
-				);
-			}
-			all_stakes.push(updated_stake);
-		}
-		CLUB_STAKING_DETAILS.save(deps.storage, winner_club_details.club_name.clone(), &all_stakes)?;
+    // Calculate for Winning Owner 1% / Remainder
+    // NOTE : winning_club_owner get remaining 1% (in case no other club, the owner shall get 1% + 2%)
+    let reward_for_winner_owner = total_reward - reward_given_so_far;
 
-        let new_reward = Uint128::zero();
-        REWARD.save(deps.storage, &new_reward)?;
+    if updated_stake_winner_owner.len() > 0 {
+        let mut winner_stake = updated_stake_winner_owner[0].clone();
+        winner_stake.staked_amount += reward_for_winner_owner; 
+        updated_stakes_winner_club.push(winner_stake.clone());
+        CLUB_STAKING_DETAILS.save(deps.storage, winner_club_name.clone(), &updated_stakes_winner_club)?;
+        staker_address = deps.api.addr_validate(&winner_stake.staker_address)?;
+        STAKING_FUNDS.update(
+            deps.storage,
+            &staker_address,
+            |balance: Option<Uint128>| -> StdResult<_> { Ok(balance.unwrap_or_default() + reward_for_winner_owner) },
+        )?;
+        cadr_response = cadr_response.add_attribute("reward",format!("owner_winner_1 {:?} {:?} {:?}",winner_stake.staker_address,winner_club_name,reward_for_winner_owner));
         println!(
-            "total reward given {:?} out of {:?}",
-            reward_given_so_far, total_reward
+            "reward out of 1 percent for {:?} is {:?} ",
+            winner_stake.staker_address, reward_for_winner_owner
         );
     }
-    return Ok(Response::default());
+    REWARD.save(deps.storage, &Uint128::zero())?;
+    return Ok(cadr_response);
+
 }
 
 // fn burn_funds(
@@ -1410,7 +1451,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::GetClubRankingByStakes {} => {
             to_binary(&get_clubs_ranking_by_stakes(deps.storage)?)
         }
-        QueryMsg::RewardAmount {} => to_binary(&query_reward_amount(deps)?),
+        QueryMsg::RewardAmount {} => to_binary(&query_reward_amount(deps.storage)?),
     }
 }
 
@@ -1557,8 +1598,8 @@ fn get_clubs_ranking_by_stakes(storage: &dyn Storage) -> StdResult<Vec<(String, 
     return Ok(all_stakes);
 }
 
-fn query_reward_amount(deps: Deps) -> StdResult<Uint128> {
-    let reward: Uint128 = REWARD.may_load(deps.storage)?.unwrap_or_default();
+fn query_reward_amount(storage: &dyn Storage) -> StdResult<Uint128> {
+    let reward: Uint128 = REWARD.may_load(storage)?.unwrap_or_default();
     return Ok(reward);
 }
 
@@ -2252,7 +2293,7 @@ mod tests {
             ExecuteMsg::CalculateAndDistributeRewards {},
         )
         .unwrap();
-        assert_eq!(res, Response::default());
+        assert_eq!(res.messages, Response::default().messages); // no longer a totally empty default response
 
         println!("releasing club");
         release_club(
@@ -3336,8 +3377,9 @@ mod tests {
         let queryRes0 = query_all_stakes(&mut deps.storage);
         match queryRes0 {
             Ok(all_stakes) => {
-                assert_eq!(all_stakes.len(), 9);
-            }
+				assert_eq!(all_stakes.len(), 9);
+                println!("all stakes : {:?}",all_stakes);
+			}
             Err(e) => {
                 println!("error parsing header: {:?}", e);
                 assert_eq!(1, 2);
@@ -3351,7 +3393,8 @@ mod tests {
             "reward_from abc".to_string(),
             Uint128::from(1000000u128),
         );
-
+        let queryReward = query_reward_amount(&mut deps.storage);
+        println!("reward amount before distribution: {:?}",queryReward);
         let res = execute(
             deps.as_mut(),
             mock_env(),
@@ -3359,33 +3402,36 @@ mod tests {
             ExecuteMsg::CalculateAndDistributeRewards {},
         )
         .unwrap();
-        assert_eq!(res, Response::default());
+        assert_eq!(res.messages, Response::default().messages); // no longer a totally empty default response
 
+        let queryReward = query_reward_amount(&mut deps.storage);
+        println!("reward amount after distribution: {:?}",queryReward);
         let queryRes = query_all_stakes(&mut deps.storage);
         match queryRes {
             Ok(all_stakes) => {
-                assert_eq!(all_stakes.len(), 9);
+				assert_eq!(all_stakes.len(), 9);
+                println!("all stakes : {:?}",all_stakes);
                 for stake in all_stakes {
                     let staker_address = stake.staker_address;
                     let staked_amount = stake.staked_amount;
                     println!("staker : {:?} staked_amount : {:?}", staker_address.clone(), staked_amount);
                     if staker_address == "Staker001" {
-                        assert_eq!(staked_amount, Uint128::from(460693u128));
+                        assert_eq!(staked_amount, Uint128::from(470655u128));
                     }
                     if staker_address == "Staker002" {
-                        assert_eq!(staked_amount, Uint128::from(153564u128));
+                        assert_eq!(staked_amount, Uint128::from(156885u128));
                     }
                     if staker_address == "Staker003" {
-                        assert_eq!(staked_amount, Uint128::from(586336u128));
+                        assert_eq!(staked_amount, Uint128::from(599016u128));
                     }
                     if staker_address == "Staker004" {
-                        assert_eq!(staked_amount, Uint128::from(139603u128));
+                        assert_eq!(staked_amount, Uint128::from(142622u128));
                     }
                     if staker_address == "Staker005" {
-                        assert_eq!(staked_amount, Uint128::from(1394755u128));
+                        assert_eq!(staked_amount, Uint128::from(1348588u128));
                     }
                     if staker_address == "Staker006" {
-                        assert_eq!(staked_amount, Uint128::from(85045u128));
+                        assert_eq!(staked_amount, Uint128::from(82230u128));
                     }
                     if staker_address == "Owner001" {
                         assert_eq!(staked_amount, Uint128::from(0u128));
@@ -3394,7 +3440,7 @@ mod tests {
                         assert_eq!(staked_amount, Uint128::from(0u128));
                     }
                     if staker_address == "Owner003" {
-                        assert_eq!(staked_amount, Uint128::from(10004u128));
+                        assert_eq!(staked_amount, Uint128::from(30004u128));
                     }
                 }
             }
@@ -3460,7 +3506,7 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(res, Response::default());
+        assert_eq!(res.messages, Response::default().messages); // no longer a totally empty default response
 
     }
 }

@@ -129,6 +129,8 @@ pub const CLUB_BONDING_DETAILS: Map<String, Vec<ClubBondingDetails>> =
 pub const CLUB_PREVIOUS_OWNER_DETAILS: Map<String, ClubPreviousOwnerDetails> =
     Map::new("club_previous_owner_details");
 
+/// STAKING_FUNDS Maintains the staked Fury held by an address: includes both Staked Fury as well as Bonded Fury (for Withdrawal)
+/// Does not include rewards which are withdrawable anytime
 pub const STAKING_FUNDS: Map<&Addr, Uint128> = Map::new("contract_wallet");
 
 pub const REWARD: Item<Uint128> = Item::new("staking_reward");

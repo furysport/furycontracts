@@ -1,9 +1,9 @@
 use cosmwasm_std::{Binary, Uint128};
-use cw0::Expiration;
-use cw20::{Cw20ReceiveMsg, Logo};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use cosmwasm_std::{Coin, Timestamp};
+use cw20::{Cw20ReceiveMsg};
+
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug, Clone, PartialEq)]
 pub struct InstantiateMsg {
