@@ -473,10 +473,10 @@ pub fn game_pool_bid_submit(
 
     let gamer_addr = deps.api.addr_validate(&gamer)?;
     let mut asset: Asset = Asset {
-        info: AssetInfo::NativeToken { denom: "uusd".to_string() },
-        amount: Uint128::zero(),
+        info: AssetInfo::NativeToken { denom: info.funds[0].denom.clone() },
+        amount: info.funds[0].amount,
     };
-    if info.funds.clone().len() > 1 {
+    if info.funds.clone().len() != 1 {
         return Err(ContractError::InvalidNumberOfCoinsSent {});
     }
     let fund = info.funds.clone();
@@ -491,7 +491,6 @@ pub fn game_pool_bid_submit(
     } else {
         return Err(ContractError::InsufficientFeesUst {});
     }
-
 
     let mut pool_fee: Uint128 = pool_type_details.pool_fee;
     if !testing {
@@ -589,12 +588,12 @@ pub fn game_pool_bid_submit(
         recipient: env.clone().contract.address.to_string(),
         amount,
     };
-    // let exec = WasmMsg::Execute {
-    //     contract_addr: config.minting_contract_address.to_string(),
-    //     msg: to_binary(&transfer_msg).unwrap(),
-    //     funds: vec![],
-    // };
-    // messages.push(CosmosMsg::Wasm(exec));
+    let exec = WasmMsg::Execute {
+        contract_addr: config.minting_contract_address.to_string(),
+        msg: to_binary(&transfer_msg).unwrap(),
+        funds: vec![],
+    };
+    messages.push(CosmosMsg::Wasm(exec));
 
     // Swapping the new Fury to UST
 
@@ -609,23 +608,15 @@ pub fn game_pool_bid_submit(
         max_spread: None,
         to: Option::from(env.contract.address.to_string()),
     };
-    messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
-        contract_addr: config.clone().astro_proxy_address.to_string(),
-        msg: to_binary(&swap_message).unwrap(),
-        funds: vec![],
-    }));
-
-
-    let native_tax = asset.compute_tax(&deps.querier)?;
-    let funds_to_send = asset.amount.checked_sub(native_tax).unwrap();
-    // Sending the UST fees to the collector
-    let final_ust_amount = Coin {
-        amount: funds_to_send,
-        denom: "uusd".to_string(),
-    };
+    // messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
+    //     contract_addr: config.clone().astro_proxy_address.to_string(),
+    //     msg: to_binary(&swap_message).unwrap(),
+    //     funds: vec![],
+    // }));
+    let final_amount = asset.deduct_tax(&deps.querier)?;
     messages.push(CosmosMsg::Bank(BankMsg::Send {
         to_address: config.platform_fees_collector_wallet.into_string(),
-        amount: vec![final_ust_amount],
+        amount: vec![final_amount],
     }));
 
     // Nothing required to transfer anything gaming fund has arrived in the gaming contract

@@ -19,8 +19,8 @@ const assert = chai.assert;
 // Init and Vars
 const sleep_time = 0
 let gaming_contract_address = ""
-let proxy_contract_address = "terra19zpyd046u4swqpksr3n44cej4j8pg6ah2y6dcg"
-let fury_contract_address = "terra18vd8fpwxzck93qlwghaj6arh4p7c5n896xzem5"
+let proxy_contract_address = "terra1dqx6frgzf2wgmefx9m8umzhkvw588fjgq6tg3f"
+let fury_contract_address = "terra12h7clznjzaems4vfn4usj7f8m39pwku753w00z"
 const gamer = walletTest2.key.accAddress
 const gamer_extra_1 = walletTest3.key.accAddress
 const gamer_extra_2 = walletTest4.key.accAddress
@@ -55,7 +55,8 @@ const deploy_contract = async function (file, init) {
 function convertBinaryToObject(str) {
     var newBin = str.split(" ");
     var binCode = [];
-    for (let i = 0; i < newBin.length; i++) {
+    for (let i = 0; i < newBin.length; i++)
+    {
         binCode.push(String.fromCharCode(parseInt(newBin[i], 2)));
     }
     let jsonString = binCode.join("");
@@ -252,7 +253,7 @@ let test_game_pool_bid_submit_when_pool_team_in_range = async function (time) {
             team_id: "Team001",
             amount: `${funds_to_send_in_fury}`
         }
-    }, {'uusd': "1000"})
+    }, {'uusd': 10000000})
 
 
     console.log(response)
