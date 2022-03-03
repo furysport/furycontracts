@@ -671,6 +671,7 @@ pub fn claim_reward(
     deps: DepsMut,
     info: MessageInfo,
     gamer: String,
+    env: Env,
 ) -> Result<Response, ContractError> {
     let gamer_addr = deps.api.addr_validate(&gamer)?;
     //Check if withdrawer is same as invoker
@@ -720,11 +721,13 @@ pub fn claim_reward(
     }
 
     // Do the transfer of reward to the actual gamer_addr from the contract
+
     transfer_from_contract_to_wallet(
-        deps.storage,
-        gamer.clone(),
         user_reward,
         "reward".to_string(),
+        deps,
+        env,
+        info,
     )
 }
 
@@ -732,6 +735,7 @@ pub fn claim_refund(
     deps: DepsMut,
     info: MessageInfo,
     gamer: String,
+    env: Env,
 ) -> Result<Response, ContractError> {
     let gamer_addr = deps.api.addr_validate(&gamer)?;
     //Check if withdrawer is same as invoker
@@ -782,10 +786,11 @@ pub fn claim_refund(
 
     // Do the transfer of refund to the actual gamer_addr from the contract
     transfer_from_contract_to_wallet(
-        deps.storage,
-        gamer.clone(),
         user_refund,
         "refund".to_string(),
+        deps,
+        env,
+        info,
     )
 }
 
@@ -1016,32 +1021,53 @@ pub fn transfer_to_multiple_wallets(
 
 
 pub fn transfer_from_contract_to_wallet(
-    store: &dyn Storage,
-    wallet_owner: String,
     amount: Uint128,
     action: String,
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
 ) -> Result<Response, ContractError> {
-    let config = CONFIG.load(store)?;
-
-    let transfer_msg = Cw20ExecuteMsg::Transfer {
-        recipient: wallet_owner,
-        amount: amount,
+    let config = CONFIG.load(deps.storage)?;
+    let mut messages = Vec::new();
+    // Amount Requested is in Fury Now we convert it to UST
+    let amount_to_swap_in_ust = deps.querier.query_wasm_smart(
+        config.astro_proxy_address.clone(),
+        &ProxyQueryMsgs::get_fury_equivalent_to_ust {
+            ust_count: amount,
+        },
+    )?;
+    // Swap from UST to FURY the amount here we use the amount_to_swap_in_ust
+    let swap_message = AstroPortExecute::Swap {
+        offer_asset: Asset {
+            info: AssetInfo::Token {
+                contract_addr: config.astro_proxy_address.clone()
+            },
+            amount: amount_to_swap_in_ust,
+        },
+        belief_price: None,
+        max_spread: None,
+        to: Option::from(env.contract.address.clone().to_string()),
     };
-    let exec = WasmMsg::Execute {
-        contract_addr: config.minting_contract_address.to_string(),
+    messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
+        contract_addr: config.astro_proxy_address.to_string(),
+        msg: to_binary(&swap_message).unwrap(),
+        funds: vec![],
+    }));
+    // Send the Fury to the Reciepent After Swap
+    let transfer_msg = Cw20ExecuteMsg::TransferFrom {
+        owner: String::from(env.contract.address.clone()),
+        recipient: info.sender.to_string(),
+        amount,
+    };
+    messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
+        contract_addr: config.astro_proxy_address.to_string(),
         msg: to_binary(&transfer_msg).unwrap(),
-        funds: vec![
-            // Coin {
-            //     denom: token_info.name.to_string(),
-            //     amount: price,
-            // },
-        ],
-    };
-    let send: SubMsg = SubMsg::new(exec);
-    let data_msg = format!("Amount {} transferred", amount).into_bytes();
+        funds: vec![],
+    }));
+
     return Ok(Response::new()
-        .add_submessage(send)
         .add_attribute("amount", amount.to_string())
         .add_attribute("action", action)
-        .set_data(data_msg));
+        .add_messages(messages)
+    );
 }

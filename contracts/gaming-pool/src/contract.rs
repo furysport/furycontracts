@@ -150,8 +150,8 @@ pub fn execute(
         ExecuteMsg::CancelGame {} => cancel_game(deps, env, info),
         ExecuteMsg::LockGame {} => lock_game(deps, env, info),
         ExecuteMsg::CreatePool { pool_type } => create_pool(deps, env, info, pool_type),
-        ExecuteMsg::ClaimReward { gamer } => claim_reward(deps, info, gamer),
-        ExecuteMsg::ClaimRefund { gamer } => claim_refund(deps, info, gamer),
+        ExecuteMsg::ClaimReward { gamer } => claim_reward(deps, info, gamer, env),
+        ExecuteMsg::ClaimRefund { gamer } => claim_refund(deps, info, gamer, env),
         ExecuteMsg::GamePoolRewardDistribute {
             pool_id,
             game_winners,
