@@ -328,7 +328,6 @@ async function test_migrate(time) {
 
 
 }
-
 async function test_game_pool_reward_distribute(time) {
     console.log("Game Pool Reward Distribute")
     let game_winners = [
