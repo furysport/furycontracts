@@ -55,8 +55,7 @@ const deploy_contract = async function (file, init) {
 function convertBinaryToObject(str) {
     var newBin = str.split(" ");
     var binCode = [];
-    for (let i = 0; i < newBin.length; i++)
-    {
+    for (let i = 0; i < newBin.length; i++) {
         binCode.push(String.fromCharCode(parseInt(newBin[i], 2)));
     }
     let jsonString = binCode.join("");
@@ -121,7 +120,7 @@ let test_get_team_count_for_user_in_pool_type = async function (time) {
     console.log("Test Get Team Count In Pool Type")
     await executeContract(walletTest1, gaming_contract_address, {
         save_team_details: {
-            'gamer': "Gamer001",
+            'gamer': gamer,
             'pool_id': "1",
             'team_id': "Team001",
             'game_id': "Game001",
@@ -138,7 +137,7 @@ let test_get_team_count_for_user_in_pool_type = async function (time) {
     sleep(time)
     await executeContract(walletTest1, gaming_contract_address, {
         save_team_details: {
-            'gamer': "Gamer001",
+            'gamer': gamer,
             'pool_id': "1",
             'team_id': "Team002",
             'game_id': "Game001",
@@ -155,7 +154,7 @@ let test_get_team_count_for_user_in_pool_type = async function (time) {
     sleep(time)
     await executeContract(walletTest1, gaming_contract_address, {
         save_team_details: {
-            'gamer': "Gamer001",
+            'gamer': gamer,
             'pool_id': "1",
             'team_id': "Team002",
             'game_id': "Game001",
@@ -173,7 +172,7 @@ let test_get_team_count_for_user_in_pool_type = async function (time) {
     sleep(time)
     let team_count = await queryContract(gaming_contract_address, {
         get_team_count_for_user_in_pool_type: {
-            "gamer": "Gamer001",
+            "gamer": gamer,
             "game_id": "Game001",
             "pool_type": "oneToOne"
         }
@@ -230,7 +229,7 @@ let test_game_pool_bid_submit_when_pool_team_in_range = async function (time) {
     let funds_to_send_in_fury = await queryContract(proxy_contract_address,
         {
             get_fury_equivalent_to_ust: {
-                "ust_count": "100000000"
+                "ust_count": "100"
             }
         });
 
@@ -253,7 +252,7 @@ let test_game_pool_bid_submit_when_pool_team_in_range = async function (time) {
             team_id: "Team001",
             amount: `${funds_to_send_in_fury}`
         }
-    }, {'uusd': 10000000})
+    }, {'uusd': 1000000})
 
 
     console.log(response)
@@ -283,7 +282,7 @@ const reward_distribution_for_locked_game = async function (time) {
                         "gamer_address": gamer,
                         "game_id": "Gamer001",
                         "team_id": "1",
-                        "reward_amount": "2000000",
+                        "reward_amount": "200",
                         "refund_amount": "0",
                         "team_rank": 1,
                         "team_points": 150
@@ -292,7 +291,7 @@ const reward_distribution_for_locked_game = async function (time) {
                         "gamer_address": gamer,
                         "game_id": "Gamer001",
                         "team_id": "2",
-                        "reward_amount": "0",
+                        "reward_amount": "50",
                         "refund_amount": "0",
                         "team_rank": 2,
                         "team_points": 125
@@ -379,5 +378,4 @@ await set_pool_headers_for_H2H_pool_type(sleep_time)
 await test_game_pool_bid_submit_when_pool_team_in_range(sleep_time)
 await test_game_lock_once_pool_is_closed(sleep_time)
 await reward_distribution_for_locked_game(sleep_time)
-
 await test_migrate(sleep_time)
