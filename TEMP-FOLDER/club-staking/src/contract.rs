@@ -1232,10 +1232,8 @@ fn calculate_and_distribute_rewards(
                 updated_stake.staked_amount += reward_for_this_winner;
                 updated_stake.staked_amount += updated_stake.reward_amount;
                 updated_stake.reward_amount = Uint128::zero();
-					println!("111111111111");
             } else {
                 updated_stake.reward_amount += reward_for_this_winner;
-					println!("222222222222");
             } 
             reward_given_so_far += reward_for_this_winner;
             println!(
@@ -1275,10 +1273,8 @@ fn calculate_and_distribute_rewards(
 					updated_stake.staked_amount += reward_for_this_stake;
 					updated_stake.staked_amount += updated_stake.reward_amount;
 					updated_stake.reward_amount = Uint128::zero();
-					println!("333333333333");
 				} else {
 					updated_stake.reward_amount += reward_for_this_stake;
-					println!("444444444444");
 				} 
 				println!(
 					"reward out of 80 percent for {:?} is {:?} auto_stake is {:?}",
@@ -1312,10 +1308,8 @@ fn calculate_and_distribute_rewards(
 					updated_stake.staked_amount += winner_club_reward;
 					updated_stake.staked_amount += updated_stake.reward_amount;
 					updated_stake.reward_amount = Uint128::zero();
-					println!("555555555555");
 				} else {
 					updated_stake.reward_amount += winner_club_reward;
-					println!("666666666666");
 				} 
 				println!(
 					"reward for owner stake percent for {:?} is {:?} auto_stake is {:?}",
