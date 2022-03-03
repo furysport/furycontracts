@@ -1110,7 +1110,6 @@ mod tests {
         let transaction_fee = Uint128::from(100000u128);
         let instantiate_msg = InstantiateMsg {
             transaction_fee: transaction_fee,
-
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,

@@ -1,5 +1,6 @@
 use astroport::asset::Asset;
-use cosmwasm_std::{Addr, Decimal, Uint128};
+use cosmwasm_std::{Addr, Binary, Decimal, Uint128};
+use cw0::Expiration;
 use cw20::{Cw20ReceiveMsg, Logo};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -138,12 +139,11 @@ pub struct GamePoolBidSubmitCommand {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-#[serde(rename_all = "snake_case")]
 pub enum ProxyQueryMsgs {
-    GetFuryEquivalentUst {
+    get_fury_equivalent_to_ust {
         ust_count: Uint128,
     },
-    GetUstEquivalentFury {
+    get_ust_equivalent_to_fury {
         fury_count: Uint128,
     },
 }
