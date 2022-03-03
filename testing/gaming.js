@@ -1,5 +1,5 @@
-import {GamingContractPath, mint_wallet, walletTest1, walletTest2, walletTest3} from './constants.js';
-import {executeContract, instantiateContract, queryContract, storeCode} from "./utils.js";
+import {GamingContractPath, mint_wallet, walletTest1, walletTest2, walletTest3, walletTest4} from './constants.js';
+import {executeContract, instantiateContract, queryContract, storeCode, migrateContract} from "./utils.js";
 
 import {promisify} from 'util';
 
@@ -19,9 +19,11 @@ const assert = chai.assert;
 // Init and Vars
 const sleep_time = 0
 let gaming_contract_address = ""
-let proxy_contract_address = "terra127gs5ej23jd69685a3lyetnhlfe9nweg9p5z6a"
-let fury_contract_address = "terra1nc5qec6n7wnx3v29eu0mutahlq8lrer0w54y39"
-
+let proxy_contract_address = "terra19zpyd046u4swqpksr3n44cej4j8pg6ah2y6dcg"
+let fury_contract_address = "terra18vd8fpwxzck93qlwghaj6arh4p7c5n896xzem5"
+const gamer = walletTest2.key.accAddress
+const gamer_extra_1 = walletTest3.key.accAddress
+const gamer_extra_2 = walletTest4.key.accAddress
 
 const gaming_init = {
     "minting_contract_address": fury_contract_address, //  This should be a contract But We passed wallet so it wont raise error on addr validate
@@ -210,7 +212,7 @@ async function transferFuryTokens(toAddress, amount) {
         }
     };
     console.log(`transferFuryToTreasuryMsg = ${JSON.stringify(transferFuryToTreasuryMsg)}`);
-    let response = await executeContract(mint_wallet, fury_contract_address, transferFuryToTreasuryMsg);
+    let response = await executeContract(mint_wallet, fury_contract_address, transferFuryToTreasuryMsg, {'uusd': 200000000});
     console.log(`transferFuryToTreasuryMsg Response - ${response['txhash']}`);
 }
 
@@ -244,15 +246,13 @@ let test_game_pool_bid_submit_when_pool_team_in_range = async function (time) {
     console.log("Submitting Game Pool Bid")
     response = await executeContract(walletTest1, gaming_contract_address, {
         game_pool_bid_submit_command: {
-            gamer: walletTest2.key.accAddress,
+            gamer: gamer,
             pool_type: "H2H",
             pool_id: "1",
             team_id: "Team001",
             amount: `${funds_to_send_in_fury}`
         }
-    }, {
-        "uusd": "1300000"      //this is 1.3% of fee including trasaction and platform fee
-    })
+    }, {'uusd': "1000"})
 
 
     console.log(response)
@@ -279,7 +279,7 @@ const reward_distribution_for_locked_game = async function (time) {
             "game_winners":
                 [
                     {
-                        "gamer_address": "terra1ttjw6nscdmkrx3zhxqx3md37phldgwhggm345k",
+                        "gamer_address": gamer,
                         "game_id": "Gamer001",
                         "team_id": "1",
                         "reward_amount": "2000000",
@@ -288,7 +288,7 @@ const reward_distribution_for_locked_game = async function (time) {
                         "team_points": 150
                     },
                     {
-                        "gamer_address": "terra1ttjw6nscdmkrx3zhxqx3md37phldgwhggm345k",
+                        "gamer_address": gamer,
                         "game_id": "Gamer001",
                         "team_id": "2",
                         "reward_amount": "0",
@@ -321,12 +321,53 @@ async function test_migrate(time) {
     console.log("Uploading New Contract")
     let contract_id = await storeCode(walletTest1, GamingContractPath,) //  Uploading the new contract
     console.log("Executing the migrate")
-    let r = await migrateContract(deployer, gaming_contract_address, contract_id, {})
+    let r = await migrateContract(walletTest1, gaming_contract_address, contract_id, {})
     console.log(r)
     console.log("Success")
     sleep(time)
 
 
+}
+
+async function test_game_pool_reward_distribute(time) {
+    console.log("Game Pool Reward Distribute")
+    let game_winners = [
+        {
+            gamer_address: gamer,
+            game_id: "Game001",
+            team_id: "Team001",
+            team_rank: 1,
+            team_points: 100,
+            reward_amount: 100,
+            refund_amount: ""
+        }, {
+            gamer_address: walletTest3.key.accAddress,
+            game_id: "Game001",
+            team_id: "Team001",
+            team_rank: 2,
+            team_points: 200,
+            reward_amount: 100,
+            refund_amount: ""
+        },
+        {
+            gamer_address: walletTest4.key.accAddress,
+            game_id: "Game001",
+            team_id: "Team001",
+            team_rank: 2,
+            team_points: 300,
+            reward_amount: 100,
+            refund_amount: ""
+        }
+    ]
+    console.log("Executing Reward Distribute")
+
+    let response = await executeContract(walletTest1, gaming_contract_address, {
+        game_pool_reward_distribute: {
+            pool_id: "1",
+            game_winners: game_winners
+        }
+    })
+    console.log(response)
 }
 
 
@@ -335,6 +376,7 @@ await test_create_and_query_pool(sleep_time)
 await test_get_team_count_for_user_in_pool_type(sleep_time)
 await set_pool_headers_for_H2H_pool_type(sleep_time)
 await test_game_pool_bid_submit_when_pool_team_in_range(sleep_time)
+await test_game_lock_once_pool_is_closed(sleep_time)
+await reward_distribution_for_locked_game(sleep_time)
+
 await test_migrate(sleep_time)
-// await test_game_lock_once_pool_is_closed(sleep_time)
-// await reward_distribution_for_locked_game(sleep_time)
