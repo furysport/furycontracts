@@ -19,9 +19,9 @@ const assert = chai.assert;
 // Init and Vars
 const sleep_time = 0
 let gaming_contract_address = ""
-let proxy_contract_address = "terra19zpyd046u4swqpksr3n44cej4j8pg6ah2y6dcg"
-let fury_contract_address = "terra18vd8fpwxzck93qlwghaj6arh4p7c5n896xzem5"
-const gamer = walletTest2.key.accAddress
+let proxy_contract_address = "terra1pcknsatx5ceyfu6zvtmz3yr8auumzrdts4ax4a"
+let fury_contract_address = "terra10pyejy66429refv3g35g2t7am0was7ya7kz2a4"
+const gamer = walletTest1.key.accAddress
 const gamer_extra_1 = walletTest3.key.accAddress
 const gamer_extra_2 = walletTest4.key.accAddress
 
@@ -237,7 +237,7 @@ let test_game_pool_bid_submit_when_pool_team_in_range = async function (time) {
     let increaseAllowanceMsg = {
         increase_allowance: {
             spender: gaming_contract_address,
-            amount: `${funds_to_send_in_fury*2}`
+            amount: `${funds_to_send_in_fury * 2}`
         }
     };
     console.log("Increasing Allowance For the Gaming Pool Contract ")
@@ -283,24 +283,20 @@ const test_game_lock_once_pool_is_canceled = async function (time) {
 //     ExecuteMsg::ClaimReward { gamer } => claim_reward(deps, info, gamer, env),
 //     ExecuteMsg::ClaimRefund { gamer } => claim_refund(deps, info, gamer, env),
 const claim = async function (time) {
-    console.log("Claim")
-    let transferFuryToTreasuryMsg = {
-        transfer: {
-            recipient: gaming_contract_address,
-            amount: "5000000000"
+    let expected_reward = await queryContract(gaming_contract_address, {
+            query_reward: {"gamer": gamer}
         }
-    };
-    console.log(`transferFuryToTreasuryMsg = ${JSON.stringify(transferFuryToTreasuryMsg)}`);
-    let response = await executeContract(mint_wallet, fury_contract_address, transferFuryToTreasuryMsg, {'uusd': 200000000});
-    console.log(`transferFuryToTreasuryMsg Response - ${response['txhash']}`);
-    response = await executeContract(walletTest1, gaming_contract_address, {
-        claim_reward: {"gamer": gamer}
+    )
+    console.log(`Expected Reward Amount  ${expected_reward}`)
+    let response = await executeContract(walletTest1, gaming_contract_address, {
+        claim_reward: {"gamer": walletTest1.key.accAddress}
     })
     console.log(response)
     console.log("Assert Success")
     sleep(time)
 }
 const reward_distribution_for_locked_game = async function (time) {
+    console.log("Reward Distribution for locked game")
     let response = await executeContract(walletTest1, gaming_contract_address, {
         "game_pool_reward_distribute": {
             "game_id": "Gamer001",
@@ -311,20 +307,11 @@ const reward_distribution_for_locked_game = async function (time) {
                         "gamer_address": gamer,
                         "game_id": "Gamer001",
                         "team_id": "1",
-                        "reward_amount": "200",
+                        "reward_amount": "5000000", // This will be in ufury
                         "refund_amount": "0",
                         "team_rank": 1,
                         "team_points": 150
                     },
-                    {
-                        "gamer_address": gamer,
-                        "game_id": "Gamer001",
-                        "team_id": "2",
-                        "reward_amount": "50",
-                        "refund_amount": "0",
-                        "team_rank": 2,
-                        "team_points": 125
-                    }
                 ]
         }
     })
@@ -407,13 +394,13 @@ await test_game_pool_bid_submit_when_pool_team_in_range(sleep_time)
 await test_game_lock_once_pool_is_closed(sleep_time)
 await reward_distribution_for_locked_game(sleep_time)
 await claim(sleep_time)
-// Claim
-await test_migrate(sleep_time)
-await test_create_and_query_game(sleep_time)
-await test_create_and_query_pool(sleep_time)
-await test_get_team_count_for_user_in_pool_type(sleep_time)
-await set_pool_headers_for_H2H_pool_type(sleep_time)
-await test_game_pool_bid_submit_when_pool_team_in_range(sleep_time)
-await test_game_lock_once_pool_is_closed(sleep_time)
-await test_game_lock_once_pool_is_canceled(sleep_time)
-// Refund
+// // Claim
+// await test_migrate(sleep_time)
+// await test_create_and_query_game(sleep_time)
+// await test_create_and_query_pool(sleep_time)
+// await test_get_team_count_for_user_in_pool_type(sleep_time)
+// await set_pool_headers_for_H2H_pool_type(sleep_time)
+// await test_game_pool_bid_submit_when_pool_team_in_range(sleep_time)
+// await test_game_lock_once_pool_is_closed(sleep_time)
+// await test_game_lock_once_pool_is_canceled(sleep_time)
+// // Refund
