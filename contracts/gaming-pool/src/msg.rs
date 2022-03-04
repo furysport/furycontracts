@@ -1,4 +1,5 @@
 use astroport::asset::Asset;
+use astroport::factory::PairType;
 use cosmwasm_std::{Addr, Binary, Decimal, Uint128};
 use cw0::Expiration;
 use cw20::{Cw20ReceiveMsg, Logo};
@@ -148,6 +149,12 @@ pub enum ProxyQueryMsgs {
     },
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct SimulationResponse {
+    pub return_amount: Uint128,
+    pub spread_amount: Uint128,
+    pub commission_amount: Uint128,
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -168,4 +175,18 @@ pub enum AssetInfo {
     Token { contract_addr: Addr },
     /// Native token
     NativeToken { denom: String },
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum QueryMsgSimulation {
+    /// Returns information about a swap simulation in a [`SimulationResponse`] object.
+    Simulation { offer_asset: Asset },
+    ReverseSimulation { ask_asset: Asset },
+    FeeInfo {
+        pair_type: PairType,
+    },
+    QueryPlatformFees {
+        msg: Binary,
+    },
 }

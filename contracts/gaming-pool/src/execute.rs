@@ -1,15 +1,18 @@
 use std::ops::Add;
 
 use astroport::asset::{Asset, AssetInfo};
-use astroport::pair::ExecuteMsg as AstroPortExecute;
-use cosmwasm_std::{BankMsg, Coin, CosmosMsg, Deps, DepsMut, Env, from_binary, MessageInfo, Order, Response, StdError, StdResult, Storage, SubMsg, to_binary, Uint128, WasmMsg};
+use astroport::pair::{ExecuteMsg as AstroPortExecute, SimulationResponse};
+use cosmwasm_std::{BankMsg, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, from_binary, MessageInfo, Order, Response, StdError, StdResult, Storage, SubMsg, to_binary, Uint128, WasmMsg};
 
 use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg};
 
+pub const SWAP_FEE_PERCENTAGE: u128 = 2u128;
+
 use crate::contract::{CLAIMED_REFUND, CLAIMED_REWARD, DUMMY_WALLET, GAME_CANCELLED, GAME_COMPLETED, GAME_POOL_CLOSED, GAME_POOL_OPEN, HUNDRED_PERCENT, INITIAL_REFUND_AMOUNT, INITIAL_REWARD_AMOUNT, INITIAL_TEAM_POINTS, INITIAL_TEAM_RANK, REWARDS_DISTRIBUTED, REWARDS_NOT_DISTRIBUTED, UNCLAIMED_REFUND, UNCLAIMED_REWARD};
 use crate::ContractError;
-use crate::msg::{ProxyQueryMsgs, ReceivedMsg};
+use crate::msg::{ProxyQueryMsgs, QueryMsgSimulation, ReceivedMsg};
 use crate::msg::AssetInfo::NativeToken;
+use crate::msg::QueryMsgSimulation::QueryPlatformFees;
 use crate::query::{get_team_count_for_user_in_pool_type, query_pool_details, query_pool_type_details};
 use crate::state::{CONFIG, CONTRACT_POOL_COUNT, FeeDetails, GAME_DETAILS, GameDetails,
                    GameResult, GAMING_FUNDS, PLATFORM_WALLET_PERCENTAGES, POOL_DETAILS,
@@ -585,6 +588,7 @@ pub fn game_pool_bid_submit(
         |balance: Option<Uint128>| -> StdResult<_> { Ok(balance.unwrap_or_default() + pool_fee) },
     )?;
 
+
     // Sending Fury token to the contract
     let transfer_msg = Cw20ExecuteMsg::TransferFrom {
         owner: info.sender.into_string(),
@@ -598,24 +602,48 @@ pub fn game_pool_bid_submit(
     };
     messages.push(CosmosMsg::Wasm(exec));
 
-    // Swapping the new Fury to UST
 
-    let swap_message = AstroPortExecute::Swap {
-        offer_asset: Asset {
-            info: AssetInfo::Token {
-                contract_addr: config.clone().minting_contract_address.clone()
-            },
-            amount,
+    let increase_allowance_msg = Cw20ExecuteMsg::IncreaseAllowance {
+        spender: String::from(config.clone().astro_proxy_address),
+        amount,
+        expires: None,
+    };
+    messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
+        contract_addr: config.clone().minting_contract_address.to_string(),
+        msg: to_binary(&increase_allowance_msg).unwrap(),
+        funds: vec![],
+    }));
+
+
+    let fury_asset_info = Asset {
+        info: AssetInfo::Token {
+            contract_addr: config.clone().minting_contract_address.clone()
         },
+        amount,
+    };
+    let swap_message = AstroPortExecute::Swap {
+        offer_asset: fury_asset_info,
         belief_price: None,
-        max_spread: None,
+        max_spread: Option::from(Decimal::from("0.1".to_string().parse().unwrap())),
         to: Option::from(env.contract.address.to_string()),
     };
-    // messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
-    //     contract_addr: config.clone().astro_proxy_address.to_string(),
-    //     msg: to_binary(&swap_message).unwrap(),
-    //     funds: vec![],
-    // }));
+    // let tax_in_fury = fury_asset_info.deduct_tax(&deps.querier)?;
+    let platform_fees = deps.querier.query_wasm_smart(
+        config.clone().astro_proxy_address,
+        &QueryMsgSimulation::QueryPlatformFees {
+            msg: to_binary(&swap_message)?
+        },
+    )?;
+
+
+    messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
+        contract_addr: config.clone().astro_proxy_address.to_string(),
+        msg: to_binary(&swap_message).unwrap(),
+        funds: vec![Coin {
+            denom: "uusd".to_string(),
+            amount: platform_fees,
+        }],
+    }));
     let final_amount = asset.deduct_tax(&deps.querier)?;
     messages.push(CosmosMsg::Bank(BankMsg::Send {
         to_address: config.platform_fees_collector_wallet.into_string(),

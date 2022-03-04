@@ -19,8 +19,8 @@ const assert = chai.assert;
 // Init and Vars
 const sleep_time = 0
 let gaming_contract_address = ""
-let proxy_contract_address = "terra1dqx6frgzf2wgmefx9m8umzhkvw588fjgq6tg3f"
-let fury_contract_address = "terra12h7clznjzaems4vfn4usj7f8m39pwku753w00z"
+let proxy_contract_address = "terra19zpyd046u4swqpksr3n44cej4j8pg6ah2y6dcg"
+let fury_contract_address = "terra18vd8fpwxzck93qlwghaj6arh4p7c5n896xzem5"
 const gamer = walletTest2.key.accAddress
 const gamer_extra_1 = walletTest3.key.accAddress
 const gamer_extra_2 = walletTest4.key.accAddress
@@ -186,7 +186,7 @@ const set_pool_headers_for_H2H_pool_type = async function (time) {
     const response = await executeContract(walletTest1, gaming_contract_address, {
         set_pool_type_params: {
             'pool_type': "H2H",
-            'pool_fee': "100",
+            'pool_fee': "10000000",
             'min_teams_for_pool': 2,
             'max_teams_for_pool': 2,
             'max_teams_for_gamer': 2,
@@ -229,7 +229,7 @@ let test_game_pool_bid_submit_when_pool_team_in_range = async function (time) {
     let funds_to_send_in_fury = await queryContract(proxy_contract_address,
         {
             get_fury_equivalent_to_ust: {
-                "ust_count": "100"
+                "ust_count": "10000000"
             }
         });
 
@@ -237,7 +237,7 @@ let test_game_pool_bid_submit_when_pool_team_in_range = async function (time) {
     let increaseAllowanceMsg = {
         increase_allowance: {
             spender: gaming_contract_address,
-            amount: `${funds_to_send_in_fury}`
+            amount: `${funds_to_send_in_fury*2}`
         }
     };
     console.log("Increasing Allowance For the Gaming Pool Contract ")
@@ -252,7 +252,7 @@ let test_game_pool_bid_submit_when_pool_team_in_range = async function (time) {
             team_id: "Team001",
             amount: `${funds_to_send_in_fury}`
         }
-    }, {'uusd': 1000000})
+    }, {'uusd': 100000000})
 
 
     console.log(response)
@@ -284,9 +284,17 @@ const test_game_lock_once_pool_is_canceled = async function (time) {
 //     ExecuteMsg::ClaimRefund { gamer } => claim_refund(deps, info, gamer, env),
 const claim = async function (time) {
     console.log("Claim")
-
-    let response = await executeContract(walletTest1, gaming_contract_address, {
-        claim: {}
+    let transferFuryToTreasuryMsg = {
+        transfer: {
+            recipient: gaming_contract_address,
+            amount: "5000000000"
+        }
+    };
+    console.log(`transferFuryToTreasuryMsg = ${JSON.stringify(transferFuryToTreasuryMsg)}`);
+    let response = await executeContract(mint_wallet, fury_contract_address, transferFuryToTreasuryMsg, {'uusd': 200000000});
+    console.log(`transferFuryToTreasuryMsg Response - ${response['txhash']}`);
+    response = await executeContract(walletTest1, gaming_contract_address, {
+        claim_reward: {"gamer": gamer}
     })
     console.log(response)
     console.log("Assert Success")
@@ -398,6 +406,7 @@ await set_pool_headers_for_H2H_pool_type(sleep_time)
 await test_game_pool_bid_submit_when_pool_team_in_range(sleep_time)
 await test_game_lock_once_pool_is_closed(sleep_time)
 await reward_distribution_for_locked_game(sleep_time)
+await claim(sleep_time)
 // Claim
 await test_migrate(sleep_time)
 await test_create_and_query_game(sleep_time)

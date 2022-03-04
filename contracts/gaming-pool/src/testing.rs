@@ -2143,7 +2143,6 @@ mod tests {
         let transaction_fee = Uint128::from(100000u128);
         let instantiate_msg = InstantiateMsg {
             transaction_fee: transaction_fee,
-
             minting_contract_address: "cwtoken11111".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
@@ -2248,6 +2247,7 @@ mod tests {
         );
 
         let query_pool_details_1 = query_pool_details(&mut deps.storage, pool_id_1.to_string());
+        println!("This is the value for the  pool_details{:?}", query_pool_details_1);
         match query_pool_details_1 {
             Ok(pool_detail_1) => {
                 //Since max allowed team for gamer under this pooltype is 2 so it will not allow 3rd team creation under this pooltype.
