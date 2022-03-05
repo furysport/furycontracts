@@ -290,6 +290,9 @@ async function performOperationsOnClubStaking(deploymentDetails) {
 	await distributeRewards(deploymentDetails);
 	await queryAllClubStakes(deploymentDetails);
 	await queryAllClubOwnerships(deploymentDetails);
+	await claimRewards(deploymentDetails);
+    console.log("Balances of staker after claim reward");
+    await queryBalances(deploymentDetails, deploymentDetails.sameerWallet);
     await withdrawStakeFromAClub(deploymentDetails);
     console.log("Balances of staker after withdraw stake");
     await queryBalances(deploymentDetails, deploymentDetails.sameerWallet);
@@ -365,7 +368,7 @@ async function stakeOnAClub(deploymentDetails) {
             staker: sameer_wallet.key.accAddress,
             club_name: "ClubB",
             amount: "100000",
-            auto_stake: true
+            auto_stake: false
         }
     };
     let platformFees = await queryContract(deploymentDetails.clubStakingAddress, { query_platform_fees: { msg: Buffer.from(JSON.stringify(soacRequest)).toString('base64') } });
@@ -416,6 +419,20 @@ async function withdrawStakeFromAClub(deploymentDetails) {
     } finally {
         console.log("Withdraw Complete");
     }
+}
+
+async function claimRewards(deploymentDetails) {
+    let wsfacRequest = {
+        claim_staker_rewards: {
+            staker: sameer_wallet.key.accAddress,
+            club_name: "ClubB",
+        }
+    };
+    let platformFees = await queryContract(deploymentDetails.clubStakingAddress, { query_platform_fees: { msg: Buffer.from(JSON.stringify(wsfacRequest)).toString('base64') } });
+    console.log(`platformFees = ${JSON.stringify(platformFees)}`);
+
+    let wsfacResponse = await executeContract(sameer_wallet, deploymentDetails.clubStakingAddress, wsfacRequest, { 'uusd': Number(platformFees) });
+    console.log("Claim Rewards Platform Fees transaction hash = " + wsfacResponse['txhash']);
 }
 
 async function distributeRewards(deploymentDetails) {
