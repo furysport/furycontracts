@@ -1100,45 +1100,47 @@ pub fn transfer_from_contract_to_wallet(
             fury_count: amount,
         },
     )?;
-    messages.push(CosmosMsg::Bank(BankMsg::Send {
-        to_address: config.platform_fees_collector_wallet.into_string(),
-        amount: vec![Coin{
-            denom:"uusd".to_string(),
-            amount:amount_to_swap_in_ust
-        }],
-    }));
-    // Swap from UST to FURY the amount here we use the amount_to_swap_in_ust and Send the Fury to the Reciepent After Swap
-    // let mut ust_asset = Asset {
-    //     info: AssetInfo::NativeToken {
-    //         denom: "uusd".to_string()
-    //     },
-    //     amount: amount_to_swap_in_ust,
-    // };
-    // let tax = ust_asset.compute_tax(&deps.querier)?;
-    // ust_asset.amount -= tax;
-    // let swap_message = AstroPortExecute::Swap {
-    //     offer_asset: ust_asset.clone(),
-    //     belief_price: None,
-    //     max_spread: None,
-    //     to: Option::from(info.sender.to_string()),
-    // };
-    //
-    // let swap_fee: Uint128 = deps.querier.query_wasm_smart(
-    //     config.clone().astro_proxy_address,
-    //     &QueryMsgSimulation::QueryPlatformFees {
-    //         msg: to_binary(&swap_message)?
-    //     },
-    // )?;
-    //
-    // let final_amount = ust_asset.amount.clone().add(swap_fee);
-    // messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
-    //     contract_addr: config.astro_proxy_address.to_string(),
-    //     msg: to_binary(&swap_message)?,
-    //     funds: vec![Coin {
-    //         denom: "uusd".to_string(),
-    //         amount: final_amount,
+    // messages.push(CosmosMsg::Bank(BankMsg::Send {
+    //     to_address: config.platform_fees_collector_wallet.into_string(),
+    //     amount: vec![Coin{
+    //         denom:"uusd".to_string(),
+    //         amount:amount_to_swap_in_ust
     //     }],
     // }));
+    //===========================================
+    // Swap from UST to FURY the amount here we use the amount_to_swap_in_ust and Send the Fury to the Reciepent After Swap
+    let mut ust_asset = Asset {
+        info: AssetInfo::NativeToken {
+            denom: "uusd".to_string()
+        },
+        amount: amount_to_swap_in_ust,
+    };
+    let tax = ust_asset.compute_tax(&deps.querier)?;
+    // ust_asset.amount += tax;
+    let swap_message = AstroPortExecute::Swap {
+        offer_asset: ust_asset.clone(),
+        belief_price: None,
+        max_spread: None,
+        to: Option::from(info.sender.to_string()),
+    };
+    
+    let swap_fee: Uint128 = deps.querier.query_wasm_smart(
+        config.clone().astro_proxy_address,
+        &QueryMsgSimulation::QueryPlatformFees {
+            msg: to_binary(&swap_message)?
+        },
+    )?;
+    
+    let final_amount = ust_asset.amount.clone().add(swap_fee).add(tax);
+    messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
+        contract_addr: config.astro_proxy_address.to_string(),
+        msg: to_binary(&swap_message)?,
+        funds: vec![Coin {
+            denom: "uusd".to_string(),
+            amount: final_amount,
+        }],
+    }));
+    //==============================
     // Sending Fury token to the contract
     // let transfer_msg = Cw20ExecuteMsg::TransferFrom {
     //     owner: String::from(env.contract.address),
