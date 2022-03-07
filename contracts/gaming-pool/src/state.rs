@@ -140,8 +140,8 @@ pub struct GameResult {
     pub gamer_address: String,
     pub game_id: String,
     pub team_id: String,
-    pub reward_amount: Uint128,
-    pub refund_amount: Uint128,
+    pub reward_amount: Uint128, // UST
+    pub refund_amount: Uint128, //  UST
     pub team_rank: u64,
     pub team_points: u64,
 }

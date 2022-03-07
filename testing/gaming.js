@@ -19,8 +19,8 @@ const assert = chai.assert;
 // Init and Vars
 const sleep_time = 0
 let gaming_contract_address = ""
-let proxy_contract_address = "terra1pcknsatx5ceyfu6zvtmz3yr8auumzrdts4ax4a"
-let fury_contract_address = "terra10pyejy66429refv3g35g2t7am0was7ya7kz2a4"
+let proxy_contract_address = "terra15a6ll34a87n7qs4ewaclpzqqdqlm02a733xph9"
+let fury_contract_address = "terra1rhjdru2xturtpxu4ef7q6wuy3wjpxawarkv2yn"
 const gamer = walletTest1.key.accAddress
 const gamer_extra_1 = walletTest3.key.accAddress
 const gamer_extra_2 = walletTest4.key.accAddress

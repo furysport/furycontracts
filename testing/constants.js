@@ -40,16 +40,16 @@ export const liquidity_wallet = terraClient.wallet(mk3);
 const mk4 = new MnemonicKey({mnemonic: "snap merit day trash key reopen stamp normal diagram vacant economy donate winner sister aerobic artist cheese bright palace athlete mind snack crawl bridge",});
 export const marketing_wallet = terraClient.wallet(mk4);
 
-const mk5 = new MnemonicKey({mnemonic:"element final maximum lake rain jewel never typical bunker detect gold earn fancy grace heart surge auction debris embody lazy edit worry expose soon"});
+const mk5 = new MnemonicKey({mnemonic: "element final maximum lake rain jewel never typical bunker detect gold earn fancy grace heart surge auction debris embody lazy edit worry expose soon"});
 export const team_wallet = terraClient.wallet(mk5);
 
-const mkNitin = new MnemonicKey({mnemonic:"garden celery myth discover isolate dilemma width sugar enemy grief case kingdom boring guess next huge indoor cargo crime letter useful essay gold view"});
+const mkNitin = new MnemonicKey({mnemonic: "garden celery myth discover isolate dilemma width sugar enemy grief case kingdom boring guess next huge indoor cargo crime letter useful essay gold view"});
 export const nitin_wallet = terraClient.wallet(mkNitin);
 
-const mkAjay = new MnemonicKey({mnemonic:"purse blur pitch skirt upset master relief feel pole enroll coffee change tooth live bunker federal work dry struggle little design eyebrow hope essence"});
+const mkAjay = new MnemonicKey({mnemonic: "purse blur pitch skirt upset master relief feel pole enroll coffee change tooth live bunker federal work dry struggle little design eyebrow hope essence"});
 export const ajay_wallet = terraClient.wallet(mkAjay);
 
-const mkSameer = new MnemonicKey({mnemonic:"term salon nothing matrix flower click annual bomb anxiety glide castle okay payment degree umbrella clap cancel lock broom use ritual thrive price flavor"});
+const mkSameer = new MnemonicKey({mnemonic: "term salon nothing matrix flower click annual bomb anxiety glide castle okay payment degree umbrella clap cancel lock broom use ritual thrive price flavor"});
 export const sameer_wallet = terraClient.wallet(mkSameer);
 
 
@@ -63,14 +63,14 @@ export const mintInitMessage = {
     symbol: "FURY",
     decimals: 6,
     initial_balances: [
-        {address: "terra1ttjw6nscdmkrx3zhxqx3md37phldgwhggm345k",amount: "410000000000000"},
-        {address: "terra1m46vy0jk9wck6r9mg2n8jnxw0y4g4xgl3csh9h",amount: "0"},
-        {address: "terra1k20rlfj3ea47zjr2sp672qqscck5k5mf3uersq",amount: "0"},
-        {address: "terra1wjq02nwcv6rq4zutq9rpsyq9k08rj30rhzgvt4",amount: "0"},
-        {address: "terra19rgzfvlvq0f82zyy4k7whrur8x9wnpfcj5j9g7",amount: "0"},
-        {address: "terra12g4sj6euv68kgx40k7mxu5xlm5sfat806umek7",amount: "0"},
+        {address: "terra1ttjw6nscdmkrx3zhxqx3md37phldgwhggm345k", amount: "410000000000000"},
+        {address: "terra1m46vy0jk9wck6r9mg2n8jnxw0y4g4xgl3csh9h", amount: "0"},
+        {address: "terra1k20rlfj3ea47zjr2sp672qqscck5k5mf3uersq", amount: "0"},
+        {address: "terra1wjq02nwcv6rq4zutq9rpsyq9k08rj30rhzgvt4", amount: "0"},
+        {address: "terra19rgzfvlvq0f82zyy4k7whrur8x9wnpfcj5j9g7", amount: "0"},
+        {address: "terra12g4sj6euv68kgx40k7mxu5xlm5sfat806umek7", amount: "0"},
         {address: deployer.key.accAddress, amount: "010000000000000"},
-        ],
+    ],
     mint: {
         minter: "terra1ttjw6nscdmkrx3zhxqx3md37phldgwhggm345k",
         cap: "420000000000000"

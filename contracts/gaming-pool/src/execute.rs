@@ -644,11 +644,12 @@ pub fn game_pool_bid_submit(
             amount: platform_fees,
         }],
     }));
-    let final_amount = asset.deduct_tax(&deps.querier)?;
-    messages.push(CosmosMsg::Bank(BankMsg::Send {
-        to_address: config.platform_fees_collector_wallet.into_string(),
-        amount: vec![final_amount],
-    }));
+    //  Double UST Fees Removed
+    // let final_amount = asset.deduct_tax(&deps.querier)?;
+    // messages.push(CosmosMsg::Bank(BankMsg::Send {
+    //     to_address: config.platform_fees_collector_wallet.into_string(),
+    //     amount: vec![final_amount],
+    // }));
 
     // Nothing required to transfer anything gaming fund has arrived in the gaming contract
     return Ok(Response::new()
@@ -847,7 +848,8 @@ pub fn game_pool_reward_distribute(
             invoker: info.sender.to_string(),
         });
     }
-    let platform_fee = config.platform_fee;
+    let platform_fee_in_percentage = config.platform_fee;
+    let platform_fee;
     let game_id = config.game_id;
 
     let gd = GAME_DETAILS.may_load(deps.storage, game_id.clone())?;
@@ -887,6 +889,7 @@ pub fn game_pool_reward_distribute(
             msg: String::from("Rewards are already distributed for this pool"),
         }));
     }
+
     let pool_count = pool_details.current_teams_count;
     let pool_type = pool_details.pool_type;
     POOL_DETAILS.save(
@@ -913,14 +916,17 @@ pub fn game_pool_reward_distribute(
             }));
         }
     }
+    platform_fee = query_platform_fees(pool_type_details.pool_fee, platform_fee_in_percentage, config.transaction_fee.clone())?.platform_fee;
 
-    let pool_fee: Uint128 = deps.querier.query_wasm_smart(
-        config.astro_proxy_address,
-        &ProxyQueryMsgs::get_fury_equivalent_to_ust {
-            ust_count: pool_type_details.pool_fee,
-        },
-    )?;
 
+    // let pool_fee: Uint128 = deps.querier.query_wasm_smart(
+    //     config.astro_proxy_address,
+    //     &ProxyQueryMsgs::get_fury_equivalent_to_ust {
+    //         ust_count: pool_type_details.pool_fee,
+    //     },
+    // )?;
+
+    let pool_fee: Uint128 = pool_type_details.pool_fee;
 
     let total_reward = pool_fee
         .checked_mul(Uint128::from(pool_count))
@@ -964,6 +970,7 @@ pub fn game_pool_reward_distribute(
             .checked_div(Uint128::from(100u128))
             .unwrap_or_default();
         // Transfer proportionate_amount to the corresponding platform wallet
+
         let transfer_detail = WalletTransferDetails {
             wallet_address: wallet_address.clone(),
             amount: proportionate_amount,
@@ -1083,7 +1090,7 @@ pub fn transfer_to_multiple_wallets(
 }
 
 pub fn transfer_from_contract_to_wallet(
-    amount: Uint128,
+    amount: Uint128, // UST and we need swap it to FURY At time of return
     action: String,
     deps: DepsMut,
     env: Env,
@@ -1094,12 +1101,14 @@ pub fn transfer_from_contract_to_wallet(
     let config = CONFIG.load(deps.storage)?;
     let mut messages = Vec::new();
     // Amount Requested is in Fury Now we convert it to UST
-    let amount_to_swap_in_ust = deps.querier.query_wasm_smart(
-        config.astro_proxy_address.clone(),
-        &ProxyQueryMsgs::get_ust_equivalent_to_fury {
-            fury_count: amount,
-        },
-    )?;
+
+    // Amount is IN UST So we wont Query Swap
+    // let amount_to_swap_in_ust = deps.querier.query_wasm_smart(
+    //     config.astro_proxy_address.clone(),
+    //     &ProxyQueryMsgs::get_ust_equivalent_to_fury {
+    //         fury_count: amount,
+    //     },
+    // )?;
     // messages.push(CosmosMsg::Bank(BankMsg::Send {
     //     to_address: config.platform_fees_collector_wallet.into_string(),
     //     amount: vec![Coin{
@@ -1113,7 +1122,7 @@ pub fn transfer_from_contract_to_wallet(
         info: AssetInfo::NativeToken {
             denom: "uusd".to_string()
         },
-        amount: amount_to_swap_in_ust,
+        amount,
     };
     let tax = ust_asset.compute_tax(&deps.querier)?;
     // ust_asset.amount += tax;
@@ -1123,14 +1132,14 @@ pub fn transfer_from_contract_to_wallet(
         max_spread: None,
         to: Option::from(info.sender.to_string()),
     };
-    
+
     let swap_fee: Uint128 = deps.querier.query_wasm_smart(
         config.clone().astro_proxy_address,
         &QueryMsgSimulation::QueryPlatformFees {
             msg: to_binary(&swap_message)?
         },
     )?;
-    
+
     let final_amount = ust_asset.amount.clone().add(swap_fee).add(tax);
     messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
         contract_addr: config.astro_proxy_address.to_string(),
