@@ -1,4 +1,9 @@
-import {GamingContractPath, mint_wallet, walletTest1, walletTest2, walletTest3, walletTest4} from './constants.js';
+import {
+    GamingContractPath,
+    mint_wallet,
+    treasury_wallet,
+    walletTest1,
+} from './constants.js';
 import {executeContract, instantiateContract, queryContract, storeCode, migrateContract} from "./utils.js";
 
 import {promisify} from 'util';
@@ -21,9 +26,9 @@ const sleep_time = 0
 let gaming_contract_address = ""
 let proxy_contract_address = "terra15a6ll34a87n7qs4ewaclpzqqdqlm02a733xph9"
 let fury_contract_address = "terra1rhjdru2xturtpxu4ef7q6wuy3wjpxawarkv2yn"
-const gamer = walletTest1.key.accAddress
-const gamer_extra_1 = walletTest3.key.accAddress
-const gamer_extra_2 = walletTest4.key.accAddress
+const gamer = treasury_wallet
+// const gamer_extra_1 = walletTest3.key.accAddress
+// const gamer_extra_2 = walletTest4.key.accAddress
 
 const gaming_init = {
     "minting_contract_address": fury_contract_address, //  This should be a contract But We passed wallet so it wont raise error on addr validate
@@ -31,7 +36,7 @@ const gaming_init = {
     "platform_fee": "1",
     "transaction_fee": "1",
     "game_id": "Game001",
-    "platform_fees_collector_wallet": walletTest3.key.accAddress,
+    "platform_fees_collector_wallet": walletTest1.key.accAddress,
     "astro_proxy_address": proxy_contract_address,
 
 }
@@ -357,7 +362,7 @@ async function test_game_pool_reward_distribute(time) {
             reward_amount: 100,
             refund_amount: ""
         }, {
-            gamer_address: walletTest3.key.accAddress,
+            gamer_address: walletTest1.key.accAddress,
             game_id: "Game001",
             team_id: "Team001",
             team_rank: 2,
@@ -366,7 +371,7 @@ async function test_game_pool_reward_distribute(time) {
             refund_amount: ""
         },
         {
-            gamer_address: walletTest4.key.accAddress,
+            gamer_address: walletTest1.key.accAddress,
             game_id: "Game001",
             team_id: "Team001",
             team_rank: 2,

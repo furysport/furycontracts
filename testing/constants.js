@@ -1,27 +1,29 @@
 import {LocalTerra} from "@terra-money/terra.js";
 import {get_server_epoch_seconds} from "./utils.js";
-import {MnemonicKey} from '@terra-money/terra.js';
+import {MnemonicKey,LCDClient} from '@terra-money/terra.js';
 
 // Contracts
 export const MintingContractPath = "../artifacts/cw20_base.wasm"
 export const ClubStakingContractPath = "../artifacts/club_staking.wasm"
 export const GamingContractPath = "../artifacts/gaming_pool.wasm"
 
-export const terraClient = new LocalTerra();
-
+// export const terraClient = new LocalTerra();
+export const terraClient = new LCDClient({
+  URL: 'https://bombay-lcd.terra.dev',
+  chainID: 'bombay-12',
+});
 // Accounts
-export const deployer = terraClient.wallets.test1; // used as operator on all contracts
-// These can be the client wallets to interact
-export const walletTest1 = terraClient.wallets.test1;
-export const walletTest2 = terraClient.wallets.test2;
-export const walletTest3 = terraClient.wallets.test3;
-export const walletTest4 = terraClient.wallets.test4;
-export const walletTest5 = terraClient.wallets.test5;
-export const walletTest6 = terraClient.wallets.test6;
-export const walletTest7 = terraClient.wallets.test7;
-export const walletTest8 = terraClient.wallets.test8;
-export const walletTest9 = terraClient.wallets.test9;
-export const walletTest10 = terraClient.wallets.test10;
+// export const deployer = terraClient.wallets.test1; // used as operator on all contracts
+// // These can be the client wallets to interact
+// export const walletTest2 = terraClient.wallets.test2;
+// export const walletTest3 = terraClient.wallets.test3;
+// export const walletTest4 = terraClient.wallets.test4;
+// export const walletTest5 = terraClient.wallets.test5;
+// export const walletTest6 = terraClient.wallets.test6;
+// export const walletTest7 = terraClient.wallets.test7;
+// export const walletTest8 = terraClient.wallets.test8;
+// export const walletTest9 = terraClient.wallets.test9;
+// export const walletTest10 = terraClient.wallets.test10;
 // export const mint_wallet = "terra1ttjw6nscdmkrx3zhxqx3md37phldgwhggm345k";
 // export const gamifiedairdrop = "terra1m46vy0jk9wck6r9mg2n8jnxw0y4g4xgl3csh9h";
 // export const privatecategory = "terra1k20rlfj3ea47zjr2sp672qqscck5k5mf3uersq";
@@ -52,6 +54,8 @@ export const ajay_wallet = terraClient.wallet(mkAjay);
 const mkSameer = new MnemonicKey({mnemonic: "term salon nothing matrix flower click annual bomb anxiety glide castle okay payment degree umbrella clap cancel lock broom use ritual thrive price flavor"});
 export const sameer_wallet = terraClient.wallet(mkSameer);
 
+export const walletTest1 = sameer_wallet
+export const deployer = sameer_wallet
 
 export const swapinitMessage = {
     pair_code_id: 321,
