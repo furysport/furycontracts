@@ -22,7 +22,7 @@ const question = promisify(rl.question).bind(rl);
 
 const assert = chai.assert;
 // Init and Vars
-const sleep_time = 0
+const sleep_time = 15000
 let gaming_contract_address = ""
 let proxy_contract_address = "terra1ulwuw4etqty4n40f25css37jdtqu3z90rw0gxw"
 let fury_contract_address = "terra12v7k5hmlqau8v69xurk4jdyaxz4y8s52ca8nyx"
@@ -51,6 +51,7 @@ function sleep(time) {
 
 const deploy_contract = async function (file, init) {
     const contractId = await storeCode(walletTest1, file,)
+    await sleep(sleep_time)
     const gamingInit = await instantiateContract(walletTest1, contractId, init)
     console.log(`New Contract Init Hash ${gamingInit.txhash}`)
     return gamingInit.logs[0].events[0].attributes[3].value; // Careful with order of argument
@@ -73,6 +74,8 @@ let test_create_and_query_game = async function (time) {
     console.log("Testing Create and Query Game")
     gaming_contract_address = await deploy_contract(GamingContractPath, gaming_init)
     console.log(`Gaming Address:${gaming_contract_address}`)
+    await sleep(sleep_time)
+    console.log("Executing Query For Contract Details")
     let query_resposne = await queryContract(gaming_contract_address, {
         game_details: {}
     })
