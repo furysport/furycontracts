@@ -35,15 +35,3 @@ pub fn query_all_allowances(
         allowances: allowances?,
     })
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
-    use cosmwasm_std::{coins, DepsMut, Uint128};
-    use cw20::{Cw20Coin, Expiration, TokenInfoResponse};
-
-    use crate::msg::{ExecuteMsg, InstantiateMsg};
-
-}

@@ -1,7 +1,6 @@
 use astroport::asset::Asset;
 use astroport::factory::PairType;
 use cosmwasm_std::{Addr, Binary, Decimal, Uint128};
-use cw0::Expiration;
 use cw20::{Cw20ReceiveMsg, Logo};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};

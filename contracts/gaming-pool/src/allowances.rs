@@ -238,15 +238,3 @@ pub fn query_allowance(deps: Deps, owner: String, spender: String) -> StdResult<
         .unwrap_or_default();
     Ok(allowance)
 }
-
-#[cfg(test)]
-mod tests {
-    use cosmwasm_std::{coins, CosmosMsg, SubMsg, Timestamp, WasmMsg};
-    use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
-
-    use cw20::{Cw20Coin, TokenInfoResponse};
-
-    use crate::msg::{ExecuteMsg, InstantiateMsg};
-
-    use super::*;
-}

@@ -1,23 +1,22 @@
+#![allow(non_snake_case)]
 #[cfg(test)]
 mod tests {
     use cosmwasm_std::{coin, Uint128};
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
-    use cosmwasm_std::{coins, from_binary, Addr, CosmosMsg, StdError, SubMsg, WasmMsg};
+    use cosmwasm_std::{Addr};
     use crate::contract::{CLAIMED_REWARD, GAME_CANCELLED, GAME_COMPLETED, GAME_POOL_OPEN, INITIAL_REFUND_AMOUNT, instantiate};
     use crate::execute::{cancel_game, claim_refund, claim_reward, create_pool, game_pool_bid_submit, game_pool_reward_distribute, lock_game, save_team_details, set_platform_fee_wallets, set_pool_type_params};
 
-    use crate::msg::{InstantiateMarketingInfo, InstantiateMsg};
+    use crate::msg::{InstantiateMsg};
     use crate::query::{get_team_count_for_user_in_pool_type, query_game_details, query_pool_details, query_team_details};
     use crate::state::{GameResult, GAMING_FUNDS, PLATFORM_WALLET_PERCENTAGES, POOL_TEAM_DETAILS, WalletPercentage};
-
-    use super::*;
 
     #[test]
     fn test_create_and_query_game() {
         let mut deps = mock_dependencies(&[]);
         let platform_fee = Uint128::from(300000u128);
         let transaction_fee = Uint128::from(100000u128);
-        let owner1Info = mock_info("Owner001", &[coin(1000, "stake")]);
+        let _owner1_info = mock_info("Owner001", &[coin(1000, "stake")]);
         let instantiate_msg = InstantiateMsg {
             minting_contract_address: "cwtoken11111".to_string(),
             platform_fees_collector_wallet: "FEE_WALLET".to_string(),
@@ -51,7 +50,7 @@ mod tests {
     #[test]
     fn test_create_and_query_pool_detail() {
         let mut deps = mock_dependencies(&[]);
-        let owner1Info = mock_info("Owner001", &[coin(1000, "stake")]);
+        let owner1_info = mock_info("Owner001", &[coin(1000, "stake")]);
         let platform_fee = Uint128::from(300000u128);
         let transaction_fee = Uint128::from(100000u128);
 
@@ -106,7 +105,7 @@ mod tests {
     #[test]
     fn test_save_and_query_team_detail() {
         let mut deps = mock_dependencies(&[]);
-        let owner1Info = mock_info("Owner001", &[coin(1000, "stake")]);
+        let owner1_info = mock_info("Owner001", &[coin(1000, "stake")]);
         let platform_fee = Uint128::from(300000u128);
         let transaction_fee = Uint128::from(100000u128);
         let instantiate_msg = InstantiateMsg {
@@ -189,7 +188,7 @@ mod tests {
     #[test]
     fn test_get_team_count_for_user_in_pool_type() {
         let mut deps = mock_dependencies(&[]);
-        let owner1Info = mock_info("Owner001", &[coin(1000, "stake")]);
+        let owner1_info = mock_info("Owner001", &[coin(1000, "stake")]);
         let platform_fee = Uint128::from(300000u128);
         let transaction_fee = Uint128::from(100000u128);
         let instantiate_msg = InstantiateMsg {
@@ -295,7 +294,7 @@ mod tests {
     #[test]
     fn test_game_pool_bid_submit_when_pool_team_in_range() {
         let mut deps = mock_dependencies(&[]);
-        let owner1Info = mock_info("Gamer001", &[coin(1000, "stake")]);
+        let owner1_info = mock_info("Gamer001", &[coin(1000, "stake")]);
         let platform_fee = Uint128::from(300000u128);
 
         let transaction_fee = Uint128::from(100000u128);
@@ -373,7 +372,7 @@ mod tests {
         game_pool_bid_submit(
             deps.as_mut(),
             mock_env(),
-            owner1Info.clone(),
+            owner1_info.clone(),
             "Gamer001".to_string(),
             "oneToOne".to_string(),
             poolId.to_string(),
@@ -396,7 +395,7 @@ mod tests {
     #[test]
     fn test_game_pool_bid_submit_when_pool_team_not_in_range() {
         let mut deps = mock_dependencies(&[]);
-        let owner1Info = mock_info("Gamer001", &[coin(1000, "stake")]);
+        let owner1_info = mock_info("Gamer001", &[coin(1000, "stake")]);
         let platform_fee = Uint128::from(300000u128);
 
         let transaction_fee = Uint128::from(100000u128);
@@ -474,7 +473,7 @@ mod tests {
         game_pool_bid_submit(
             deps.as_mut(),
             mock_env(),
-            owner1Info.clone(),
+            owner1_info.clone(),
             "Gamer001".to_string(),
             "oneToOne".to_string(),
             poolId.to_string(),
@@ -485,7 +484,7 @@ mod tests {
         game_pool_bid_submit(
             deps.as_mut(),
             mock_env(),
-            owner1Info.clone(),
+            owner1_info.clone(),
             "Gamer001".to_string(),
             "oneToOne".to_string(),
             poolId.to_string(),
@@ -509,7 +508,7 @@ mod tests {
     #[test]
     fn test_crete_different_pool_type_and_add_multiple_game_for_given_user() {
         let mut deps = mock_dependencies(&[]);
-        let owner1Info = mock_info("Gamer001", &[coin(1000, "stake")]);
+        let owner1_info = mock_info("Gamer001", &[coin(1000, "stake")]);
         let platform_fee = Uint128::from(300000u128);
 
         let transaction_fee = Uint128::from(100000u128);
@@ -773,7 +772,7 @@ mod tests {
     #[test]
     fn test_max_team_per_pool_type_for_given_user() {
         let mut deps = mock_dependencies(&[]);
-        let owner1Info = mock_info("Gamer002", &[coin(1000, "stake")]);
+        let owner1_info = mock_info("Gamer002", &[coin(1000, "stake")]);
         let platform_fee = Uint128::from(300000u128);
 
         let transaction_fee = Uint128::from(100000u128);
@@ -898,7 +897,7 @@ mod tests {
     #[test]
     fn test_game_pool_reward_distribute() {
         let mut deps = mock_dependencies(&[]);
-        let owner1Info = mock_info("Gamer002", &[coin(1000, "stake")]);
+        let owner1_info = mock_info("Gamer002", &[coin(1000, "stake")]);
         let platform_fee = Uint128::from(300000u128);
 
         let transaction_fee = Uint128::from(100000u128);
@@ -1104,7 +1103,7 @@ mod tests {
     #[test]
     fn test_claim_refund() {
         let mut deps = mock_dependencies(&[]);
-        let owner1Info = mock_info("Gamer002", &[coin(1000, "stake")]);
+        let owner1_info = mock_info("Gamer002", &[coin(1000, "stake")]);
         let platform_fee = Uint128::from(300000u128);
 
         let transaction_fee = Uint128::from(100000u128);
@@ -1193,7 +1192,7 @@ mod tests {
         let cancelInfo = mock_info("cancelInfo", &[]);
         let cancel_rsp = cancel_game(deps.as_mut(), mock_env(), adminInfo.clone());
 
-        let claim_refund_rsp = claim_refund(deps.as_mut(), owner1Info.clone(), "Gamer002".to_string(), mock_env());
+        let claim_refund_rsp = claim_refund(deps.as_mut(), owner1_info.clone(), "Gamer002".to_string(), mock_env());
         match claim_refund_rsp {
             Ok(claim_refund_rsp) => {
                 let amt = claim_refund_rsp.attributes[0].value.clone();
@@ -1211,7 +1210,7 @@ mod tests {
     #[test]
     fn test_cancel_game() {
         let mut deps = mock_dependencies(&[]);
-        let owner1Info = mock_info("Gamer002", &[coin(1000, "stake")]);
+        let owner1_info = mock_info("Gamer002", &[coin(1000, "stake")]);
         let platform_fee = Uint128::from(300000u128);
 
         let transaction_fee = Uint128::from(100000u128);
@@ -1413,7 +1412,7 @@ mod tests {
     #[test]
     fn test_claim_reward() {
         let mut deps = mock_dependencies(&[]);
-        let owner1Info = mock_info("Gamer002", &[coin(1000, "stake")]);
+        let owner1_info = mock_info("Gamer002", &[coin(1000, "stake")]);
         let platform_fee = Uint128::from(300000u128);
 
         let transaction_fee = Uint128::from(100000u128);
@@ -1634,7 +1633,7 @@ mod tests {
         }
 
         let claim_reward_rsp =
-            claim_reward(deps.as_mut(), owner1Info.clone(), "Gamer002".to_string(), mock_env());
+            claim_reward(deps.as_mut(), owner1_info.clone(), "Gamer002".to_string(), mock_env());
         match claim_reward_rsp {
             Ok(claim_reward_rsp) => {
                 //Since max allowed team for gamer under this pooltype is 2 so it will not allow 3rd team creation under this pooltype.
@@ -1674,7 +1673,7 @@ mod tests {
     #[test]
     fn test_claim_reward_twice() {
         let mut deps = mock_dependencies(&[]);
-        let owner1Info = mock_info("Gamer002", &[coin(1000, "stake")]);
+        let owner1_info = mock_info("Gamer002", &[coin(1000, "stake")]);
         let platform_fee = Uint128::from(300000u128);
 
         let transaction_fee = Uint128::from(100000u128);
@@ -1877,7 +1876,7 @@ mod tests {
         }
 
         let claim_reward_rsp =
-            claim_reward(deps.as_mut(), owner1Info.clone(), "Gamer002".to_string(), mock_env());
+            claim_reward(deps.as_mut(), owner1_info.clone(), "Gamer002".to_string(), mock_env());
         match claim_reward_rsp {
             Ok(claim_reward_rsp) => {
                 //Since max allowed team for gamer under this pooltype is 2 so it will not allow 3rd team creation under this pooltype.
@@ -1914,7 +1913,7 @@ mod tests {
         }
 
         let claim_reward_rsp_2 =
-            claim_reward(deps.as_mut(), owner1Info.clone(), "Gamer002".to_string(), mock_env());
+            claim_reward(deps.as_mut(), owner1_info.clone(), "Gamer002".to_string(), mock_env());
         match claim_reward_rsp_2 {
             Ok(claim_reward_rsp_2) => {
                 // IT should not come here
@@ -1934,7 +1933,7 @@ mod tests {
     #[test]
     fn test_refund_game_pool_close_with_team_less_than_minimum_team_count() {
         let mut deps = mock_dependencies(&[]);
-        let owner1Info = mock_info("Gamer002", &[coin(1000, "stake")]);
+        let owner1_info = mock_info("Gamer002", &[coin(1000, "stake")]);
         let platform_fee = Uint128::from(300000u128);
 
         let transaction_fee = Uint128::from(100000u128);
@@ -2117,7 +2116,7 @@ mod tests {
         let team_details = POOL_TEAM_DETAILS.load(&mut deps.storage, pool_id_1.clone());
         for team in team_details {
             //let mut gamer_addr = team[0].gamer_address.clone();
-            let gamer_addr = Addr::unchecked(team[0].gamer_address.clone().as_str()); //owner1Info //deps.api.addr_validate(&gamer);
+            let gamer_addr = Addr::unchecked(team[0].gamer_address.clone().as_str()); //owner1_info //deps.api.addr_validate(&gamer);
             //let address = deps.api.addr_validate(team[0].gamer_address.clone().as_str());
             let gf_res = GAMING_FUNDS.load(&mut deps.storage, &gamer_addr);
             //let mut global_pool_id;
@@ -2137,7 +2136,7 @@ mod tests {
     #[test]
     fn test_cancel_on_completed_game() {
         let mut deps = mock_dependencies(&[]);
-        let owner1Info = mock_info("Gamer002", &[coin(1000, "stake")]);
+        let owner1_info = mock_info("Gamer002", &[coin(1000, "stake")]);
         let platform_fee = Uint128::from(300000u128);
 
         let transaction_fee = Uint128::from(100000u128);
@@ -2353,7 +2352,7 @@ mod tests {
     #[test]
     fn test_reward_distribute_non_completed_game() {
         let mut deps = mock_dependencies(&[]);
-        let owner1Info = mock_info("Gamer002", &[coin(1000, "stake")]);
+        let owner1_info = mock_info("Gamer002", &[coin(1000, "stake")]);
         let platform_fee = Uint128::from(300000u128);
 
         let transaction_fee = Uint128::from(100000u128);
@@ -2555,7 +2554,7 @@ mod tests {
     #[test]
     fn test_game_pool_reward_distribute_again() {
         let mut deps = mock_dependencies(&[]);
-        let owner1Info = mock_info("Gamer002", &[coin(1000, "stake")]);
+        let owner1_info = mock_info("Gamer002", &[coin(1000, "stake")]);
         let platform_fee = Uint128::from(300000u128);
 
         let transaction_fee = Uint128::from(100000u128);

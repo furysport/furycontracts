@@ -1,23 +1,19 @@
 use std::ops::Add;
 
 use astroport::asset::{Asset, AssetInfo};
-use astroport::pair::{ExecuteMsg as AstroPortExecute, SimulationResponse};
-use cosmwasm_std::{BankMsg, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, from_binary, MessageInfo, Order, Response, StdError, StdResult, Storage, SubMsg, to_binary, Uint128, WasmMsg};
+use astroport::pair::{ExecuteMsg as AstroPortExecute};
+use cosmwasm_std::{Coin, CosmosMsg, Decimal, DepsMut, Env, from_binary, MessageInfo, Order, Response, StdError, StdResult, Storage, SubMsg, to_binary, Uint128, WasmMsg};
 
 use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg};
 
 use crate::contract::{CLAIMED_REFUND, CLAIMED_REWARD, DUMMY_WALLET, GAME_CANCELLED, GAME_COMPLETED, GAME_POOL_CLOSED, GAME_POOL_OPEN, HUNDRED_PERCENT, INITIAL_REFUND_AMOUNT, INITIAL_REWARD_AMOUNT, INITIAL_TEAM_POINTS, INITIAL_TEAM_RANK, REWARDS_DISTRIBUTED, REWARDS_NOT_DISTRIBUTED, UNCLAIMED_REFUND, UNCLAIMED_REWARD};
 use crate::ContractError;
 use crate::msg::{ProxyQueryMsgs, QueryMsgSimulation, ReceivedMsg};
-use crate::msg::AssetInfo::NativeToken;
-use crate::msg::QueryMsgSimulation::QueryPlatformFees;
 use crate::query::{get_team_count_for_user_in_pool_type, query_pool_details, query_pool_type_details};
 use crate::state::{CONFIG, CONTRACT_POOL_COUNT, FeeDetails, GAME_DETAILS, GameDetails,
                    GameResult, GAMING_FUNDS, PLATFORM_WALLET_PERCENTAGES, POOL_DETAILS,
                    POOL_TEAM_DETAILS, POOL_TYPE_DETAILS, PoolDetails, PoolTeamDetails,
                    PoolTypeDetails, WalletPercentage, WalletTransferDetails};
-
-pub const SWAP_FEE_PERCENTAGE: u128 = 2u128;
 
 pub fn received_message(
     deps: DepsMut,
@@ -70,7 +66,7 @@ pub fn set_platform_fee_wallets(
 
 pub fn set_pool_type_params(
     deps: DepsMut,
-    env: Env,
+    _env: Env,
     info: MessageInfo,
     pool_type: String,
     pool_fee: Uint128,
@@ -105,7 +101,7 @@ pub fn set_pool_type_params(
     return Ok(Response::default());
 }
 
-pub fn cancel_game(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response, ContractError> {
+pub fn cancel_game(deps: DepsMut, _env: Env, info: MessageInfo) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
     if info.sender != config.admin_address {
         return Err(ContractError::Unauthorized {
@@ -116,7 +112,7 @@ pub fn cancel_game(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respons
     let game_id = config.game_id;
 
     let gd = GAME_DETAILS.may_load(deps.storage, game_id.clone())?;
-    let mut game;
+    let game;
     match gd {
         Some(gd) => {
             game = gd;
@@ -190,7 +186,7 @@ pub fn cancel_game(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respons
         }
         let mut updated_teams: Vec<PoolTeamDetails> = Vec::new();
         for team in teams {
-            let mut gamer = team.gamer_address.clone();
+            let gamer = team.gamer_address.clone();
             let gamer_addr = deps.api.addr_validate(&gamer)?;
             GAMING_FUNDS.update(
                 deps.storage,
@@ -218,7 +214,7 @@ pub fn cancel_game(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Respons
         .add_attribute("game_status", "GAME_CANCELLED".to_string()));
 }
 
-pub fn lock_game(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response, ContractError> {
+pub fn lock_game(deps: DepsMut, _env: Env, info: MessageInfo) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
     if info.sender != config.admin_address {
         return Err(ContractError::Unauthorized {
@@ -229,7 +225,7 @@ pub fn lock_game(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response,
     let game_id = config.game_id;
 
     let gd = GAME_DETAILS.may_load(deps.storage, game_id.clone())?;
-    let mut game;
+    let game;
     match gd {
         Some(gd) => {
             game = gd;
@@ -255,7 +251,6 @@ pub fn lock_game(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response,
         },
     )?;
 
-    // refund the gamers whose pool was not completed
     // Get all pools
     let all_pools: Vec<String> = POOL_DETAILS
         .keys(deps.storage, None, None, Order::Ascending)
@@ -302,7 +297,7 @@ pub fn lock_game(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response,
         }
         let mut updated_teams: Vec<PoolTeamDetails> = Vec::new();
         for team in teams {
-            let mut gamer = team.gamer_address.clone();
+            let gamer = team.gamer_address.clone();
             let gamer_addr = deps.api.addr_validate(&gamer)?;
             GAMING_FUNDS.update(
                 deps.storage,
@@ -332,7 +327,7 @@ pub fn lock_game(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response,
 
 pub fn create_pool(
     deps: DepsMut,
-    env: Env,
+    _env: Env,
     info: MessageInfo,
     pool_type: String,
 ) -> Result<Response, ContractError> {
@@ -344,7 +339,7 @@ pub fn create_pool(
     }
     let game_id = config.game_id;
     let gd = GAME_DETAILS.may_load(deps.storage, game_id.clone())?;
-    let mut game;
+    let game;
     match gd {
         Some(gd) => {
             game = gd;
@@ -364,7 +359,7 @@ pub fn create_pool(
     let dummy_wallet = String::from(DUMMY_WALLET);
     let address = deps.api.addr_validate(dummy_wallet.clone().as_str())?;
     let cpc = CONTRACT_POOL_COUNT.may_load(deps.storage, &address)?;
-    let mut global_pool_id;
+    let global_pool_id;
     match cpc {
         Some(cpc) => {
             global_pool_id = cpc;
@@ -448,7 +443,7 @@ pub fn game_pool_bid_submit(
     }
 
     let pool_type_details;
-    let mut ptd = POOL_TYPE_DETAILS.may_load(deps.storage, pool_type.clone())?;
+    let ptd = POOL_TYPE_DETAILS.may_load(deps.storage, pool_type.clone())?;
     match ptd.clone() {
         Some(ptd) => {
             pool_type_details = ptd;
@@ -459,8 +454,8 @@ pub fn game_pool_bid_submit(
             }));
         }
     }
-    let mut required_platform_fee_ust;
-    let mut transaction_fee;
+    let required_platform_fee_ust;
+    let transaction_fee;
     match testing {
         true => {
             required_platform_fee_ust = Uint128::zero();
@@ -493,10 +488,13 @@ pub fn game_pool_bid_submit(
                 info: AssetInfo::NativeToken { denom: fund[0].denom.clone() },
                 amount: fund[0].amount,
             };
+            println!("Asset {}", asset);
         }
     } else {
         return Err(ContractError::InsufficientFeesUst {});
     }
+    println!("Asset {}", asset);
+
 
     let mut pool_fee: Uint128 = pool_type_details.pool_fee;
     if !testing {
@@ -531,7 +529,7 @@ pub fn game_pool_bid_submit(
         Ok(uct) => {
             user_team_count = uct;
         }
-        Err(e) => {
+        Err(_e) => {
             return Err(ContractError::Std(StdError::GenericErr {
                 msg: String::from("Cant get user team count "),
             }));
@@ -543,7 +541,7 @@ pub fn game_pool_bid_submit(
         }));
     }
 
-    let mut pool_id_return;
+    let pool_id_return;
     let mut pool_details = query_pool_details(deps.storage, pool_id.clone())?;
 
     // check if the pool can accomodate the team
@@ -659,7 +657,7 @@ pub fn game_pool_bid_submit(
 
 pub fn save_team_details(
     storage: &mut dyn Storage,
-    env: Env,
+    _env: Env,
     gamer: String,
     pool_id: String,
     team_id: String,
@@ -837,7 +835,7 @@ pub fn claim_refund(
 
 pub fn game_pool_reward_distribute(
     deps: DepsMut,
-    env: Env,
+    _env: Env,
     info: MessageInfo,
     pool_id: String,
     game_winners: Vec<GameResult>,
@@ -853,7 +851,7 @@ pub fn game_pool_reward_distribute(
     let game_id = config.game_id;
 
     let gd = GAME_DETAILS.may_load(deps.storage, game_id.clone())?;
-    let mut game;
+    let game;
     match gd {
         Some(gd) => {
             game = gd;
@@ -964,7 +962,7 @@ pub fn game_pool_reward_distribute(
     for wallet_name in all_wallet_names {
         let wallet = PLATFORM_WALLET_PERCENTAGES.load(deps.storage, wallet_name.clone())?;
         let wallet_address = wallet.wallet_address;
-        let mut proportionate_amount = total_platform_fee
+        let proportionate_amount = total_platform_fee
             .checked_mul(Uint128::from(wallet.percentage))
             .unwrap_or_default()
             .checked_div(Uint128::from(100u128))
@@ -1021,8 +1019,8 @@ pub fn game_pool_reward_distribute(
 
     // Transfer rake_amount to all the rake wallets. Can also be only one rake wallet
     for wallet in pool_type_details.rake_list {
-        let mut wallet_address = wallet.wallet_address;
-        let mut proportionate_amount = rake_amount
+        let wallet_address = wallet.wallet_address;
+        let proportionate_amount = rake_amount
             .checked_mul(Uint128::from(wallet.percentage))
             .unwrap_or_default()
             .checked_div(Uint128::from(100u128))
@@ -1052,7 +1050,7 @@ pub fn game_pool_reward_distribute(
         .add_attribute("pool_id", pool_id.clone()));
 }
 
-pub fn transfer_to_multiple_wallets(
+pub fn _transfer_to_multiple_wallets(
     wallet_details: Vec<WalletTransferDetails>,
     action: String,
     deps: DepsMut,
@@ -1093,7 +1091,7 @@ pub fn transfer_from_contract_to_wallet(
     amount: Uint128, // UST and we need swap it to FURY At time of return
     action: String,
     deps: DepsMut,
-    env: Env,
+    _env: Env,
     info: MessageInfo,
     is_refund: bool,
     ust_refund: Uint128,
@@ -1118,7 +1116,7 @@ pub fn transfer_from_contract_to_wallet(
     // }));
     //===========================================
     // Swap from UST to FURY the amount here we use the amount_to_swap_in_ust and Send the Fury to the Reciepent After Swap
-    let mut ust_asset = Asset {
+    let ust_asset = Asset {
         info: AssetInfo::NativeToken {
             denom: "uusd".to_string()
         },
