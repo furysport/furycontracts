@@ -79,7 +79,7 @@ let test_create_and_query_game = async function (time) {
     assert.isTrue(gaming_init['game_id'] === query_resposne['game_id'])
     assert.isTrue(1 === query_resposne['game_status'])
     console.log("Assert Success")
-    sleep(time)
+    await sleep(time)
 }
 
 let test_create_and_query_pool = async function (time) {
@@ -104,7 +104,7 @@ let test_create_and_query_pool = async function (time) {
     assert.isTrue(response['current_teams_count'] === 0)
     assert.isTrue(response['rewards_distributed'] === false)
     console.log("Assert Success")
-    sleep(time)
+    await sleep(time)
 }
 
 
@@ -118,7 +118,7 @@ let test_create_and_query_pool = async function (time) {
 //     assert.isTrue(gaming_init['game_id'] === query_resposne['game_id'])
 //     assert.isTrue(1 === query_resposne['game_status'])
 //     console.log("Assert Success")
-//     sleep(time)
+//     await sleep(time)
 // }
 
 let test_get_team_count_for_user_in_pool_type = async function (time) {
@@ -139,7 +139,7 @@ let test_get_team_count_for_user_in_pool_type = async function (time) {
 
         }
     })
-    sleep(time)
+    await sleep(time)
     await executeContract(walletTest1, gaming_contract_address, {
         save_team_details: {
             'gamer': gamer,
@@ -156,7 +156,7 @@ let test_get_team_count_for_user_in_pool_type = async function (time) {
 
         }
     })
-    sleep(time)
+    await sleep(time)
     await executeContract(walletTest1, gaming_contract_address, {
         save_team_details: {
             'gamer': gamer,
@@ -174,7 +174,7 @@ let test_get_team_count_for_user_in_pool_type = async function (time) {
         }
     })
 
-    sleep(time)
+    await sleep(time)
     let team_count = await queryContract(gaming_contract_address, {
         get_team_count_for_user_in_pool_type: {
             "gamer": gamer,
@@ -206,7 +206,7 @@ const set_pool_headers_for_H2H_pool_type = async function (time) {
     })
     console.log(response)
     console.log("Assert Success")
-    if (time) sleep(time)
+    if (time) await sleep(time)
 }
 
 async function transferFuryTokens(toAddress, amount) {
@@ -262,7 +262,7 @@ let test_game_pool_bid_submit_when_pool_team_in_range = async function (time) {
 
     console.log(response)
     console.log("Assert Success")
-    sleep(time)
+    await sleep(time)
 }
 
 const test_game_lock_once_pool_is_closed = async function (time) {
@@ -273,7 +273,7 @@ const test_game_lock_once_pool_is_closed = async function (time) {
     })
     console.log(response)
     console.log("Assert Success")
-    sleep(time)
+    await sleep(time)
 }
 const test_game_lock_once_pool_is_canceled = async function (time) {
     console.log("Testing game lock once pool is Cancelled.")
@@ -283,7 +283,7 @@ const test_game_lock_once_pool_is_canceled = async function (time) {
     })
     console.log(response)
     console.log("Assert Success")
-    sleep(time)
+    await sleep(time)
 }
 //     ExecuteMsg::ClaimReward { gamer } => claim_reward(deps, info, gamer, env),
 //     ExecuteMsg::ClaimRefund { gamer } => claim_refund(deps, info, gamer, env),
@@ -298,7 +298,7 @@ const claim = async function (time) {
     })
     console.log(response)
     console.log("Assert Success")
-    sleep(time)
+    await sleep(time)
 }
 const reward_distribution_for_locked_game = async function (time) {
     console.log("Reward Distribution for locked game")
@@ -322,7 +322,7 @@ const reward_distribution_for_locked_game = async function (time) {
     })
     console.log(response)
     console.log("Assert Success")
-    sleep(time)
+    await sleep(time)
 }
 // let test_create_and_query_game = async function (time) {
 //     console.log("Testing Create and Query Game")
@@ -334,7 +334,7 @@ const reward_distribution_for_locked_game = async function (time) {
 //     assert.isTrue(gaming_init['game_id'] === query_resposne['game_id'])
 //     assert.isTrue(1 === query_resposne['game_status'])
 //     console.log("Assert Success")
-//     sleep(time)
+//     await sleep(time)
 // }
 
 async function test_migrate(time) {
@@ -345,7 +345,7 @@ async function test_migrate(time) {
     let r = await migrateContract(walletTest1, gaming_contract_address, contract_id, {})
     console.log(r)
     console.log("Success")
-    sleep(time)
+    await sleep(time)
 
 
 }
