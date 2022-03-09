@@ -80,8 +80,8 @@ export const mintInitMessage = {
         cap: "420000000000000"
     },
     marketing: {
-        project: "crypto11.me",
-        description: "This token in meant to be used for playing gamesin crypto11 world",
+        project: "https://fury.fan",
+        description: "Fury token in meant to be used for playing games in Fury metaverse",
         marketing: "terra1wjq02nwcv6rq4zutq9rpsyq9k08rj30rhzgvt4"
     },
 }
