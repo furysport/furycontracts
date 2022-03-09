@@ -90,7 +90,7 @@ async function proceedToSetup(deploymentDetails) {
     if (!deploymentDetails.defaultLPTokenHolder) {
         deploymentDetails.defaultLPTokenHolder = liquidity_wallet.key.accAddress;
     }
-    const sleep_time = (process.env.TERRA_CLIENT === "localTerra") ? 31 : 15000;
+    const sleep_time = (process.env.TERRA_CLIENT === "localTerra") ? 31 : 0;
 
     await uploadFuryTokenContract(deploymentDetails);
     await new Promise(resolve => setTimeout(resolve, sleep_time));

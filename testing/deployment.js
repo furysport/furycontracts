@@ -33,7 +33,7 @@ import {
     astroport_setup
 } from "./astroport.js";
 
-const sleep_time = 11000
+const sleep_time = 0
 
 function sleep(time) {
     return new Promise((resolve) => setTimeout(resolve, time));
@@ -46,7 +46,7 @@ const upload_contract = async function (file) {
 }
 console.log("Initiating Total Deployment")
 await vesting_and_distribution()
-await sleep(sleep_time)
-await astroport_setup()
-await sleep(sleep_time)
-await upload_contract(GamingContractPath)
+// await sleep(sleep_time)
+// await astroport_setup()
+// await sleep(sleep_time)
+// await upload_contract(GamingContractPath)
