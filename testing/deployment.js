@@ -45,8 +45,8 @@ const upload_contract = async function (file) {
     console.log(`New Contract Id For Gaming ${contractId}`)
 }
 console.log("Initiating Total Deployment")
-await vesting_and_distribution()
+// await vesting_and_distribution()
 // await sleep(sleep_time)
-// await astroport_setup()
+await astroport_setup()
 // await sleep(sleep_time)
 // await upload_contract(GamingContractPath)
