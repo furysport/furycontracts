@@ -22,7 +22,7 @@ const question = promisify(rl.question).bind(rl);
 
 const assert = chai.assert;
 // Init and Vars
-const sleep_time = 15000
+const sleep_time = 11000
 let gaming_contract_address = ""
 let proxy_contract_address = "terra17z8hs6xyfdpsyf564xkjwfwp423zkkam6hquh5"
 let fury_contract_address = "terra1zjthyw8e8jayngkvg5kddccwa9v46s4w9sq2pq"
@@ -33,14 +33,9 @@ const gamer = treasury_wallet
 const gaming_init = {
     "minting_contract_address": fury_contract_address, //  This should be a contract But We passed wallet so it wont raise error on addr validate
     "admin_address": walletTest1.key.accAddress,
-    "platform_fee": "1",
-    "transaction_fee": "1",
     "game_id": "Game001",
-    "platform_fees_collector_wallet": walletTest1.key.accAddress,
     "astro_proxy_address": proxy_contract_address,
-
 }
-
 
 // Helper Methods
 
@@ -110,86 +105,6 @@ let test_create_and_query_pool = async function (time) {
     await sleep(time)
 }
 
-
-// let test_save_and_query_team_detail = async function (time) {
-//     console.log("Testing Save and Query Team Details")
-//     gaming_contract_address = await deploy_contract(GamingContractPath, gaming_init)
-//     console.log(`Gaming Address:${gaming_contract_address}`)
-//     let query_resposne = await queryContract(gaming_contract_address, {
-//         game_details: {}
-//     })
-//     assert.isTrue(gaming_init['game_id'] === query_resposne['game_id'])
-//     assert.isTrue(1 === query_resposne['game_status'])
-//     console.log("Assert Success")
-//     await sleep(time)
-// }
-
-let test_get_team_count_for_user_in_pool_type = async function (time) {
-    console.log("Test Get Team Count In Pool Type")
-    await executeContract(walletTest1, gaming_contract_address, {
-        save_team_details: {
-            'gamer': gamer,
-            'pool_id': "1",
-            'team_id': "Team001",
-            'game_id': "Game001",
-            'pool_type': "oneToOne",
-            'reward_amount': "144262",
-            'claimed_reward': false,
-            'refund_amount': "0",
-            'claimed_refund': false,
-            'team_points': 100,
-            'team_rank': 2
-
-        }
-    })
-    await sleep(time)
-    await executeContract(walletTest1, gaming_contract_address, {
-        save_team_details: {
-            'gamer': gamer,
-            'pool_id': "1",
-            'team_id': "Team002",
-            'game_id': "Game001",
-            'pool_type': "oneToOne",
-            'reward_amount': "144262",
-            'claimed_reward': false,
-            'refund_amount': "0",
-            'claimed_refund': false,
-            'team_points': 100,
-            'team_rank': 2
-
-        }
-    })
-    await sleep(time)
-    await executeContract(walletTest1, gaming_contract_address, {
-        save_team_details: {
-            'gamer': gamer,
-            'pool_id': "1",
-            'team_id': "Team002",
-            'game_id': "Game001",
-            'pool_type': "oneToOne",
-            'reward_amount': "144262",
-            'claimed_reward': false,
-            'refund_amount': "0",
-            'claimed_refund': false,
-            'team_points': 100,
-            'team_rank': 2
-
-        }
-    })
-
-    await sleep(time)
-    let team_count = await queryContract(gaming_contract_address, {
-        get_team_count_for_user_in_pool_type: {
-            "gamer": gamer,
-            "game_id": "Game001",
-            "pool_type": "oneToOne"
-        }
-    })
-    assert.isTrue(team_count === 3)
-    console.log("Assert Success")
-
-}
-
 const set_pool_headers_for_H2H_pool_type = async function (time) {
     const response = await executeContract(walletTest1, gaming_contract_address, {
         set_pool_type_params: {
@@ -226,11 +141,11 @@ async function transferFuryTokens(toAddress, amount) {
 
 
 let test_game_pool_bid_submit_when_pool_team_in_range = async function (time) {
-    console.log("Test game pool bid submit when pool team in range")
+    console.log("Placing a bid submit in H2H pool for 10UST worth of Fury!")
     set_pool_headers_for_H2H_pool_type();
 
     // Add method to provide the wallet one fury token
-    console.log("Sending fury Tokens from Minter to wallet 1")
+    console.log("Sending 5k fury Tokens from Minter to gamer")
     let response = await transferFuryTokens(walletTest1, "5000000000")
     console.log(response)
     console.log("Getting Funds To Send In Fury")
@@ -241,7 +156,7 @@ let test_game_pool_bid_submit_when_pool_team_in_range = async function (time) {
             }
         });
 
-    console.log(`Fees Received:${funds_to_send_in_fury}`)
+    console.log(`UST equivalent Fury:${funds_to_send_in_fury}`)
     let increaseAllowanceMsg = {
         increase_allowance: {
             spender: gaming_contract_address,
@@ -261,10 +176,9 @@ let test_game_pool_bid_submit_when_pool_team_in_range = async function (time) {
             team_id: "Team001",
             amount: `${funds_to_send_in_fury}`
         }
-    }, {'uusd': 100000000})
-
-
-    console.log(response)
+    }, {'uusd': 1300000})
+    console.log(response);
+    //checking the total UST count receieved from the bid pool price was 10UST receieved 9.018376 UST
     console.log("Assert Success");
     await sleep(time)
 }
@@ -277,6 +191,7 @@ const test_game_lock_once_pool_is_closed = async function (time) {
     })
     console.log(response)
     console.log("Assert Success")
+    //query the status of pool, check if it's locked
     await sleep(time)
 }
 const test_game_lock_once_pool_is_canceled = async function (time) {
@@ -301,10 +216,11 @@ const claim = async function (time) {
         claim_reward: {"gamer": walletTest1.key.accAddress}
     })
     console.log(response)
+    //check if the distributed amount is eq to claim amount
     console.log("Assert Success")
     await sleep(time)
 }
-const reward_distribution_for_locked_game = async function (time) {
+const reward_distribution_for_locked_game_for_H2H = async function (time) {
     console.log("Reward Distribution for locked game")
     let response = await executeContract(walletTest1, gaming_contract_address, {
         "game_pool_reward_distribute": {
@@ -326,20 +242,9 @@ const reward_distribution_for_locked_game = async function (time) {
     })
     console.log(response)
     console.log("Assert Success")
+    ///check if the game is concluded and status is updated to 4/reward distributed
     await sleep(time)
 }
-// let test_create_and_query_game = async function (time) {
-//     console.log("Testing Create and Query Game")
-//     gaming_contract_address = await deploy_contract(GamingContractPath, gaming_init)
-//     console.log(`Gaming Address:${gaming_contract_address}`)
-//     let query_resposne = await queryContract(gaming_contract_address, {
-//         game_details: {}
-//     })
-//     assert.isTrue(gaming_init['game_id'] === query_resposne['game_id'])
-//     assert.isTrue(1 === query_resposne['game_status'])
-//     console.log("Assert Success")
-//     await sleep(time)
-// }
 
 async function test_migrate(time) {
     console.log("Testing Migrate")
@@ -401,7 +306,7 @@ await test_create_and_query_pool(sleep_time)
 await set_pool_headers_for_H2H_pool_type(sleep_time)
 await test_game_pool_bid_submit_when_pool_team_in_range(sleep_time)
 await test_game_lock_once_pool_is_closed(sleep_time)
-await reward_distribution_for_locked_game(sleep_time)
+await reward_distribution_for_locked_game_for_H2H(sleep_time)
 await claim(sleep_time)
 // // Claim
 // await test_migrate(sleep_time)
