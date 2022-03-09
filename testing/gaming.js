@@ -26,14 +26,18 @@ const sleep_time = 11000
 let gaming_contract_address = ""
 let proxy_contract_address = "terra17z8hs6xyfdpsyf564xkjwfwp423zkkam6hquh5"
 let fury_contract_address = "terra1zjthyw8e8jayngkvg5kddccwa9v46s4w9sq2pq"
-const gamer = treasury_wallet
+const gamer = treasury_wallet.key.accAddress
 // const gamer_extra_1 = walletTest3.key.accAddress
 // const gamer_extra_2 = walletTest4.key.accAddress
 
 const gaming_init = {
+
     "minting_contract_address": fury_contract_address, //  This should be a contract But We passed wallet so it wont raise error on addr validate
     "admin_address": walletTest1.key.accAddress,
+    "platform_fee": "1",
+    "transaction_fee": "1",
     "game_id": "Game001",
+    "platform_fees_collector_wallet": walletTest1.key.accAddress,
     "astro_proxy_address": proxy_contract_address,
 }
 
@@ -142,7 +146,6 @@ async function transferFuryTokens(toAddress, amount) {
 
 let test_game_pool_bid_submit_when_pool_team_in_range = async function (time) {
     console.log("Placing a bid submit in H2H pool for 10UST worth of Fury!")
-    set_pool_headers_for_H2H_pool_type();
 
     // Add method to provide the wallet one fury token
     console.log("Sending 5k fury Tokens from Minter to gamer")
@@ -168,16 +171,36 @@ let test_game_pool_bid_submit_when_pool_team_in_range = async function (time) {
     console.log(incrAllowResp)
     console.log("Submitting Game Pool Bid")
     await sleep(sleep_time);
-    response = await executeContract(walletTest1, gaming_contract_address, {
-        game_pool_bid_submit_command: {
-            gamer: gamer,
-            pool_type: "H2H",
-            pool_id: "1",
-            team_id: "Team001",
-            amount: `${funds_to_send_in_fury}`
-        }
-    }, {'uusd': 1300000})
-    console.log(response);
+    try {
+        response = await executeContract(walletTest1, gaming_contract_address, {
+            game_pool_bid_submit_command: {
+                gamer: walletTest1.key.accAddress,
+                pool_type: "H2H",
+                pool_id: "1",
+                team_id: "Team001",
+                amount: `${funds_to_send_in_fury}`
+            }
+        }, {'uusd': 1300000})
+        console.log(response);
+    } catch (a) {
+        console.log("Caught Error Executing Bidsubmit")
+        console.log(a)
+        await sleep(sleep_time)
+        console.log("Re-Executing")
+        let some = await executeContract(walletTest1, gaming_contract_address, {
+            game_pool_bid_submit_command: {
+                gamer: gamer,
+                pool_type: "H2H",
+                pool_id: "1",
+                team_id: "Team001",
+                amount: `${funds_to_send_in_fury}`
+            }
+        }, {'uusd': 1300000})
+        console.log(some);
+
+
+    }
+
     //checking the total UST count receieved from the bid pool price was 10UST receieved 9.018376 UST
     console.log("Assert Success");
     await sleep(time)
