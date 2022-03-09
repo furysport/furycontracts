@@ -57,10 +57,6 @@ export const sameer_wallet = terraClient.wallet(mkSameer);
 export const walletTest1 = sameer_wallet
 export const deployer = sameer_wallet
 
-export const swapinitMessage = {
-    pair_code_id: 321,
-    token_code_id: 123
-}
 
 export const mintInitMessage = {
     name: "Fury",
@@ -80,8 +76,8 @@ export const mintInitMessage = {
         cap: "420000000000000"
     },
     marketing: {
-        project: "https://fury.fan",
-        description: "Fury token in meant to be used for playing games in Fury metaverse",
+        project: "crypto11.me",
+        description: "This token in meant to be used for playing gamesin crypto11 world",
         marketing: "terra1wjq02nwcv6rq4zutq9rpsyq9k08rj30rhzgvt4"
     },
 }

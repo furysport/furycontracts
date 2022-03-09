@@ -10,7 +10,8 @@
   "author": "Nitin Khobragade",
   "license": "ISC",
   "dependencies": {
-    "chai": "^4.3.6"
+    "chai": "^4.3.6",
+    "dotenv": "^16.0.0"
   },
   "devDependencies": {
     "@terra-money/terra.js": "^2.0.16",
