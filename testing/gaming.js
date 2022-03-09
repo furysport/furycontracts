@@ -24,8 +24,8 @@ const assert = chai.assert;
 // Init and Vars
 const sleep_time = 15000
 let gaming_contract_address = ""
-let proxy_contract_address = "terra1ulwuw4etqty4n40f25css37jdtqu3z90rw0gxw"
-let fury_contract_address = "terra12v7k5hmlqau8v69xurk4jdyaxz4y8s52ca8nyx"
+let proxy_contract_address = "terra17z8hs6xyfdpsyf564xkjwfwp423zkkam6hquh5"
+let fury_contract_address = "terra1zjthyw8e8jayngkvg5kddccwa9v46s4w9sq2pq"
 const gamer = treasury_wallet
 // const gamer_extra_1 = walletTest3.key.accAddress
 // const gamer_extra_2 = walletTest4.key.accAddress
@@ -71,7 +71,7 @@ function convertBinaryToObject(str) {
 
 // Tests
 let test_create_and_query_game = async function (time) {
-    console.log("Testing Create and Query Game")
+    console.log("Uploading Gaming Contract")
     gaming_contract_address = await deploy_contract(GamingContractPath, gaming_init)
     console.log(`Gaming Address:${gaming_contract_address}`)
     await sleep(sleep_time)
@@ -252,6 +252,7 @@ let test_game_pool_bid_submit_when_pool_team_in_range = async function (time) {
     let incrAllowResp = await executeContract(walletTest1, fury_contract_address, increaseAllowanceMsg);
     console.log(incrAllowResp)
     console.log("Submitting Game Pool Bid")
+    await sleep(sleep_time);
     response = await executeContract(walletTest1, gaming_contract_address, {
         game_pool_bid_submit_command: {
             gamer: gamer,
@@ -264,7 +265,7 @@ let test_game_pool_bid_submit_when_pool_team_in_range = async function (time) {
 
 
     console.log(response)
-    console.log("Assert Success")
+    console.log("Assert Success");
     await sleep(time)
 }
 
@@ -396,7 +397,7 @@ async function test_game_pool_reward_distribute(time) {
 
 await test_create_and_query_game(sleep_time)
 await test_create_and_query_pool(sleep_time)
-await test_get_team_count_for_user_in_pool_type(sleep_time)
+// await test_get_team_count_for_user_in_pool_type(sleep_time)
 await set_pool_headers_for_H2H_pool_type(sleep_time)
 await test_game_pool_bid_submit_when_pool_team_in_range(sleep_time)
 await test_game_lock_once_pool_is_closed(sleep_time)
