@@ -56,19 +56,20 @@ function question(query) {
 let configResponseReceived;
 
 export const astroport_setup = async () => {
+    console.log("entre");
     try {
         let deploymentDetails = readArtifact(terraClient.chainID);
         let primeAccounts = 'N';
-        if (process.env.TERRA_CLIENT === "localTerra") {
-            primeAccounts = await question('Do you want to preload custom accounts? (y/N) ');
-        }
-        if (primeAccounts === 'Y' || primeAccounts === 'y') {
-            let txHash = await primeAccountsWithFunds();
-            console.log(txHash);
+        // if (process.env.TERRA_CLIENT === "localTerra") {
+        //     primeAccounts = await question('Do you want to preload custom accounts? (y/N) ');
+        // }
+        // if (primeAccounts === 'Y' || primeAccounts === 'y') {
+        //     let txHash = await primeAccountsWithFunds();
+        //     console.log(txHash);
             await proceedToSetup(deploymentDetails);
-        } else {
-            await proceedToSetup(deploymentDetails);
-        }
+        // } else {
+        //     await proceedToSetup(deploymentDetails);
+        // }
     } catch (error) {
         console.log(error);
     } finally {
@@ -92,10 +93,10 @@ async function proceedToSetup(deploymentDetails) {
     }
     const sleep_time = (process.env.TERRA_CLIENT === "localTerra") ? 31 : 15000;
 
-    await uploadFuryTokenContract(deploymentDetails);
-    await new Promise(resolve => setTimeout(resolve, sleep_time));
-    await instantiateFuryTokenContract(deploymentDetails);
-    await new Promise(resolve => setTimeout(resolve, sleep_time));
+    // await uploadFuryTokenContract(deploymentDetails);
+    // await new Promise(resolve => setTimeout(resolve, sleep_time));
+    // await instantiateFuryTokenContract(deploymentDetails);
+    // await new Promise(resolve => setTimeout(resolve, sleep_time));
     // await transferFuryToTreasury(deploymentDetails);
     // await new Promise(resolve => setTimeout(resolve, sleep_time));
     // await transferFuryToMarketing(deploymentDetails);
