@@ -5,11 +5,13 @@ import {
     storeCode,
 } from "./utils.js";
 
+import { increasePOLRewardAllowance } from './increasePOLRewardAllowance.js';
+
 
 import { astroport_setup} from "./astroport.js";
 import { vesting_and_distribution } from './index.js';
 
-const sleep_time = 0
+const sleep_time = 31000;
 
 function sleep(time) {
     return new Promise((resolve) => setTimeout(resolve, time));
@@ -26,6 +28,8 @@ await vesting_and_distribution()
 //check bonded wallet balance
 //check allowances spender(proxy) and owner (bonded wallet add) through query 
 //to get the exact amount delta of balance amt & allowed amt 
+await sleep(sleep_time)
+await increasePOLRewardAllowance(sleep_time);
 await sleep(sleep_time)
 await astroport_setup()
 await sleep(sleep_time)
