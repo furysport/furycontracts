@@ -5,11 +5,11 @@ import {
     storeCode,
 } from "./utils.js";
 
-import { increasePOLRewardAllowance } from './increasePOLRewardAllowance.js';
+import {increasePOLRewardAllowance} from './increasePOLRewardAllowance.js';
 
 
-import { astroport_setup} from "./astroport.js";
-import { vesting_and_distribution } from './index.js';
+import {astroport_setup} from "./astroport.js";
+import {vesting_and_distribution} from './index.js';
 
 const sleep_time = 31000;
 
@@ -24,13 +24,15 @@ const upload_contract = async function (file) {
 }
 console.log("Initiating Total Deployment");
 await vesting_and_distribution()
-
 //check bonded wallet balance
 //check allowances spender(proxy) and owner (bonded wallet add) through query 
 //to get the exact amount delta of balance amt & allowed amt 
-await sleep(sleep_time)
-await increasePOLRewardAllowance(sleep_time);
-await sleep(sleep_time)
-await astroport_setup()
-await sleep(sleep_time)
-await upload_contract(GamingContractPath)
+
+export const deployment = async function () {
+    await sleep(sleep_time)
+    await increasePOLRewardAllowance(sleep_time);
+    await sleep(sleep_time)
+    await astroport_setup()
+    await sleep(sleep_time)
+    await upload_contract(GamingContractPath)
+}
