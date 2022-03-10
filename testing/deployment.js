@@ -28,7 +28,7 @@ await vesting_and_distribution()
 //check allowances spender(proxy) and owner (bonded wallet add) through query 
 //to get the exact amount delta of balance amt & allowed amt 
 
-export const deployment = async function () {
+export async function deployment () {
     await sleep(sleep_time)
     await increasePOLRewardAllowance(sleep_time);
     await sleep(sleep_time)
