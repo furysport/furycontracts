@@ -133,7 +133,7 @@ export async function instantiateContract(deployer, codeId, instantiateMsg) {
 }
 
 export async function queryContract(contractAddress, query) {
-  return await terraClient.wasm.contractQuery(contractAddress, query)
+  return await terraClient.wasm.contractQuery(contractAddress, query);
 }
 
 export async function get_server_epoch_seconds() {

@@ -1,3 +1,9 @@
+import {
+    queryContract,
+    executeContract,
+} from "./utils.js";
+
+
 export const increasePOLRewardAllowance = async (deploymentDetails) => {
 
         let response = await queryContract(deploymentDetails.furyContractAddress, {
