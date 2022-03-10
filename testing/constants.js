@@ -2,6 +2,10 @@ import {LocalTerra} from "@terra-money/terra.js";
 import {get_server_epoch_seconds} from "./utils.js";
 import {MnemonicKey,LCDClient} from '@terra-money/terra.js';
 
+
+
+
+
 // Contracts
 export const MintingContractPath = "../artifacts/cw20_base.wasm"
 export const ClubStakingContractPath = "../artifacts/club_staking.wasm"
