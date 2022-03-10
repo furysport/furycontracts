@@ -12,7 +12,7 @@ const question = promisify(rl.question).bind(rl);
 
 async function main() {
     try {
-        terraClient.chainID = "localterra";
+        terraClient.chainID = "bombay-12";
         let deploymentDetails = readArtifact(terraClient.chainID);
         const primeAccounts = await question('Do you want to preload custom accounts? (y/N) ');
         if (primeAccounts === 'Y' || primeAccounts === 'y') {
