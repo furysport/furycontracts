@@ -114,7 +114,7 @@ const set_pool_headers_for_H2H_pool_type = async function (time) {
         set_pool_type_params: {
             'pool_type': "H2H",
             'pool_fee': "10000000",
-            'min_teams_for_pool': 2,
+            'min_teams_for_pool': 1,
             'max_teams_for_pool': 2,
             'max_teams_for_gamer': 2,
             'wallet_percentages': [

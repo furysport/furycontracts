@@ -186,7 +186,7 @@ pub fn get_team_count_for_user_in_pool_type(
     for pool_id in all_pools {
         let team_details = POOL_TEAM_DETAILS.load(storage, pool_id.clone())?;
         for team in team_details {
-            if team.pool_type == pool_type && team.game_id == game_id && team.gamer_address == gamer
+            if team.pool_type == pool_type && team.game_id == game_id && team.gamer_address == gamer && team.pool_id == pool_id
             {
                 count += 1;
             }
