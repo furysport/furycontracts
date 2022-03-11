@@ -9,8 +9,8 @@ import {
 import {terraClient,} from "./constants.js";
 
 import {
-  readFileSync,
-  writeFileSync,
+    readFileSync,
+    writeFileSync,
 } from 'fs';
 import path from 'path';
 
@@ -23,7 +23,7 @@ export function getGasUsed() {
 }
 
 export function writeArtifact(data, name = 'artifact') {
-  writeFileSync(path.join(ARTIFACTS_PATH, `${name}.json`), JSON.stringify(data, null, 2))
+    writeFileSync(path.join(ARTIFACTS_PATH, `${name}.json`), JSON.stringify(data, null, 2))
 }
 
 
@@ -40,11 +40,11 @@ export function readArtifact(name = 'artifact') {
  * @notice Upload contract code to LocalTerra. Return code ID.
  */
 export async function storeCode(deployerWallet, filepath) {
-  const code = fs.readFileSync(filepath).toString("base64");
-  const result = await sendTransaction(deployerWallet, [
-    new MsgStoreCode(deployerWallet.key.accAddress, code),
-  ]);
-  return parseInt(result.logs[0].eventsByType.store_code.code_id[0]);
+    const code = fs.readFileSync(filepath).toString("base64");
+    const result = await sendTransaction(deployerWallet, [
+        new MsgStoreCode(deployerWallet.key.accAddress, code),
+    ]);
+    return parseInt(result.logs[0].eventsByType.store_code.code_id[0]);
 }
 export async function migrateContract(senderWallet, contractAddress, new_code_id, migrate_msg, verbose = false) {
   let msg_list = [
@@ -57,19 +57,19 @@ export async function migrateContract(senderWallet, contractAddress, new_code_id
  * @notice Execute a contract
  */
 export async function executeContract(senderWallet, contractAddress, msg, coins, verbose = false) {
-  let msg_list = []
+    let msg_list = []
 
-  if (Array.isArray(msg)) {
-    msg.forEach((msg) => {
-      msg_list.push(new MsgExecuteContract(senderWallet.key.accAddress, contractAddress, msg, coins))
-    })
+    if (Array.isArray(msg)) {
+        msg.forEach((msg) => {
+            msg_list.push(new MsgExecuteContract(senderWallet.key.accAddress, contractAddress, msg, coins))
+        })
 
-  } else {
-    msg_list = [
-      new MsgExecuteContract(senderWallet.key.accAddress, contractAddress, msg, coins),
-    ]
-  }
-  return await sendTransaction(senderWallet, msg_list, verbose);
+    } else {
+        msg_list = [
+            new MsgExecuteContract(senderWallet.key.accAddress, contractAddress, msg, coins),
+        ]
+    }
+    return await sendTransaction(senderWallet, msg_list, verbose);
 }
 
 /**
@@ -122,24 +122,24 @@ export async function sendTransaction(senderWallet, msgs, verbose = false) {
  * @notice Instantiate a contract from an existing code ID. Return contract address.
  */
 export async function instantiateContract(deployer, codeId, instantiateMsg) {
-  return await sendTransaction(deployer, [
-    new MsgInstantiateContract(
-      deployer.key.accAddress,
-      deployer.key.accAddress,
-      codeId,
-      instantiateMsg
-    ),
-  ]);
+    return await sendTransaction(deployer, [
+        new MsgInstantiateContract(
+            deployer.key.accAddress,
+            deployer.key.accAddress,
+            codeId,
+            instantiateMsg
+        ),
+    ]);
 }
 
 export async function queryContract(contractAddress, query) {
-  return await terraClient.wasm.contractQuery(contractAddress, query);
+    return await terraClient.wasm.contractQuery(contractAddress, query);
 }
 
 export async function get_server_epoch_seconds() {
-  const blockInfo = await terraClient.tendermint.blockInfo()
-  const time = blockInfo['block']['header']['time']
-  let dateObject = new Date(time);
-  let epoch = dateObject.getTime();
-  return Math.round(epoch / 1000)
+    const blockInfo = await terraClient.tendermint.blockInfo()
+    const time = blockInfo['block']['header']['time']
+    let dateObject = new Date(time);
+    let epoch = dateObject.getTime();
+    return Math.round(epoch / 1000)
 }
