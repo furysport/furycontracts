@@ -760,6 +760,34 @@ fn withdraw_stake_from_a_club(
         });
     }
 
+    let mut stakes = Vec::new();
+    let all_stakes = CLUB_STAKING_DETAILS.may_load(deps.storage, club_name.clone())?;
+    match all_stakes {
+        Some(some_stakes) => {
+            stakes = some_stakes;
+        }
+        None => {
+            return Err(ContractError::Std(StdError::GenericErr {
+                    msg: String::from("No stake found for this club"),
+            }));
+        }
+    }
+    let mut user_stake_exists = false;
+    let mut withdrawal_amount_in_excess = false;
+    for stake in stakes {
+        if staker == stake.staker_address {
+            user_stake_exists = true;
+            if stake.staked_amount < withdrawal_amount {
+                withdrawal_amount_in_excess = true;
+            }
+        }
+    }
+    if !user_stake_exists {
+        return Err(ContractError::Std(StdError::GenericErr {
+            msg: String::from("User has not staked in this club"),
+        }));
+    }
+
     let mut transfer_confirmed = false;
     let mut action = "withdraw_stake".to_string();
     let mut burn_amount = Uint128::zero();
@@ -814,7 +842,7 @@ fn withdraw_stake_from_a_club(
                     {
                         if amount_remaining > Uint128::zero() {
                             if bond.1.bonded_amount > amount_remaining {
-                                unbonded_amount = amount_remaining;
+                                unbonded_amount += amount_remaining;
                                 updated_bond.bonded_amount -= amount_remaining;
                                 amount_remaining = Uint128::zero();
                                 updated_bonds.push(updated_bond);
@@ -885,6 +913,12 @@ fn withdraw_stake_from_a_club(
             // Remaining 90% transfer to staker wallet
             transfer_confirmed = true;
         } else {
+            if withdrawal_amount_in_excess {
+                return Err(ContractError::Std(StdError::GenericErr {
+                    msg: String::from("Excess amount demanded for unstaking"),
+                }));
+            }
+
             let action = "withdrawn_stake_bonded".to_string();
             // update the staking details
             save_staking_details(
@@ -1005,21 +1039,23 @@ fn save_staking_details(
         if staker == stake.staker_address {
             if increase_stake == INCREASE_STAKE {
                 updated_stake.staked_amount += amount;
+                updated_stake.auto_stake = auto_stake;
+                if auto_stake == SET_AUTO_STAKE {
+                    updated_stake.staked_amount += updated_stake.reward_amount;
+                    updated_stake.reward_amount = Uint128::zero();
+                }
             } else {
                 if updated_stake.staked_amount >= amount {
                     updated_stake.staked_amount -= amount;
                 } else {
                     return Err(ContractError::Std(StdError::GenericErr {
-                        msg: String::from("Excess amount demaded for withdrawal"),
+                        msg: String::from("Excess amount demanded for withdrawal"),
                     }));
                 }
             }
             already_staked = true;
-            // updated_stakes.push(updated_stake);
         }
-        if updated_stake.staked_amount > Uint128::from(0u128) {
-            updated_stakes.push(updated_stake);
-        }
+        updated_stakes.push(updated_stake);
     }
     if already_staked == true {
         // save the modified stakes - with updation or removal of existing stake
@@ -1107,12 +1143,12 @@ fn claim_staker_rewards(
     }
 
     let required_ust_fees = query_platform_fees(
-		deps.as_ref(),
-		to_binary(&ExecuteMsg::ClaimStakerRewards {
-			staker: staker.clone(),
-			club_name: club_name.clone(),
-		})?,
-	)?;
+        deps.as_ref(),
+        to_binary(&ExecuteMsg::ClaimStakerRewards {
+            staker: staker.clone(),
+            club_name: club_name.clone(),
+        })?,
+    )?;
     let mut fees = Uint128::zero();
     for fund in info.funds.clone() {
         if fund.denom == "uusd" {
@@ -1287,7 +1323,6 @@ fn calculate_and_distribute_rewards(
             .checked_div(other_club_count)
             .unwrap_or_default();
     }
-    let mut reward_for_other_owners = Uint128::zero();
     let mut updated_stakes_winner_club = Vec::<ClubStakingDetails>::new();
     let mut updated_stake_winner_owner = Vec::<ClubStakingDetails>::new();
     let mut staker_address;
@@ -1312,6 +1347,8 @@ fn calculate_and_distribute_rewards(
             reward_given_so_far += reward_for_this_stake;
             if auto_stake == SET_AUTO_STAKE {
                 updated_stake.staked_amount += reward_for_this_stake;
+                updated_stake.staked_amount += updated_stake.reward_amount;
+                updated_stake.reward_amount = Uint128::zero();
                 STAKING_FUNDS.update(
                     deps.storage,
                     &staker_address,
@@ -1335,6 +1372,8 @@ fn calculate_and_distribute_rewards(
                 reward_given_so_far += reward_for_this_stake;
                 if auto_stake == SET_AUTO_STAKE {
                     updated_stake.staked_amount += reward_for_this_stake;
+                    updated_stake.staked_amount += updated_stake.reward_amount;
+                    updated_stake.reward_amount = Uint128::zero();
                     STAKING_FUNDS.update(
                         deps.storage,
                         &staker_address,
@@ -1359,13 +1398,15 @@ fn calculate_and_distribute_rewards(
                     reward_given_so_far += reward_for_other_owners;
                     if auto_stake == SET_AUTO_STAKE {
                         updated_stake.staked_amount += reward_for_other_owners;
+                        updated_stake.staked_amount += updated_stake.reward_amount;
+                        updated_stake.reward_amount = Uint128::zero();
                         STAKING_FUNDS.update(
                             deps.storage,
                             &staker_address,
                             |balance: Option<Uint128>| -> StdResult<_> { Ok(balance.unwrap_or_default() + reward_for_other_owners) },
                         )?;
                     } else {
-                        updated_stake.reward_amount += reward_for_this_stake;
+                        updated_stake.reward_amount += reward_for_other_owners;
                     }
 
                     cadr_response = cadr_response.add_attribute("reward",format!("owner_2 {:?} {:?} {:?}",stake.staker_address,club_name,reward_for_this_stake));
@@ -1399,6 +1440,8 @@ fn calculate_and_distribute_rewards(
         staker_address = deps.api.addr_validate(&updated_stake.staker_address)?;
         if auto_stake == SET_AUTO_STAKE {
             updated_stake.staked_amount += reward_for_this_stake;
+            updated_stake.staked_amount += updated_stake.reward_amount;
+            updated_stake.reward_amount = Uint128::zero();
             STAKING_FUNDS.update(
                 deps.storage,
                 &staker_address,
@@ -1679,13 +1722,13 @@ fn query_staker_rewards(
         }
         None => {}
     }
-	let mut amount = Uint128::zero();
+    let mut amount = Uint128::zero();
     for stake in stakes {
         if staker == stake.staker_address {
             amount += stake.reward_amount;
         }
     }
-	return Ok(amount);
+    return Ok(amount);
 }
 
 fn query_club_ownership_details(
@@ -2655,9 +2698,13 @@ mod tests {
         let query_res = query_all_stakes(&mut deps.storage);
         match query_res {
             Ok(all_stakes) => {
-                assert_eq!(all_stakes.len(), 1);
+                assert_eq!(all_stakes.len(), 2);
                 for stake in all_stakes {
-                    assert_eq!(stake.staked_amount, Uint128::from(86u128));
+                    if stake.staker_address == "Staker001".to_string() {
+                        assert_eq!(stake.staked_amount, Uint128::from(86u128));
+                    } else {
+                        assert_eq!(stake.staked_amount, Uint128::from(0u128));
+                    }
                 }
             }
             Err(e) => {
@@ -2749,9 +2796,13 @@ mod tests {
         let query_stakes = query_all_stakes(&mut deps.storage);
         match query_stakes {
             Ok(all_stakes) => {
-                assert_eq!(all_stakes.len(), 1);
+                assert_eq!(all_stakes.len(), 2);
                 for stake in all_stakes {
-                    assert_eq!(stake.staked_amount, Uint128::from(63u128));
+                    if stake.staker_address == "Staker001".to_string() {
+                        assert_eq!(stake.staked_amount, Uint128::from(63u128));
+                    } else {
+                        assert_eq!(stake.staked_amount, Uint128::from(0u128));
+                    }
                 }
             }
             Err(e) => {
@@ -2974,7 +3025,7 @@ mod tests {
         let query_stakes = query_all_stakes(&mut deps.storage);
         match query_stakes {
             Ok(all_stakes) => {
-                assert_eq!(all_stakes.len(), 0);
+                assert_eq!(all_stakes.len(), 2);
             }
             Err(e) => {
                 println!("error parsing header: {:?}", e);
@@ -3134,7 +3185,7 @@ mod tests {
         let query_stakes = query_all_stakes(&mut deps.storage);
         match query_stakes {
             Ok(all_stakes) => {
-                assert_eq!(all_stakes.len(), 0);
+                assert_eq!(all_stakes.len(), 2);
             }
             Err(e) => {
                 println!("error parsing header: {:?}", e);
@@ -3278,9 +3329,13 @@ mod tests {
         let query_stakes = query_all_stakes(&mut deps.storage);
         match query_stakes {
             Ok(all_stakes) => {
-                assert_eq!(all_stakes.len(), 1);
+                assert_eq!(all_stakes.len(), 2);
                 for stake in all_stakes {
-                    assert_eq!(stake.staked_amount, Uint128::from(63u128));
+                    if stake.staker_address == "Staker001".to_string() {
+                        assert_eq!(stake.staked_amount, Uint128::from(63u128));
+                    } else {
+                        assert_eq!(stake.staked_amount, Uint128::from(0u128));
+                    }
                 }
             }
             Err(e) => {
@@ -3462,9 +3517,9 @@ mod tests {
         let queryRes0 = query_all_stakes(&mut deps.storage);
         match queryRes0 {
             Ok(all_stakes) => {
-				assert_eq!(all_stakes.len(), 9);
+                assert_eq!(all_stakes.len(), 9);
                 println!("all stakes : {:?}",all_stakes);
-			}
+            }
             Err(e) => {
                 println!("error parsing header: {:?}", e);
                 assert_eq!(1, 2);
@@ -3494,7 +3549,7 @@ mod tests {
         let queryRes = query_all_stakes(&mut deps.storage);
         match queryRes {
             Ok(all_stakes) => {
-				assert_eq!(all_stakes.len(), 9);
+                assert_eq!(all_stakes.len(), 9);
                 println!("all stakes : {:?}",all_stakes);
                 for stake in all_stakes {
                     let staker_address = stake.staker_address;
@@ -3519,13 +3574,13 @@ mod tests {
                         assert_eq!(staked_amount, Uint128::from(82230u128));
                     }
                     if staker_address == "Owner001" {
-                        assert_eq!(staked_amount, Uint128::from(0u128));
+                        assert_eq!(staked_amount, Uint128::from(10000u128));
                     }
                     if staker_address == "Owner002" {
-                        assert_eq!(staked_amount, Uint128::from(0u128));
+                        assert_eq!(staked_amount, Uint128::from(10000u128));
                     }
                     if staker_address == "Owner003" {
-                        assert_eq!(staked_amount, Uint128::from(30004u128));
+                        assert_eq!(staked_amount, Uint128::from(10004u128));
                     }
                 }
             }
