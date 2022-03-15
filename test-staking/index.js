@@ -247,6 +247,7 @@ async function instantiateClubStaking(deploymentDetails) {
             reward_periodicity: 300, 
             club_price: "100000",
             bonding_duration: 120,
+            owner_release_locking_duration: 120,
             platform_fees: "100",
             transaction_fees: "30",
             control_fees: "50",
