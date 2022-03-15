@@ -20,7 +20,7 @@ use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, ReceivedMsg, ProxyQueryMs
 use crate::state::{
     ClubBondingDetails, ClubOwnershipDetails, ClubPreviousOwnerDetails, ClubStakingDetails, Config,
     CLUB_BONDING_DETAILS, CLUB_OWNERSHIP_DETAILS, CLUB_PREVIOUS_OWNER_DETAILS,
-    CLUB_REWARD_NEXT_TIMESTAMP, CLUB_STAKING_DETAILS, CONFIG, REWARD, STAKING_FUNDS,
+    CLUB_REWARD_NEXT_TIMESTAMP, CLUB_STAKING_DETAILS, CONFIG, REWARD, 
 };
 
 // version info for migration info
@@ -78,6 +78,7 @@ pub fn instantiate(
         reward_periodicity: msg.reward_periodicity,
         club_price: msg.club_price,
         bonding_duration: msg.bonding_duration,
+        owner_release_locking_duration: msg.owner_release_locking_duration,
         platform_fees_collector_wallet: deps
             .api
             .addr_validate(&msg.platform_fees_collector_wallet)?,
@@ -276,8 +277,8 @@ fn claim_owner_rewards(
                     club_name.clone(),
                     &ClubOwnershipDetails {
                         club_name: owner_detail.club_name,
-                        start_timestamp: owner_detail.start_timestamp,
-                        locking_period: owner_detail.locking_period,
+                        owner_release_start_timestamp: owner_detail.owner_release_start_timestamp,
+                        owner_release_locking_duration: owner_detail.owner_release_locking_duration,
                         owner_address: owner_detail.owner_address,
                         price_paid: owner_detail.price_paid,
                         reward_amount: Uint128::zero(),
@@ -420,9 +421,21 @@ fn buy_a_club(
 
     if !(ownership_details.is_none()) {
         for owner in ownership_details {
+			let mut current_time = env.block.time;
+			let mut release_start_time = owner.owner_release_start_timestamp;
+			let mut release_locking_duration = owner.owner_release_locking_duration;
+			println!(
+				"release_start_time = {:?} locking_duration = {:?} current time = {:?}",
+				release_start_time, release_locking_duration, current_time
+			);
             if owner.owner_released == false {
                 return Err(ContractError::Std(StdError::GenericErr {
                     msg: String::from("Owner has not released the club"),
+                }));
+            } else if current_time > release_start_time.plus_seconds(release_locking_duration) {
+				println!("Release time for the club has expired");
+                return Err(ContractError::Std(StdError::GenericErr {
+                    msg: String::from("Release time for the club has expired"),
                 }));
             } else if owner.owner_address != String::default() && owner.owner_address != seller {
                 println!(
@@ -468,8 +481,8 @@ fn buy_a_club(
         club_name.clone(),
         &ClubOwnershipDetails {
             club_name: club_name.clone(),
-            start_timestamp: env.block.time,
-            locking_period: CLUB_LOCKING_DURATION,
+            owner_release_start_timestamp: env.block.time,
+            owner_release_locking_duration: config.owner_release_locking_duration,
             owner_address: buyer_addr.to_string(),
             price_paid: price,
             reward_amount: Uint128::from(CLUB_BUYING_REWARD_AMOUNT),
@@ -477,25 +490,32 @@ fn buy_a_club(
         },
     )?;
 
-    let staking_amount = Uint128::zero();
-    // Now save the staking details for the owner - with 0 stake
-    save_staking_details(
-        deps.storage,
-        env,
-        buyer.clone(),
-        club_name.clone(),
-        staking_amount,
-        auto_stake,
-        INCREASE_STAKE,
-    )?;
-    //If successfully staked, save the funds in contract wallet
-    STAKING_FUNDS.update(
-        deps.storage,
-        &buyer_addr,
-        |balance: Option<Uint128>| -> StdResult<_> { Ok(balance.unwrap_or_default() + staking_amount) },
-    )?;
-
-    let config = CONFIG.load(deps.storage)?;
+    let mut stakes = Vec::new();
+    let mut user_stake_exists = false;
+    let all_stakes = CLUB_STAKING_DETAILS.may_load(deps.storage, club_name.clone())?;
+    match all_stakes {
+        Some(some_stakes) => {
+            stakes = some_stakes;
+        }
+        None => {}
+    }
+    for stake in stakes {
+        if buyer == stake.staker_address {
+            user_stake_exists = true;
+        }
+    }
+    if !user_stake_exists {
+		// Now save the staking details for the owner - with 0 stake
+		save_staking_details(
+			deps.storage,
+			env,
+			buyer.clone(),
+			club_name.clone(),
+			Uint128::zero(),
+			auto_stake,
+			INCREASE_STAKE,
+		)?;
+    }
 
     let transfer_msg = Cw20ExecuteMsg::TransferFrom {
         owner: info.sender.into_string(),
@@ -522,6 +542,158 @@ fn buy_a_club(
         .add_attribute("club_name", club_name)
         .add_attribute("fees", price.to_string())
         .set_data(data_msg));
+}
+
+fn assign_a_club(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    buyer: String,
+    seller_opt: Option<String>,
+    club_name: String,
+    auto_stake: bool,
+) -> Result<Response, ContractError> {
+    let config = CONFIG.load(deps.storage)?;
+    if info.sender != config.admin_address {
+        return Err(ContractError::Unauthorized {});
+    }
+
+    println!("seller_opt = {:?}", seller_opt);
+    let seller;
+    match seller_opt.clone() {
+        Some(s) => seller = s,
+        None => seller = String::default(),
+    }
+
+    let buyer_addr = deps.api.addr_validate(&buyer)?;
+
+    let ownership_details;
+    let ownership_details_result = CLUB_OWNERSHIP_DETAILS.may_load(deps.storage, club_name.clone());
+    match ownership_details_result {
+        Ok(od) => {
+            ownership_details = od;
+        }
+        Err(e) => {
+            return Err(ContractError::Std(StdError::from(e)));
+        }
+    }
+
+    let all_clubs: Vec<String> = CLUB_OWNERSHIP_DETAILS
+        .keys(deps.storage, None, None, Order::Ascending)
+        .map(|k| String::from_utf8(k).unwrap())
+        .collect();
+
+    for one_club_name in all_clubs {
+        let one_ownership_details =
+            CLUB_OWNERSHIP_DETAILS.load(deps.storage, one_club_name.clone())?;
+        if buyer == one_ownership_details.owner_address {
+            return Err(ContractError::Std(StdError::GenericErr {
+                msg: String::from("buyer already owns this club"),
+            }));
+        }
+    }
+
+    let mut previous_owners_reward_amount = Uint128::from(0u128);
+
+    if !(ownership_details.is_none()) {
+        for owner in ownership_details {
+			let mut current_time = env.block.time;
+			let mut release_start_time = owner.owner_release_start_timestamp;
+			let mut release_locking_duration = owner.owner_release_locking_duration;
+			println!(
+				"release_start_time = {:?} locking_duration = {:?} current time = {:?}",
+				release_start_time, release_locking_duration, current_time
+			);
+            if owner.owner_released == false {
+                return Err(ContractError::Std(StdError::GenericErr {
+                    msg: String::from("Owner has not released the club"),
+                }));
+            } else if current_time > release_start_time.plus_seconds(release_locking_duration) {
+				println!("Release time for the club has expired");
+                return Err(ContractError::Std(StdError::GenericErr {
+                    msg: String::from("Release time for the club has expired"),
+                }));
+            } else if owner.owner_address != String::default() && owner.owner_address != seller {
+                println!(
+                    "owner.owner_address = {:?} and seller = {:?}",
+                    owner.owner_address, seller
+                );
+                return Err(ContractError::Std(StdError::GenericErr {
+                    msg: String::from("Seller is not the owner for the club"),
+                }));
+            }
+
+            // Evaluate previous owner rewards
+            previous_owners_reward_amount = owner.reward_amount;
+            println!("prv own amount picked {:?}", previous_owners_reward_amount);
+            let mut previous_reward = Uint128::zero();
+            println!("prv own amount avl {:?}", previous_owners_reward_amount);
+            if previous_owners_reward_amount != Uint128::zero() {
+                let pod = CLUB_PREVIOUS_OWNER_DETAILS.may_load(deps.storage, seller.clone())?;
+                match pod {
+                    Some(pod) => {
+                        previous_reward = pod.reward_amount;
+                        println!("prv own existing reward {:?}", previous_reward);
+                    }
+                    None => {}
+                }
+
+                // Now save the previous ownership details
+                CLUB_PREVIOUS_OWNER_DETAILS.save(
+                    deps.storage,
+                    seller.clone(),
+                    &ClubPreviousOwnerDetails {
+                        previous_owner_address: seller.clone(),
+                        reward_amount: previous_reward + previous_owners_reward_amount,
+                    },
+                )?;
+            }
+        }
+    }
+
+    // Now save the ownership details
+    CLUB_OWNERSHIP_DETAILS.save(
+        deps.storage,
+        club_name.clone(),
+        &ClubOwnershipDetails {
+            club_name: club_name.clone(),
+            owner_release_start_timestamp: env.block.time,
+            owner_release_locking_duration: config.owner_release_locking_duration,
+            owner_address: buyer_addr.to_string(),
+            price_paid: Uint128::zero(),
+            reward_amount: Uint128::from(CLUB_BUYING_REWARD_AMOUNT),
+            owner_released: false,
+        },
+    )?;
+
+    let mut stakes = Vec::new();
+    let mut user_stake_exists = false;
+    let all_stakes = CLUB_STAKING_DETAILS.may_load(deps.storage, club_name.clone())?;
+    match all_stakes {
+        Some(some_stakes) => {
+            stakes = some_stakes;
+        }
+        None => {}
+    }
+    for stake in stakes {
+        if buyer == stake.staker_address {
+            user_stake_exists = true;
+        }
+    }
+    if !user_stake_exists {
+		// Now save the staking details for the owner - with 0 stake
+		save_staking_details(
+			deps.storage,
+			env,
+			buyer.clone(),
+			club_name.clone(),
+			Uint128::zero(),
+			auto_stake,
+			INCREASE_STAKE,
+		)?;
+    }
+
+    return Ok(Response::default());
 }
 
 #[entry_point]
@@ -566,30 +738,20 @@ fn release_club(
                 msg: String::from("Releaser is not the owner for the club"),
             }));
         } else {
-            //capture the current system time
-            let now = env.block.time;
-            let mut duration = owner.locking_period;
-            let now_minus_duration_timestamp = now.minus_seconds(duration);
-            if now_minus_duration_timestamp < owner.start_timestamp {
-                return Err(ContractError::Std(StdError::GenericErr {
-                    msg: String::from("Locking period for the club is not over"),
-                }));
-            } else {
-                // Update the ownership details
-                CLUB_OWNERSHIP_DETAILS.save(
-                    deps.storage,
-                    club_name.clone(),
-                    &ClubOwnershipDetails {
-                        club_name: owner.club_name,
-                        start_timestamp: owner.start_timestamp,
-                        locking_period: owner.locking_period,
-                        owner_address: owner.owner_address,
-                        price_paid: owner.price_paid,
-                        reward_amount: owner.reward_amount,
-                        owner_released: true,
-                    },
-                )?;
-            }
+			// Update the ownership details
+			CLUB_OWNERSHIP_DETAILS.save(
+				deps.storage,
+				club_name.clone(),
+				&ClubOwnershipDetails {
+					club_name: owner.club_name,
+					owner_release_start_timestamp: env.block.time,
+					owner_release_locking_duration: owner.owner_release_locking_duration,
+					owner_address: owner.owner_address,
+					price_paid: owner.price_paid,
+					reward_amount: owner.reward_amount,
+					owner_released: true,
+				},
+			)?;
         }
     }
     return Ok(Response::default());
@@ -661,13 +823,6 @@ fn stake_on_a_club(
             amount,
             auto_stake,
             INCREASE_STAKE,
-        )?;
-
-        //If successfully staked, save the funds in contract wallet
-        STAKING_FUNDS.update(
-            deps.storage,
-            &staker_addr,
-            |balance: Option<Uint128>| -> StdResult<_> { Ok(balance.unwrap_or_default() + amount) },
         )?;
     } else {
         return Err(ContractError::Std(StdError::GenericErr {
@@ -797,16 +952,6 @@ fn withdraw_stake_from_a_club(
         let mut amount_remaining = withdrawal_amount.clone();
 
         if immediate_withdrawal == IMMEDIATE_WITHDRAWAL {
-            // update funds for staker
-            // TODO : checking for amount > stake
-            STAKING_FUNDS.update(
-                deps.storage,
-                &staker_addr,
-                |balance: Option<Uint128>| -> StdResult<_> {
-                    Ok(balance.unwrap_or_default() - withdrawal_amount)
-                },
-            )?;
-
             // parse bonding to check maturity and sort with descending order of timestamp
             let mut bonds = Vec::new();
             let mut all_bonds = CLUB_BONDING_DETAILS.may_load(deps.storage, club_name.clone())?;
@@ -1349,11 +1494,6 @@ fn calculate_and_distribute_rewards(
                 updated_stake.staked_amount += reward_for_this_stake;
                 updated_stake.staked_amount += updated_stake.reward_amount;
                 updated_stake.reward_amount = Uint128::zero();
-                STAKING_FUNDS.update(
-                    deps.storage,
-                    &staker_address,
-                    |balance: Option<Uint128>| -> StdResult<_> { Ok(balance.unwrap_or_default() + reward_for_this_stake) },
-                )?;
             } else {
                 updated_stake.reward_amount += reward_for_this_stake;
             }
@@ -1374,11 +1514,6 @@ fn calculate_and_distribute_rewards(
                     updated_stake.staked_amount += reward_for_this_stake;
                     updated_stake.staked_amount += updated_stake.reward_amount;
                     updated_stake.reward_amount = Uint128::zero();
-                    STAKING_FUNDS.update(
-                        deps.storage,
-                        &staker_address,
-                        |balance: Option<Uint128>| -> StdResult<_> { Ok(balance.unwrap_or_default() + reward_for_this_stake) },
-                    )?;
                 } else {
                     updated_stake.reward_amount += reward_for_this_stake;
                 }
@@ -1400,11 +1535,6 @@ fn calculate_and_distribute_rewards(
                         updated_stake.staked_amount += reward_for_other_owners;
                         updated_stake.staked_amount += updated_stake.reward_amount;
                         updated_stake.reward_amount = Uint128::zero();
-                        STAKING_FUNDS.update(
-                            deps.storage,
-                            &staker_address,
-                            |balance: Option<Uint128>| -> StdResult<_> { Ok(balance.unwrap_or_default() + reward_for_other_owners) },
-                        )?;
                     } else {
                         updated_stake.reward_amount += reward_for_other_owners;
                     }
@@ -1442,11 +1572,6 @@ fn calculate_and_distribute_rewards(
             updated_stake.staked_amount += reward_for_this_stake;
             updated_stake.staked_amount += updated_stake.reward_amount;
             updated_stake.reward_amount = Uint128::zero();
-            STAKING_FUNDS.update(
-                deps.storage,
-                &staker_address,
-                |balance: Option<Uint128>| -> StdResult<_> { Ok(balance.unwrap_or_default() + reward_for_this_stake) },
-            )?;
         } else {
             updated_stake.reward_amount += reward_for_this_stake;
         }
@@ -1890,6 +2015,7 @@ mod tests {
             reward_periodicity: 24 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
             bonding_duration: 5 * 60u64,
+            owner_release_locking_duration: 24 * 60 * 60u64,
             platform_fees_collector_wallet: "platform_fee_collector_wallet_1111".to_string(),
             platform_fees: Uint128::from(100u128),
             transaction_fees: Uint128::from(30u128),
@@ -1946,6 +2072,7 @@ mod tests {
             reward_periodicity: 24 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
             bonding_duration: 5 * 60u64,
+            owner_release_locking_duration: 24 * 60 * 60u64,
             platform_fees_collector_wallet: "platform_fee_collector_wallet_1111".to_string(),
             platform_fees: Uint128::from(100u128),
             transaction_fees: Uint128::from(30u128),
@@ -2024,6 +2151,7 @@ mod tests {
             reward_periodicity: 24 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
             bonding_duration: 5 * 60u64,
+            owner_release_locking_duration: 24 * 60 * 60u64,
             platform_fees_collector_wallet: "platform_fee_collector_wallet_1111".to_string(),
             platform_fees: Uint128::from(100u128),
             transaction_fees: Uint128::from(30u128),
@@ -2077,22 +2205,25 @@ mod tests {
         }
     }
 
-    /*
-    Commenting out because the locking period for club-ownership is set to 0
-    Uncomment if CLUB_LOCKING_DURATION is set to 21 days
     #[test]
-    fn test_releasing_of_club_before_locking_period () {
+    fn test_assign_a_club () {
         let mut deps = mock_dependencies(&[]);
         let now = mock_env().block.time; // today
 
         let instantiate_msg = InstantiateMsg {
             admin_address: "admin11111".to_string(),
             minting_contract_address: "minting_admin11111".to_string(),
+            astro_proxy_address: "astro_proxy_address1111".to_string(),
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
             club_reward_next_timestamp: now.minus_seconds(1*60*60),
             reward_periodicity: 24*60*60u64,
             club_price: Uint128::from(1000000u128),
             bonding_duration: 5*60u64,
+            owner_release_locking_duration: 24 * 60 * 60u64,
+            platform_fees_collector_wallet: "platform_fee_collector_wallet_1111".to_string(),
+            platform_fees: Uint128::from(100u128),
+            transaction_fees: Uint128::from(30u128),
+            control_fees: Uint128::from(50u128),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -2109,13 +2240,22 @@ mod tests {
             Uint128::from(1000u128), 
             DONT_QUERY_PAIR_POOL);
 
-        release_club(deps.as_mut(), mock_env(), owner1Info.clone(), "Owner001".to_string(), "CLUB001".to_string());
+		println!("Now assigning the club to Owner001");
+        assign_a_club(
+            deps.as_mut(),
+            mock_env(),
+            adminInfo.clone(),
+            "Owner001".to_string(),
+            Some(String::default()),
+            "CLUB001".to_string(),
+            SET_AUTO_STAKE,
+        );
 
-        let queryRes = query_club_ownership_details(&mut deps.storage, "CLUB001".to_string());
-        match queryRes {
-            Ok(cod) => {
+        let queryRes0 = query_club_ownership_details(&mut deps.storage, "CLUB001".to_string());
+        match queryRes0 {
+            Ok(mut cod) => {
                 assert_eq!(cod.owner_address, "Owner001".to_string());
-                assert_eq!(cod.price_paid, Uint128::from(1000u128));
+                assert_eq!(cod.price_paid, Uint128::from(0u128));
                 assert_eq!(cod.owner_released, false);
             }
             Err(e) => {
@@ -2123,66 +2263,44 @@ mod tests {
                 assert_eq!(1, 2);
             }
         }
-    }
 
+		println!("Now releasing the club from Owner001");
+        release_club(deps.as_mut(), mock_env(), owner1_info.clone(), "Owner001".to_string(), "CLUB001".to_string());
 
-    #[test]
-    fn test_releasing_of_club_after_locking_period() {
-        let mut deps = mock_dependencies(&[]);
-        let now = mock_env().block.time; // today
+        let queryRes1 = query_club_ownership_details(&mut deps.storage, "CLUB001".to_string());
+        match queryRes1 {
+            Ok(mut cod) => {
+                assert_eq!(cod.owner_address, "Owner001".to_string());
+                assert_eq!(cod.price_paid, Uint128::from(0u128));
+                assert_eq!(cod.owner_released, true);
+            }
+            Err(e) => {
+                println!("error parsing header: {:?}", e);
+                assert_eq!(1, 2);
+            }
+        }
 
-        let instantiate_msg = InstantiateMsg {
-            admin_address: "admin11111".to_string(),
-            minting_contract_address: "minting_admin11111".to_string(),
-            club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
-            club_reward_next_timestamp: now.minus_seconds(1*60*60),
-            reward_periodicity: 24*60*60u64,
-            club_price: Uint128::from(1000000u128),
-            bonding_duration: 5*60u64,
-        };
-        let adminInfo = mock_info("admin11111", &[]);
-        let mintingContractInfo = mock_info("minting_admin11111", &[]);
-        instantiate(
+		println!("Now assigning the club to Owner002");
+        assign_a_club(
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            instantiate_msg,
-        )
-        .unwrap();
-
-        let owner1Info = mock_info("Owner001", &[coin(1000, "stake")]);
-        buy_a_club(
-            deps.as_mut(),
-            mock_env(),
-            mintingContractInfo.clone(),
-            "Owner001".to_string(),
-            "".to_string(),
+            "Owner002".to_string(),
+            Some("Owner001".to_string()),
             "CLUB001".to_string(),
-            Uint128::from(1000000u128),
             SET_AUTO_STAKE,
         );
 
-        release_club(
-            deps.as_mut(),
-            mock_env(),
-            owner1Info.clone(),
-            "Owner001".to_string(),
-            "CLUB001".to_string(),
-        );
+		println!("Now releasing the club from Owner002");
+        release_club(deps.as_mut(), mock_env(), owner2_info.clone(), "Owner002".to_string(), "CLUB001".to_string());
 
-        let now = mock_env().block.time; // today
-
-        let queryRes = query_club_ownership_details(&mut deps.storage, "CLUB001".to_string());
-        match queryRes {
+        let queryRes2 = query_club_ownership_details(&mut deps.storage, "CLUB001".to_string());
+        match queryRes2 {
             Ok(mut cod) => {
-                assert_eq!(cod.owner_address, "Owner001".to_string());
-                assert_eq!(cod.price_paid, Uint128::from(1000000u128));
-                /*
-                Commenting out because the locking period for club-ownership is set to 0
-                Uncomment if CLUB_LOCKING_DURATION is set to 21 days
-                assert_eq!(cod.owner_released, false);
-                */
-                cod.start_timestamp = now.minus_seconds(22 * 24 * 60 * 60);
+                assert_eq!(cod.owner_address, "Owner002".to_string());
+                assert_eq!(cod.price_paid, Uint128::from(0u128));
+                assert_eq!(cod.owner_released, true);
+                cod.owner_release_start_timestamp = now.minus_seconds(22 * 24 * 60 * 60);
                 CLUB_OWNERSHIP_DETAILS.save(&mut deps.storage, "CLUB001".to_string(), &cod);
             }
             Err(e) => {
@@ -2191,21 +2309,24 @@ mod tests {
             }
         }
 
-        release_club(
+		println!("Now trying to assign the club to Owner003 - should fail");
+        assign_a_club(
             deps.as_mut(),
             mock_env(),
-            owner1Info.clone(),
-            "Owner001".to_string(),
+            adminInfo.clone(),
+            "Owner003".to_string(),
+            Some("Owner002".to_string()),
             "CLUB001".to_string(),
+            SET_AUTO_STAKE,
         );
 
-        let queryResAfterReleasing =
-            query_club_ownership_details(&mut deps.storage, "CLUB001".to_string());
-        match queryResAfterReleasing {
+        let queryRes3 = query_club_ownership_details(&mut deps.storage, "CLUB001".to_string());
+        match queryRes3 {
             Ok(cod) => {
-                assert_eq!(cod.owner_address, "Owner001".to_string());
-                assert_eq!(cod.price_paid, Uint128::from(1000000u128));
+                assert_eq!(cod.owner_address, "Owner002".to_string());
+                assert_eq!(cod.price_paid, Uint128::from(0u128));
                 assert_eq!(cod.owner_released, true);
+                assert_eq!(cod.owner_release_start_timestamp, now.minus_seconds(22 * 24 * 60 * 60));
             }
             Err(e) => {
                 println!("error parsing header: {:?}", e);
@@ -2213,7 +2334,6 @@ mod tests {
             }
         }
     }
-    */
 
     #[test]
     fn test_buying_of_club_after_releasing_by_prev_owner() {
@@ -2229,6 +2349,7 @@ mod tests {
             reward_periodicity: 24 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
             bonding_duration: 5 * 60u64,
+            owner_release_locking_duration: 24 * 60 * 60u64,
             platform_fees_collector_wallet: "platform_fee_collector_wallet_1111".to_string(),
             platform_fees: Uint128::from(100u128),
             transaction_fees: Uint128::from(30u128),
@@ -2272,7 +2393,7 @@ mod tests {
             Ok(mut cod) => {
                 assert_eq!(cod.owner_address, "Owner001".to_string());
                 assert_eq!(cod.price_paid, Uint128::from(1000000u128));
-                cod.start_timestamp = now.minus_seconds(22 * 24 * 60 * 60);
+                cod.owner_release_start_timestamp = now.minus_seconds(22 * 24 * 60 * 60);
                 CLUB_OWNERSHIP_DETAILS.save(&mut deps.storage, "CLUB001".to_string(), &cod);
             }
             Err(e) => {
@@ -2344,6 +2465,7 @@ mod tests {
             reward_periodicity: 24 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
             bonding_duration: 5 * 60u64,
+            owner_release_locking_duration: 24 * 60 * 60u64,
             platform_fees_collector_wallet: "platform_fee_collector_wallet_1111".to_string(),
             platform_fees: Uint128::from(100u128),
             transaction_fees: Uint128::from(30u128),
@@ -2386,7 +2508,7 @@ mod tests {
             Ok(mut cod) => {
                 assert_eq!(cod.owner_address, "Owner001".to_string());
                 assert_eq!(cod.price_paid, Uint128::from(1000000u128));
-                cod.start_timestamp = now.minus_seconds(22 * 24 * 60 * 60);
+                cod.owner_release_start_timestamp = now.minus_seconds(22 * 24 * 60 * 60);
                 CLUB_OWNERSHIP_DETAILS.save(&mut deps.storage, "CLUB001".to_string(), &cod);
             }
             Err(e) => {
@@ -2545,6 +2667,7 @@ mod tests {
             reward_periodicity: 24 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
             bonding_duration: 5 * 60u64,
+            owner_release_locking_duration: 24 * 60 * 60u64,
             platform_fees_collector_wallet: "platform_fee_collector_wallet_1111".to_string(),
             platform_fees: Uint128::from(100u128),
             transaction_fees: Uint128::from(30u128),
@@ -2639,6 +2762,7 @@ mod tests {
             reward_periodicity: 24 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
             bonding_duration: 5 * 60u64,
+            owner_release_locking_duration: 24 * 60 * 60u64,
             platform_fees_collector_wallet: "platform_fee_collector_wallet_1111".to_string(),
             platform_fees: Uint128::from(100u128),
             transaction_fees: Uint128::from(30u128),
@@ -2728,6 +2852,7 @@ mod tests {
             reward_periodicity: 24 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
             bonding_duration: 5 * 60u64,
+            owner_release_locking_duration: 24 * 60 * 60u64,
             platform_fees_collector_wallet: "platform_fee_collector_wallet_1111".to_string(),
             platform_fees: Uint128::from(100u128),
             transaction_fees: Uint128::from(30u128),
@@ -2837,6 +2962,7 @@ mod tests {
             reward_periodicity: 24 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
             bonding_duration: 5 * 60u64,
+            owner_release_locking_duration: 24 * 60 * 60u64,
             platform_fees_collector_wallet: "platform_fee_collector_wallet_1111".to_string(),
             platform_fees: Uint128::from(100u128),
             transaction_fees: Uint128::from(30u128),
@@ -2948,6 +3074,7 @@ mod tests {
             reward_periodicity: 24 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
             bonding_duration: 5 * 60u64,
+            owner_release_locking_duration: 24 * 60 * 60u64,
             platform_fees_collector_wallet: "platform_fee_collector_wallet_1111".to_string(),
             platform_fees: Uint128::from(100u128),
             transaction_fees: Uint128::from(30u128),
@@ -3109,6 +3236,7 @@ mod tests {
             reward_periodicity: 24 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
             bonding_duration: 5 * 60u64,
+            owner_release_locking_duration: 24 * 60 * 60u64,
             platform_fees_collector_wallet: "platform_fee_collector_wallet_1111".to_string(),
             platform_fees: Uint128::from(100u128),
             transaction_fees: Uint128::from(30u128),
@@ -3261,6 +3389,7 @@ mod tests {
             reward_periodicity: 24 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
             bonding_duration: 5 * 60u64,
+            owner_release_locking_duration: 24 * 60 * 60u64,
             platform_fees_collector_wallet: "platform_fee_collector_wallet_1111".to_string(),
             platform_fees: Uint128::from(100u128),
             transaction_fees: Uint128::from(30u128),
@@ -3379,6 +3508,7 @@ mod tests {
             reward_periodicity: 5 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
             bonding_duration: 5 * 60u64,
+            owner_release_locking_duration: 24 * 60 * 60u64,
             platform_fees_collector_wallet: "platform_fee_collector_wallet_1111".to_string(),
             platform_fees: Uint128::from(100u128),
             transaction_fees: Uint128::from(30u128),
@@ -3495,25 +3625,6 @@ mod tests {
             SET_AUTO_STAKE,
         );
 
-        // let instantiate_msg = InstantiateMsg {
-        //     admin_address: "admin11111".to_string(),
-        //     minting_contract_address: "minting_admin11111".to_string(),
-        //     club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
-        //     club_reward_next_timestamp: now.minus_seconds(1*60*60),
-        //     reward_periodicity: 24*60*60u64,
-        //     club_price: Uint128::from(1000000u128),
-        //     bonding_duration: 5*60u64,
-        // };
-        // let adminInfo = mock_info("admin11111", &[]);
-        // let mintingContractInfo = mock_info("minting_admin11111", &[]);
-        // instantiate(
-        //     deps.as_mut(),
-        //     mock_env(),
-        //     adminInfo.clone(),
-        //     instantiate_msg,
-        // )
-        // .unwrap();
-
         let queryRes0 = query_all_stakes(&mut deps.storage);
         match queryRes0 {
             Ok(all_stakes) => {
@@ -3625,6 +3736,7 @@ mod tests {
             reward_periodicity: 5 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
             bonding_duration: 5 * 60u64,
+            owner_release_locking_duration: 24 * 60 * 60u64,
             platform_fees_collector_wallet: "platform_fee_collector_wallet_1111".to_string(),
             platform_fees: Uint128::from(100u128),
             transaction_fees: Uint128::from(30u128),

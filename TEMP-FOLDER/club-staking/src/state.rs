@@ -16,6 +16,7 @@ pub struct Config {
     pub reward_periodicity: u64,
     pub club_price: Uint128,
     pub bonding_duration: u64,
+    pub owner_release_locking_duration: u64,
     pub platform_fees_collector_wallet: Addr,
     ///Specified in percentage multiplied by 100, i.e. 100% = 10000 and 0.01% = 1
     pub platform_fees: Uint128,
@@ -35,11 +36,12 @@ pub struct ClubOwnershipDetails {
     /// The club name
     pub club_name: String,
     /// The system timestamp to be used as starting point when ownership
-    /// of a club was taken. the 21 days restrictions start from this time
-    pub start_timestamp: Timestamp,
+    /// of a club was released by the owner to sell it to another buyer
+    pub owner_release_start_timestamp: Timestamp,
 
-    /// The locking period(days) expressed in seconds
-    pub locking_period: u64,
+    /// The locking period (days) expressed in seconds from start_timestamp
+	/// after which the owner_released flag is no longer applicable
+    pub owner_release_locking_duration: u64,
 
     pub owner_address: String,
 
@@ -128,10 +130,6 @@ pub const CLUB_BONDING_DETAILS: Map<String, Vec<ClubBondingDetails>> =
 /// previous owner of the club and his reward points
 pub const CLUB_PREVIOUS_OWNER_DETAILS: Map<String, ClubPreviousOwnerDetails> =
     Map::new("club_previous_owner_details");
-
-/// STAKING_FUNDS Maintains the staked Fury held by an address: includes both Staked Fury as well as Bonded Fury (for Withdrawal)
-/// Does not include rewards which are withdrawable anytime
-pub const STAKING_FUNDS: Map<&Addr, Uint128> = Map::new("contract_wallet");
 
 pub const REWARD: Item<Uint128> = Item::new("staking_reward");
 

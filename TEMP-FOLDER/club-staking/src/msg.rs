@@ -15,6 +15,7 @@ pub struct InstantiateMsg {
     pub reward_periodicity: u64,
     pub club_price: Uint128,
     pub bonding_duration: u64,
+    pub owner_release_locking_duration: u64,
     pub platform_fees_collector_wallet: String,
     ///Specified in percentage multiplied by 100, i.e. 100% = 10000 and 0.01% = 1
     pub platform_fees: Uint128,
