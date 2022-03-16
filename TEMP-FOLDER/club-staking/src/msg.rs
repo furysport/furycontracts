@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use cosmwasm_std::{Coin, Timestamp};
 use cw20::{Cw20ReceiveMsg};
 
+use crate::state::ClubStakingDetails;
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug, Clone, PartialEq)]
 pub struct InstantiateMsg {
@@ -48,9 +49,9 @@ pub enum ExecuteMsg {
         auto_stake: bool,
     },
     AssignStakesToAClub {
-        pub stakeList: Vec<ClubStakingDetails>,
-        pub club_name: String,
-    }
+        stake_list: Vec<ClubStakingDetails>,
+        club_name: String,
+    },
     ReleaseClub {
         owner: String,
         club_name: String,
@@ -103,8 +104,8 @@ pub enum QueryMsg {
     },
     AllStakes {},
     AllStakesForUser { 
-		user_address: String,
-	},
+        user_address: String,
+    },
     AllBonds {},
     ClubBondingDetailsForUser { 
         club_name: String,
