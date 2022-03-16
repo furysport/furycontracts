@@ -37,11 +37,11 @@ pub struct ClubOwnershipDetails {
     pub club_name: String,
     /// The system timestamp to be used as starting point when ownership
     /// of a club was released by the owner to sell it to another buyer
-    pub owner_release_start_timestamp: Timestamp,
+    pub start_timestamp: Timestamp,
 
     /// The locking period (days) expressed in seconds from start_timestamp
 	/// after which the owner_released flag is no longer applicable
-    pub owner_release_locking_duration: u64,
+    pub locking_period: u64,
 
     pub owner_address: String,
 
