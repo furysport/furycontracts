@@ -857,6 +857,86 @@ fn stake_on_a_club(
         .set_data(data_msg));
 }
 
+fn assign_stake_to_a_club(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    stakeList: Vec<ClubStakingDetails>,
+    club_name: String,
+) -> Result<Response, ContractError> {
+    let config = CONFIG.load(deps.storage)?;
+    if info.sender != config.admin_address {
+        return Err(ContractError::Unauthorized {});
+    }
+    let contract_address =  env.clone().contract.address.into_string();
+
+	for stake in stakeList.clone() {
+		if stake.club_name != club_name {
+            return Err(ContractError::Std(StdError::GenericErr {
+                msg: String::from("Passed club names do not match"),
+            }));
+		}
+	}
+
+	//check if the club_name is available for staking
+	let ownership_details;
+	let ownership_details_result = CLUB_OWNERSHIP_DETAILS.may_load(deps.storage, club_name.clone());
+	match ownership_details_result {
+		Ok(od) => {
+			ownership_details = od;
+		}
+		Err(e) => {
+			return Err(ContractError::Std(StdError::GenericErr {
+				msg: String::from("Cannot find the club"),
+			}));
+		}
+	}
+	if !(ownership_details.is_some()) {
+		return Err(ContractError::Std(StdError::GenericErr {
+			msg: String::from("The club is not available for staking"),
+		}));
+	}
+
+	let mut total_amount = Uint128::zero();
+	for stake in stakeList {
+		let mut staker = stake.staker_address.clone();
+		let mut amount = stake.staked_amount;
+		let mut auto_stake = stake.auto_stake;
+		total_amount += amount;
+
+		// Now save the staking details
+		save_staking_details(
+			deps.storage,
+			env.clone(),
+			staker.clone(),
+			club_name.clone(),
+			amount,
+			auto_stake,
+			INCREASE_STAKE,
+		)?;
+	}
+
+	let transfer_msg = Cw20ExecuteMsg::TransferFrom {
+		owner: info.sender.into_string(),
+		recipient: contract_address,
+		amount: total_amount,
+	};
+	let exec = WasmMsg::Execute {
+		contract_addr: config.minting_contract_address.to_string(),
+		msg: to_binary(&transfer_msg).unwrap(),
+		funds: vec![],
+	};
+
+	let send_wasm: CosmosMsg = CosmosMsg::Wasm(exec);
+	let data_msg = format!("Assign Stakes To Club {} received", total_amount).into_bytes();
+	return Ok(Response::new()
+		.add_message(send_wasm)
+		.add_attribute("action", "assign_stakes_to_a_club")
+		.add_attribute("club_name", club_name)
+		.add_attribute("total_stake", total_amount.to_string())
+		.set_data(data_msg));
+}
+
 fn withdraw_stake_from_a_club(
     deps: DepsMut,
     env: Env,
@@ -2327,6 +2407,100 @@ mod tests {
                 assert_eq!(cod.price_paid, Uint128::from(0u128));
                 assert_eq!(cod.owner_released, true);
                 assert_eq!(cod.start_timestamp, now.minus_seconds(22 * 24 * 60 * 60));
+            }
+            Err(e) => {
+                println!("error parsing header: {:?}", e);
+                assert_eq!(1, 2);
+            }
+        }
+    }
+
+    #[test]
+    fn test_assign_stakes_to_a_club () {
+        let mut deps = mock_dependencies(&[]);
+        let now = mock_env().block.time; // today
+
+        let instantiate_msg = InstantiateMsg {
+            admin_address: "admin11111".to_string(),
+            minting_contract_address: "minting_admin11111".to_string(),
+            astro_proxy_address: "astro_proxy_address1111".to_string(),
+            club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
+            club_reward_next_timestamp: now.minus_seconds(1*60*60),
+            reward_periodicity: 24*60*60u64,
+            club_price: Uint128::from(1000000u128),
+            bonding_duration: 5*60u64,
+            owner_release_locking_duration: 24 * 60 * 60u64,
+            platform_fees_collector_wallet: "platform_fee_collector_wallet_1111".to_string(),
+            platform_fees: Uint128::from(100u128),
+            transaction_fees: Uint128::from(30u128),
+            control_fees: Uint128::from(50u128),
+        };
+        let adminInfo = mock_info("admin11111", &[]);
+        let mintingContractInfo = mock_info("minting_admin11111", &[]);
+        instantiate(
+            deps.as_mut(),
+            mock_env(),
+            adminInfo.clone(),
+            instantiate_msg,
+        )
+        .unwrap();
+
+        let owner1_info = mock_info("Owner001", &[coin(1000, "stake")]);
+
+		println!("Now assigning the club to Owner001");
+        assign_a_club(
+            deps.as_mut(),
+            mock_env(),
+            adminInfo.clone(),
+            "Owner001".to_string(),
+            Some(String::default()),
+            "CLUB001".to_string(),
+            SET_AUTO_STAKE,
+        );
+
+        let queryRes0 = query_club_ownership_details(&mut deps.storage, "CLUB001".to_string());
+        match queryRes0 {
+            Ok(mut cod) => {
+                assert_eq!(cod.owner_address, "Owner001".to_string());
+                assert_eq!(cod.price_paid, Uint128::from(0u128));
+                assert_eq!(cod.owner_released, false);
+            }
+            Err(e) => {
+                println!("error parsing header: {:?}", e);
+                assert_eq!(1, 2);
+            }
+        }
+
+		let mut stakeList: Vec<ClubStakingDetails> = Vec::new();
+		for i in 1 .. 7 {
+			let staker: String = "Staker00".to_string() + &i.to_string();
+			println!("staker is {}", staker);
+			stakeList.push(ClubStakingDetails {
+				// TODO duration and timestamp fields no longer needed - should be removed
+				staker_address: staker,
+				staking_start_timestamp: now,
+				staked_amount: Uint128::from(330000u128),
+				staking_duration: CLUB_STAKING_DURATION,
+				club_name: "CLUB001".to_string(),
+				reward_amount: Uint128::from(CLUB_STAKING_REWARD_AMOUNT),
+				auto_stake: SET_AUTO_STAKE,
+			});
+		};
+
+        let staker6Info = mock_info("Staker006", &[coin(10, "stake")]);
+        assign_stake_to_a_club(
+            deps.as_mut(),
+            mock_env(),
+            adminInfo.clone(),
+            stakeList,
+            "CLUB001".to_string(),
+        );
+
+        let queryRes1 = query_all_stakes(&mut deps.storage);
+        match queryRes1 {
+            Ok(all_stakes) => {
+                println!("all stakes : {:?}",all_stakes);
+                assert_eq!(all_stakes.len(), 7);
             }
             Err(e) => {
                 println!("error parsing header: {:?}", e);
