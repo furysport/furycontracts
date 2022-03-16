@@ -55,6 +55,7 @@ const CLUB_STAKING_DURATION: u64 = 0u64;
 // use cosmwasm_std::{Coin, Timestamp};
 
 const HUNDRED_PERCENT: u128 = 10000u128;
+const NINETY_NINE_NINE_PERCENT: u128 = 9990u128;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -807,7 +808,10 @@ fn stake_on_a_club(
             fees = fees.checked_add(fund.amount).unwrap();
         }
     }
-    if fees < required_ust_fees {
+    let adjusted_ust_fees = required_ust_fees  
+        * (Uint128::from(NINETY_NINE_NINE_PERCENT))
+        / (Uint128::from(HUNDRED_PERCENT));
+    if fees < adjusted_ust_fees {
         return Err(ContractError::InsufficientFees {
             required: required_ust_fees,
             received: fees,
@@ -1002,7 +1006,10 @@ fn withdraw_stake_from_a_club(
             fees = fees.checked_add(fund.amount).unwrap();
         }
     }
-    if fees < required_ust_fees {
+    let adjusted_ust_fees = required_ust_fees
+        * (Uint128::from(NINETY_NINE_NINE_PERCENT))
+        / (Uint128::from(HUNDRED_PERCENT));
+    if fees < adjusted_ust_fees {
         return Err(ContractError::InsufficientFees {
             required: required_ust_fees,
             received: fees,
@@ -1394,7 +1401,10 @@ fn claim_staker_rewards(
             fees = fees.checked_add(fund.amount).unwrap();
         }
     }
-    if fees < required_ust_fees {
+    let adjusted_ust_fees = required_ust_fees
+        * (Uint128::from(NINETY_NINE_NINE_PERCENT))
+        / (Uint128::from(HUNDRED_PERCENT));
+    if fees < adjusted_ust_fees {
         return Err(ContractError::InsufficientFees {
             required: required_ust_fees,
             received: fees,
