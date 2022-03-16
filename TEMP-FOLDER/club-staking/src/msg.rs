@@ -35,12 +35,22 @@ pub enum ExecuteMsg {
         club_name: String,
         auto_stake: bool,
     },
+    AssignAClub {
+        buyer: String,
+        seller: Option<String>,
+        club_name: String,
+        auto_stake: bool,
+    },
     StakeOnAClub {
         staker: String,
         club_name: String,
         amount: Uint128,
         auto_stake: bool,
     },
+    AssignStakesToAClub {
+        pub stakeList: Vec<ClubStakingDetails>,
+        pub club_name: String,
+    }
     ReleaseClub {
         owner: String,
         club_name: String,

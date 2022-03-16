@@ -112,6 +112,12 @@ pub fn execute(
         } => {
             stake_on_a_club(deps, env, info, staker, club_name, amount, auto_stake)
         }
+        ExecuteMsg::AssignStakeToAClub {
+            stakeList,
+            club_name
+        } => {
+            assign_stakes_to_a_club(deps, env, info, stakeList, club_name)
+        }
         ExecuteMsg::BuyAClub {
             buyer,
             seller,
@@ -121,6 +127,14 @@ pub fn execute(
             let config = CONFIG.load(deps.storage)?;
             let price = config.club_price;
             buy_a_club(deps, env, info, buyer, seller, club_name, price, QUERY_PAIR_POOL)
+        }
+        ExecuteMsg::AssignAClub {
+            buyer,
+            seller,
+            club_name,
+            auto_stake,
+        } => {
+            assign_a_club(deps, env, info, buyer, seller, club_name, auto_stake)
         }
         ExecuteMsg::ReleaseClub { owner, club_name } => {
             release_club(deps, env, info, owner, club_name)
@@ -857,7 +871,7 @@ fn stake_on_a_club(
         .set_data(data_msg));
 }
 
-fn assign_stake_to_a_club(
+fn assign_stakes_to_a_club(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
