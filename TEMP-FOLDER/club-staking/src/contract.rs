@@ -8,19 +8,15 @@ use cosmwasm_std::{
 use cw2::set_contract_version;
 use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg};
 
-// use astroport::pair::PoolResponse;
-// use astroport::pair::QueryMsg::Pool;
+use cw_storage_plus::{Map};
 
-// use crate::allowances::{
-//     deduct_allowance, execute_burn_from, execute_decrease_allowance, execute_increase_allowance,
-//     execute_send_from, execute_transfer_from, query_allowance,
-// };
+
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, ReceivedMsg, ProxyQueryMsgs};
 use crate::state::{
-    ClubBondingDetails, ClubOwnershipDetails, ClubPreviousOwnerDetails, ClubStakingDetails, Config,
+    ClubBondingDetails, ClubOwnershipDetails, ClubPreviousOwnerDetails, ClubStakingDetails, Config, 
     CLUB_BONDING_DETAILS, CLUB_OWNERSHIP_DETAILS, CLUB_PREVIOUS_OWNER_DETAILS,
-    CLUB_REWARD_NEXT_TIMESTAMP, CLUB_STAKING_DETAILS, CONFIG, REWARD, 
+    CLUB_REWARD_NEXT_TIMESTAMP, CLUB_STAKING_DETAILS, CONFIG, REWARD, CLUB_STAKING_SNAPSHOT,
 };
 
 // version info for migration info
@@ -88,6 +84,7 @@ pub fn instantiate(
         control_fees: msg.control_fees,
     };
     CONFIG.save(deps.storage, &config)?;
+
     CLUB_REWARD_NEXT_TIMESTAMP.save(deps.storage, &config.club_reward_next_timestamp)?;
     println!(
         "now = {:?} next_timestamp = {:?} periodicity = {:?}",
@@ -1520,31 +1517,38 @@ fn calculate_and_distribute_rewards(
     }
 
     let mut reward_given_so_far = Uint128::zero();
-    // Get the club ranking as per staking
-    let top_rankers = get_clubs_ranking_by_stakes(deps.storage)?;
+
+    // Get the club ranking as per incremental staking
+	let top_rankers_for_incremental_stake = get_clubs_ranking_by_incremental_stakes(deps.storage)?;
+	println!("top rankers for incremental stakes = {:?}", top_rankers_for_incremental_stake);
+
+    // Get the club ranking as per total staking
+    let top_rankers_for_total_stake = get_clubs_ranking_by_stakes(deps.storage)?;
+	println!("top rankers for total stakes = {:?}", top_rankers_for_total_stake);
 
     // No need to proceed if there are no stakers
-    if top_rankers.len() == 0 {
+    if top_rankers_for_total_stake.len() == 0 {
         return Err(ContractError::Std(StdError::GenericErr {
-            msg: String::from("No Club Stakes"),
+            msg: String::from("No Club Stakes found for total staking"),
         }));
     }
-    if top_rankers[0].1 == Uint128::zero() {
+    if top_rankers_for_total_stake[0].1 == Uint128::zero() {
         return Err(ContractError::Std(StdError::GenericErr {
-            msg: String::from("No Staked Tokens"),
+            msg: String::from("No Staked Tokens found for total staking"),
         }));
     }
-
     let mut other_club_count = Uint128::zero();
     let mut total_staking = Uint128::zero();
-    for stake in top_rankers.clone() {
+    for stake in top_rankers_for_total_stake.clone() {
         total_staking += stake.1;
         other_club_count += Uint128::from(1u128);
     }
 
-    let winner_club = top_rankers[0].clone();
-    let winner_club_name = winner_club.0.clone();
-    let total_staking_winner_club = winner_club.1;
+	let winner_club_name = get_winner_club_name(deps.storage, 
+		top_rankers_for_total_stake.clone(), 
+		top_rankers_for_incremental_stake.clone())
+		.unwrap();
+	println!("winner_club_name = {:?}", winner_club_name);
     other_club_count -= Uint128::from(1u128);
 
     // distribute the 19% to stakers in winning club
@@ -1576,7 +1580,7 @@ fn calculate_and_distribute_rewards(
     let mut updated_stake_winner_owner = Vec::<ClubStakingDetails>::new();
     let mut staker_address;
 
-    for ranker in top_rankers {
+    for ranker in top_rankers_for_total_stake {
         let club_name = ranker.0.clone();
         let total_staking_in_club = ranker.1.clone();
         let club_details = query_club_ownership_details(deps.storage, club_name.clone())?;
@@ -1692,13 +1696,42 @@ fn calculate_and_distribute_rewards(
 
 }
 
-// fn burn_funds(
-//     store: &dyn Storage,
-//     price: Uint128,
-// ) -> Result<Response, ContractError> {
-//     // TODO: do something useful here
-//     return Ok(Response::default());
-// }
+fn get_winner_club_name(
+    storage: &dyn Storage,
+	top_rankers_for_total_stake: Vec<(String, Uint128)>,
+	top_rankers_for_incremental_stake: Vec<(String, i128)>,
+) -> StdResult<String> {
+	
+	let mut topper: String = top_rankers_for_incremental_stake[0].0.clone();
+	let mut max_incr_stake = top_rankers_for_incremental_stake[0].1;
+
+	let mut all_dup_stakes = Vec::new();
+	let _tp = query_club_staking_details(storage, topper.clone())?;
+	let mut staked_amount = Uint128::zero();
+	for stake in _tp {
+		staked_amount += stake.staked_amount;
+	}
+	all_dup_stakes.push((topper.clone(), staked_amount));
+
+	let length = top_rankers_for_incremental_stake.len();
+	if length > 1 {
+		for i in 1..length-1 {
+			let mut incr_stake = top_rankers_for_incremental_stake[i].clone();
+			if incr_stake.1 < max_incr_stake {
+				break;
+			}
+			let _tp = query_club_staking_details(storage, incr_stake.0.clone())?;
+			let mut staked_amount = Uint128::zero();
+			for stake in _tp {
+				staked_amount += stake.staked_amount;
+			}
+			all_dup_stakes.push((incr_stake.0.clone(), staked_amount));
+		}
+	}
+	all_dup_stakes.sort_by(|a, b| b.1.cmp(&a.1));
+	println!("all_dup_stakes = {:?}", all_dup_stakes);
+	return Ok(all_dup_stakes[0].0.clone());
+}
 
 fn transfer_from_contract_to_wallet(
     store: &dyn Storage,
@@ -1943,6 +1976,45 @@ fn get_clubs_ranking_by_stakes(storage: &dyn Storage) -> StdResult<Vec<(String, 
         all_stakes.push((club_name.unwrap(), staked_amount));
     }
     all_stakes.sort_by(|a, b| b.1.cmp(&a.1));
+    return Ok(all_stakes);
+}
+
+fn get_clubs_ranking_by_incremental_stakes(
+    storage: &mut dyn Storage,
+) -> StdResult<(Vec<(String, i128)>)> {
+    let mut all_stakes = Vec::new();
+    let mut all_old_stakes = all_stakes.clone();
+    let all_clubs: Vec<String> = CLUB_STAKING_DETAILS
+        .keys(storage, None, None, Order::Ascending)
+        .map(|k| String::from_utf8(k).unwrap())
+        .collect();
+    for club_name in all_clubs {
+		let club_name_clone = club_name.clone();
+        let _tp = query_club_staking_details(storage, club_name.clone())?;
+        let mut staked_amount = Uint128::zero();
+        let mut club_name: Option<String> = None;
+        for stake in _tp {
+            staked_amount += stake.staked_amount;
+            if club_name.is_none() {
+                club_name = Some(stake.club_name.clone());
+            }
+        }
+		let staked_amount_u128: u128 = staked_amount.into();
+		let staked_amount_i128 = staked_amount_u128 as i128;
+
+		let previous_amount = CLUB_STAKING_SNAPSHOT.may_load(storage, club_name_clone.clone())?.unwrap_or_default();
+		let previous_amount_u128: u128 = previous_amount.into();
+		let previous_amount_i128 = previous_amount_u128 as i128;
+
+		let difference_amount = staked_amount_i128 - previous_amount_i128;
+        all_stakes.push((club_name.unwrap(), difference_amount));
+		CLUB_STAKING_SNAPSHOT.save(
+                    storage,
+                    club_name_clone.clone(),
+                    &staked_amount
+                )?;
+	}
+    all_stakes.sort_by(|a, b| (b.1.cmp(&a.1)));
     return Ok(all_stakes);
 }
 
@@ -3962,6 +4034,42 @@ mod tests {
         )
         .unwrap();
 
+        stake_on_a_club(
+            deps.as_mut(),
+            mock_env(),
+            mintingContractInfo.clone(),
+            "Staker004".to_string(),
+            "CLUB002".to_string(),
+            Uint128::from(100000u128),
+            SET_AUTO_STAKE,
+        );
+        stake_on_a_club(
+            deps.as_mut(),
+            mock_env(),
+            mintingContractInfo.clone(),
+            "Staker004".to_string(),
+            "CLUB001".to_string(),
+            Uint128::from(500000u128),
+            SET_AUTO_STAKE,
+        );
+        stake_on_a_club(
+            deps.as_mut(),
+            mock_env(),
+            mintingContractInfo.clone(),
+            "Staker004".to_string(),
+            "CLUB003".to_string(),
+            Uint128::from(4000u128),
+            SET_AUTO_STAKE,
+        );
+        increase_reward_amount(
+            deps.as_mut(),
+            mock_env(),
+            mintingContractInfo.clone(),
+            "reward_from def".to_string(),
+            Uint128::from(1000000u128),
+        );
+
+
         let res = execute(
             deps.as_mut(),
             mock_env(),
@@ -3971,6 +4079,5 @@ mod tests {
         .unwrap();
 
         assert_eq!(res.messages, Response::default().messages); // no longer a totally empty default response
-
     }
 }

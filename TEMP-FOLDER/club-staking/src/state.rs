@@ -4,8 +4,6 @@ use serde::{Deserialize, Serialize};
 use cosmwasm_std::{Addr, Timestamp, Uint128};
 use cw_storage_plus::{Item, Map};
 
-// use cw20::AllowanceResponse;
-
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Config {
     pub admin_address: Addr,
@@ -40,7 +38,7 @@ pub struct ClubOwnershipDetails {
     pub start_timestamp: Timestamp,
 
     /// The locking period (days) expressed in seconds from start_timestamp
-	/// after which the owner_released flag is no longer applicable
+    /// after which the owner_released flag is no longer applicable
     pub locking_period: u64,
 
     pub owner_address: String,
@@ -134,3 +132,8 @@ pub const CLUB_PREVIOUS_OWNER_DETAILS: Map<String, ClubPreviousOwnerDetails> =
 pub const REWARD: Item<Uint128> = Item::new("staking_reward");
 
 pub const CLUB_REWARD_NEXT_TIMESTAMP: Item<Timestamp> = Item::new("club_reward_next_timestamp");
+
+/// Snapshot of ranking by stakes
+pub const CLUB_STAKING_SNAPSHOT: Map<String, Uint128> =
+    Map::new("club_staking_snapshot");
+
