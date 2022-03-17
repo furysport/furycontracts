@@ -277,6 +277,19 @@ async function performOperationsOnClubStaking(deploymentDetails) {
     console.log("Balances of platform_fee_collector after buy club");
     await queryBalances(deploymentDetails, deploymentDetails.adminWallet);
     await queryAllClubOwnerships(deploymentDetails);
+
+    await assignAClub(deploymentDetails);
+    console.log("Balances of owner after assign club");
+    await queryBalances(deploymentDetails, deploymentDetails.nitinWallet);
+    await queryAllClubOwnerships(deploymentDetails);
+	await queryAllAssignedClubStakes(deploymentDetails);
+    console.log("Balances of admin before assign club stake");
+    await queryBalances(deploymentDetails, deploymentDetails.adminWallet);
+    await assignStakesToAClub(deploymentDetails);
+    console.log("Balances of admin after assign club stake");
+    await queryBalances(deploymentDetails, deploymentDetails.adminWallet);
+	await queryAllAssignedClubStakes(deploymentDetails);
+
     console.log("Balances of staker before club stake");
     await queryBalances(deploymentDetails, deploymentDetails.sameerWallet);
     await stakeOnAClub(deploymentDetails);
@@ -323,6 +336,16 @@ async function queryAllClubStakes(deploymentDetails) {
 
 }
 
+async function queryAllAssignedClubStakes(deploymentDetails) {
+    //Fetch club Stakes details for all clubs
+    let csResponse = await queryContract(deploymentDetails.clubStakingAddress, {
+        club_staking_details: {
+            club_name: "ClubD"
+        }
+    });
+    console.log("All assigned clubs stakes = " + JSON.stringify(csResponse));
+}
+
 async function buyAClub(deploymentDetails) {
     if (!deploymentDetails.clubBought) {
         //let Nitin buy a club
@@ -352,6 +375,19 @@ async function buyAClub(deploymentDetails) {
     }
 }
 
+async function assignAClub(deploymentDetails) {
+	//let Admin assign a club to Nitin
+	let aacRequest = {
+		assign_a_club: {
+			buyer: nitin_wallet.key.accAddress,
+			club_name: "ClubD",
+			auto_stake: true
+		}
+	};
+	let aacResponse = await executeContract(mint_wallet, deploymentDetails.clubStakingAddress, aacRequest);
+	console.log("Assign a club transaction hash = " + aacResponse['txhash']);
+}
+
 async function stakeOnAClub(deploymentDetails) {
     //let Sameer stakeOn a club
     // first increase allowance for club staking contract on Sameer wallet to let it move fury
@@ -376,6 +412,40 @@ async function stakeOnAClub(deploymentDetails) {
     console.log(`platformFees = ${JSON.stringify(platformFees)}`);
     let soacResponse = await executeContract(sameer_wallet, deploymentDetails.clubStakingAddress, soacRequest, { 'uusd': Number(platformFees) });
     console.log("Stake on a club transaction hash = " + soacResponse['txhash']);
+}
+
+async function assignStakesToAClub(deploymentDetails) {
+    //let Admin assign stakeTo a club to Ajay
+    // first increase allowance for club staking contract on Admin wallet to let it move fury
+    let increaseAllowanceMsg = {
+        increase_allowance: {
+            spender: deploymentDetails.clubStakingAddress,
+            amount: "100000"
+        }
+    };
+    let incrAllowResp = await executeContract(mint_wallet, deploymentDetails.furyContractAddress, increaseAllowanceMsg);
+    console.log(`Increase allowance response hash = ${incrAllowResp['txhash']}`);
+
+	let currTime = new Date();
+    let soacRequest = {
+        assign_stakes_to_a_club: {
+            stake_list: 
+			[
+				{
+					club_name: "ClubD",
+					staker_address: ajay_wallet.key.accAddress,
+					staking_start_timestamp: currTime,
+					staked_amount: "100000",
+					staking_duration: 0,
+					reward_amount: "0",
+					auto_stake: true
+				}
+			],
+			club_name: "ClubD"
+        }
+    };
+    let soacResponse = await executeContract(mint_wallet, deploymentDetails.clubStakingAddress, soacRequest);
+    console.log("Assign Stakes to a club transaction hash = " + soacResponse['txhash']);
 }
 
 async function withdrawStakeFromAClub(deploymentDetails) {
