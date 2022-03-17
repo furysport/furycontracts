@@ -1548,14 +1548,18 @@ fn calculate_and_distribute_rewards(
         top_rankers_for_incremental_stake.clone())
         .unwrap();
     println!("winner_club_names = {:?}", winner_club_names);
-    let winner_club_name = winner_club_names[0].clone();
-    other_club_count -= Uint128::from(1u128);
+
+    let num_of_winners = Uint128::from(winner_club_names.len() as u128);
+    other_club_count -= num_of_winners;
+    println!("other club count = {:?}", other_club_count);
 
     // distribute the 19% to stakers in winning club
     let reward_for_all_winners = total_reward
         .checked_mul(Uint128::from(19u128))
         .unwrap_or_default()
         .checked_div(Uint128::from(100u128))
+        .unwrap_or_default()
+        .checked_div(num_of_winners)
         .unwrap_or_default();
 
     // distribute the 78% to all
@@ -1612,7 +1616,7 @@ fn calculate_and_distribute_rewards(
             );
 
             // Calculate for Winner Club Staker 19% - proportional
-            if club_name == winner_club_name {
+            if is_club_a_winner(club_name.clone(), winner_club_names.clone())? {
                 let reward_for_this_stake = (reward_for_all_winners.checked_mul(stake.staked_amount))
                     .unwrap_or_default()
                     .checked_div(total_staking_in_club)
@@ -1634,7 +1638,7 @@ fn calculate_and_distribute_rewards(
 
             // Calculate for Non-winning Owners 2% - equal
             if updated_stake.staker_address == club_owner_address {
-                if club_name == winner_club_name {
+				if is_club_a_winner(club_name.clone(), winner_club_names.clone())? {
                     // preserve for update at the end of loop
                     updated_stake_winner_owner.push(updated_stake.clone());
                 } else {
@@ -1659,8 +1663,7 @@ fn calculate_and_distribute_rewards(
             }
 
         }
-
-        if club_name == winner_club_name {
+		if is_club_a_winner(club_name.clone(), winner_club_names.clone())? {
             // preserve for update at the end of the loop
             updated_stakes_winner_club = all_stakes.clone();
         } else {
@@ -1670,37 +1673,60 @@ fn calculate_and_distribute_rewards(
 
     // Calculate for Winning Owner 1% / Remainder
     // NOTE : winning_club_owner get remaining 1% (in case no other club, the owner shall get 1% + 2%)
-    let reward_for_this_stake = total_reward - reward_given_so_far;
+    println!("before giving to all winning owners total reward = {:?} reward so far = {:?}", total_reward, reward_given_so_far);
 
-    if updated_stake_winner_owner.len() > 0 {
-        let mut updated_stake = updated_stake_winner_owner[0].clone();
-        let auto_stake = updated_stake.auto_stake;
-        staker_address = deps.api.addr_validate(&updated_stake.staker_address)?;
-        if auto_stake == SET_AUTO_STAKE {
-            updated_stake.staked_amount += reward_for_this_stake;
-            updated_stake.staked_amount += updated_stake.reward_amount;
-            updated_stake.reward_amount = Uint128::zero();
-        } else {
-            updated_stake.reward_amount += reward_for_this_stake;
-        }
-        updated_stakes_winner_club.push(updated_stake.clone());
-        CLUB_STAKING_DETAILS.save(deps.storage, winner_club_name.clone(), &updated_stakes_winner_club)?;
-        cadr_response = cadr_response.add_attribute("reward",format!("owner_winner_1 {:?} {:?} {:?}",updated_stake.staker_address,winner_club_name,reward_for_this_stake));
-        println!(
-            "reward out of 1 percent for {:?} is {:?} ",
-            updated_stake.staker_address, reward_for_this_stake
-        );
-    }
+    let reward_for_winning_owner_stake = (total_reward - reward_given_so_far)
+                    .checked_div(num_of_winners)
+                    .unwrap_or_default();
+
+	println!("winner_club_names len = {:?} and updated_stake_winner_owner_len = {:?}",
+		num_of_winners, updated_stake_winner_owner.len());
+	println!("updated_stake_winner_owner = {:?}", updated_stake_winner_owner);
+	
+	for owner_stake in updated_stake_winner_owner {
+		let mut updated_stake = owner_stake.clone();
+		let auto_stake = updated_stake.auto_stake;
+		staker_address = deps.api.addr_validate(&updated_stake.staker_address)?;
+		println!("reward for owner {:?} is {:?}", staker_address, reward_for_winning_owner_stake);
+		if auto_stake == SET_AUTO_STAKE {
+			updated_stake.staked_amount += reward_for_winning_owner_stake;
+			updated_stake.staked_amount += updated_stake.reward_amount;
+			updated_stake.reward_amount = Uint128::zero();
+		} else {
+			updated_stake.reward_amount += reward_for_winning_owner_stake;
+		}
+		reward_given_so_far += reward_for_winning_owner_stake;
+		updated_stakes_winner_club.push(updated_stake.clone());
+		let winner_club_name = updated_stake.club_name;	
+		CLUB_STAKING_DETAILS.save(deps.storage, winner_club_name.clone(), &updated_stakes_winner_club)?;
+		cadr_response = cadr_response.add_attribute("reward",format!("owner_winner_1 {:?} {:?} {:?}",updated_stake.staker_address,winner_club_name,reward_for_winning_owner_stake));
+		println!(
+			"reward out of 1 percent for {:?} is {:?} ",
+			updated_stake.staker_address, reward_for_winning_owner_stake
+		);
+	}
+    println!("after giving to all winning owners total reward = {:?} reward so far = {:?}", total_reward, reward_given_so_far);
+
     REWARD.save(deps.storage, &Uint128::zero())?;
     return Ok(cadr_response);
+}
 
+fn is_club_a_winner(
+    club_name: String,
+    winner_list: Vec<String>,
+) -> StdResult<bool> {
+	for winner in winner_list {
+		if winner == club_name {
+			return Ok(true);
+		}
+	}
+	return Ok(false);
 }
 
 fn get_winner_club_names(
     storage: &dyn Storage,
     top_rankers_for_incremental_stake: Vec<(String, i128)>,
 ) -> StdResult<Vec<String>> {
-    
     let mut topper: String = top_rankers_for_incremental_stake[0].0.clone();
     let mut max_incr_stake = top_rankers_for_incremental_stake[0].1;
 
@@ -1730,20 +1756,19 @@ fn get_winner_club_names(
     all_dup_stakes.sort_by(|a, b| b.1.cmp(&a.1));
     println!("all_dup_stakes = {:?}", all_dup_stakes);
 
-	let mut final_list = Vec::new();
-	let winner = all_dup_stakes[0].clone();
+    let mut final_list = Vec::new();
+    let winner = all_dup_stakes[0].clone();
     final_list.push(winner.0);
-	let len_dup = all_dup_stakes.len();
-	if len_dup > 1 {
-		for i in 1..len_dup {
-			let mut dup_stake = all_dup_stakes[i].clone();
-			if dup_stake.1 < winner.1 {
-				break;
-			}
-			final_list.push(dup_stake.0.clone());
-		}
-	}
-
+    let len_dup = all_dup_stakes.len();
+    if len_dup > 1 {
+        for i in 1..len_dup {
+            let mut dup_stake = all_dup_stakes[i].clone();
+            if dup_stake.1 < winner.1 {
+                break;
+            }
+            final_list.push(dup_stake.0.clone());
+        }
+    }
     println!("final_list = {:?}", final_list);
     return Ok(final_list.clone());
 }
