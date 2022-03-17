@@ -6,26 +6,26 @@ import {MnemonicKey} from '@terra-money/terra.js';
 export const MintingContractPath = "./artifacts/cw20_base.wasm"
 export const ClubStakingContractPath = "../artifacts/club_staking.wasm"
 
-// export const terraClient = new LocalTerra();
+export const terraClient = new LocalTerra();
 
-export const terraClient = new LCDClient({
-    URL: 'https://bombay-lcd.terra.dev',
-    chainID: 'bombay-12',
-});
-terraClient.chainID = "bombay-12";
+// export const terraClient = new LCDClient({
+//     URL: 'https://bombay-lcd.terra.dev',
+//     chainID: 'bombay-12',
+// });
+// terraClient.chainID = "bombay-12";
 
 // Accounts
 
-// export const walletTest1 = terraClient.wallets.test1;
-// export const walletTest2 = terraClient.wallets.test2;
-// export const walletTest3 = terraClient.wallets.test3;
-// export const walletTest4 = terraClient.wallets.test4;
-// export const walletTest5 = terraClient.wallets.test5;
-// export const walletTest6 = terraClient.wallets.test6;
-// export const walletTest7 = terraClient.wallets.test7;
-// export const walletTest8 = terraClient.wallets.test8;
-// export const walletTest9 = terraClient.wallets.test9;
-// export const walletTest10 = terraClient.wallets.test10;
+export const walletTest1 = terraClient.wallets.test1;
+export const walletTest2 = terraClient.wallets.test2;
+export const walletTest3 = terraClient.wallets.test3;
+export const walletTest4 = terraClient.wallets.test4;
+export const walletTest5 = terraClient.wallets.test5;
+export const walletTest6 = terraClient.wallets.test6;
+export const walletTest7 = terraClient.wallets.test7;
+export const walletTest8 = terraClient.wallets.test8;
+export const walletTest9 = terraClient.wallets.test9;
+export const walletTest10 = terraClient.wallets.test10;
 // export const mint_wallet = "terra1ttjw6nscdmkrx3zhxqx3md37phldgwhggm345k";
 // export const gamifiedairdrop = "terra1m46vy0jk9wck6r9mg2n8jnxw0y4g4xgl3csh9h";
 // export const privatecategory = "terra1k20rlfj3ea47zjr2sp672qqscck5k5mf3uersq";
@@ -138,13 +138,13 @@ export const rake_return_wallet = terraClient.wallet(mkrake_return);
 
 
 // These can be the client wallets to interact
-export const walletTest1 = (process.env.TERRA_CLIENT === "localTerra") ? terraClient.wallets.test1: gamified_airdrop_wallet;
-export const walletTest2 = (process.env.TERRA_CLIENT === "localTerra") ? terraClient.wallets.test2: whitelist_airdrop_wallet;
-export const walletTest3 = (process.env.TERRA_CLIENT === "localTerra") ? terraClient.wallets.test3: private_category_wallet;
-export const walletTest4 = (process.env.TERRA_CLIENT === "localTerra") ? terraClient.wallets.test4: marketing_wallet;
-export const walletTest5 = (process.env.TERRA_CLIENT === "localTerra") ? terraClient.wallets.test5: partnership_wallet;
-export const walletTest6 = (process.env.TERRA_CLIENT === "localTerra") ? terraClient.wallets.test6: advisory_wallet;
-export const walletTest10 = (process.env.TERRA_CLIENT === "localTerra") ? terraClient.wallets.test10: gasfee_wallet;
+// export const walletTest1 = (process.env.TERRA_CLIENT === "localTerra") ? terraClient.wallets.test1: gamified_airdrop_wallet;
+// export const walletTest2 = (process.env.TERRA_CLIENT === "localTerra") ? terraClient.wallets.test2: whitelist_airdrop_wallet;
+// export const walletTest3 = (process.env.TERRA_CLIENT === "localTerra") ? terraClient.wallets.test3: private_category_wallet;
+// export const walletTest4 = (process.env.TERRA_CLIENT === "localTerra") ? terraClient.wallets.test4: marketing_wallet;
+// export const walletTest5 = (process.env.TERRA_CLIENT === "localTerra") ? terraClient.wallets.test5: partnership_wallet;
+// export const walletTest6 = (process.env.TERRA_CLIENT === "localTerra") ? terraClient.wallets.test6: advisory_wallet;
+// export const walletTest10 = (process.env.TERRA_CLIENT === "localTerra") ? terraClient.wallets.test10: gasfee_wallet;
 
 
 export const deployer = mint_wallet; // used as operator on all contracts

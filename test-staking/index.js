@@ -12,7 +12,7 @@ const question = promisify(rl.question).bind(rl);
 
 async function main() {
     try {
-        terraClient.chainID = "bombay-12";
+        // terraClient.chainID = "bombay-12";
         let deploymentDetails = readArtifact(terraClient.chainID);
         const primeAccounts = await question('Do you want to preload custom accounts? (y/N) ');
         if (primeAccounts === 'Y' || primeAccounts === 'y') {
@@ -303,8 +303,8 @@ async function performOperationsOnClubStaking(deploymentDetails) {
 	await queryAllClubStakes(deploymentDetails);
 	await distributeRewards(deploymentDetails);
 	await queryAllClubStakes(deploymentDetails);
-	await queryAllClubOwnerships(deploymentDetails);
-	await claimRewards(deploymentDetails);
+	// await queryAllClubOwnerships(deploymentDetails);
+	// await claimRewards(deploymentDetails);
     console.log("Balances of staker after claim reward");
     await queryBalances(deploymentDetails, deploymentDetails.sameerWallet);
     await withdrawStakeFromAClub(deploymentDetails);
@@ -379,7 +379,7 @@ async function assignAClub(deploymentDetails) {
 	//let Admin assign a club to Nitin
 	let aacRequest = {
 		assign_a_club: {
-			buyer: nitin_wallet.key.accAddress,
+			buyer: sameer_wallet.key.accAddress,
 			club_name: "ClubD",
 			auto_stake: true
 		}
@@ -426,7 +426,7 @@ async function assignStakesToAClub(deploymentDetails) {
     let incrAllowResp = await executeContract(mint_wallet, deploymentDetails.furyContractAddress, increaseAllowanceMsg);
     console.log(`Increase allowance response hash = ${incrAllowResp['txhash']}`);
 
-	let currTime = new Date();
+	//let currTime = 10000000000;
     let soacRequest = {
         assign_stakes_to_a_club: {
             stake_list: 
@@ -434,7 +434,7 @@ async function assignStakesToAClub(deploymentDetails) {
 				{
 					club_name: "ClubD",
 					staker_address: ajay_wallet.key.accAddress,
-					staking_start_timestamp: currTime,
+					staking_start_timestamp: "1640447808000000000",
 					staked_amount: "100000",
 					staking_duration: 0,
 					reward_amount: "0",

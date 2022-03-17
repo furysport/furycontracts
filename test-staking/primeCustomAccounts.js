@@ -4,6 +4,8 @@ import {
     walletTest3,
     walletTest4,
     walletTest5,
+    walletTest6,
+    walletTest7,
     mint_wallet,
     treasury_wallet,
     liquidity_wallet,
