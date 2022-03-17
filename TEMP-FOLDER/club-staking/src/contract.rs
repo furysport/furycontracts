@@ -1519,12 +1519,12 @@ fn calculate_and_distribute_rewards(
     let mut reward_given_so_far = Uint128::zero();
 
     // Get the club ranking as per incremental staking
-	let top_rankers_for_incremental_stake = get_clubs_ranking_by_incremental_stakes(deps.storage)?;
-	println!("top rankers for incremental stakes = {:?}", top_rankers_for_incremental_stake);
+    let top_rankers_for_incremental_stake = get_clubs_ranking_by_incremental_stakes(deps.storage)?;
+    println!("top rankers for incremental stakes = {:?}", top_rankers_for_incremental_stake);
 
     // Get the club ranking as per total staking
     let top_rankers_for_total_stake = get_clubs_ranking_by_stakes(deps.storage)?;
-	println!("top rankers for total stakes = {:?}", top_rankers_for_total_stake);
+    println!("top rankers for total stakes = {:?}", top_rankers_for_total_stake);
 
     // No need to proceed if there are no stakers
     if top_rankers_for_total_stake.len() == 0 {
@@ -1544,11 +1544,11 @@ fn calculate_and_distribute_rewards(
         other_club_count += Uint128::from(1u128);
     }
 
-	let winner_club_name = get_winner_club_name(deps.storage, 
-		top_rankers_for_total_stake.clone(), 
-		top_rankers_for_incremental_stake.clone())
-		.unwrap();
-	println!("winner_club_name = {:?}", winner_club_name);
+    let winner_club_names = get_winner_club_names(deps.storage, 
+        top_rankers_for_incremental_stake.clone())
+        .unwrap();
+    println!("winner_club_names = {:?}", winner_club_names);
+    let winner_club_name = winner_club_names[0].clone();
     other_club_count -= Uint128::from(1u128);
 
     // distribute the 19% to stakers in winning club
@@ -1696,41 +1696,56 @@ fn calculate_and_distribute_rewards(
 
 }
 
-fn get_winner_club_name(
+fn get_winner_club_names(
     storage: &dyn Storage,
-	top_rankers_for_total_stake: Vec<(String, Uint128)>,
-	top_rankers_for_incremental_stake: Vec<(String, i128)>,
-) -> StdResult<String> {
-	
-	let mut topper: String = top_rankers_for_incremental_stake[0].0.clone();
-	let mut max_incr_stake = top_rankers_for_incremental_stake[0].1;
+    top_rankers_for_incremental_stake: Vec<(String, i128)>,
+) -> StdResult<Vec<String>> {
+    
+    let mut topper: String = top_rankers_for_incremental_stake[0].0.clone();
+    let mut max_incr_stake = top_rankers_for_incremental_stake[0].1;
 
-	let mut all_dup_stakes = Vec::new();
-	let _tp = query_club_staking_details(storage, topper.clone())?;
-	let mut staked_amount = Uint128::zero();
-	for stake in _tp {
-		staked_amount += stake.staked_amount;
-	}
-	all_dup_stakes.push((topper.clone(), staked_amount));
+    let mut all_dup_stakes = Vec::new();
+    let _tp = query_club_staking_details(storage, topper.clone())?;
+    let mut staked_amount = Uint128::zero();
+    for stake in _tp {
+        staked_amount += stake.staked_amount;
+    }
+    all_dup_stakes.push((topper.clone(), staked_amount));
 
-	let length = top_rankers_for_incremental_stake.len();
-	if length > 1 {
-		for i in 1..length-1 {
-			let mut incr_stake = top_rankers_for_incremental_stake[i].clone();
-			if incr_stake.1 < max_incr_stake {
+    let length = top_rankers_for_incremental_stake.len();
+    if length > 1 {
+        for i in 1..length {
+            let mut incr_stake = top_rankers_for_incremental_stake[i].clone();
+            if incr_stake.1 < max_incr_stake {
+                break;
+            }
+            let _tp = query_club_staking_details(storage, incr_stake.0.clone())?;
+            let mut staked_amount = Uint128::zero();
+            for stake in _tp {
+                staked_amount += stake.staked_amount;
+            }
+            all_dup_stakes.push((incr_stake.0.clone(), staked_amount));
+        }
+    }
+    all_dup_stakes.sort_by(|a, b| b.1.cmp(&a.1));
+    println!("all_dup_stakes = {:?}", all_dup_stakes);
+
+	let mut final_list = Vec::new();
+	let winner = all_dup_stakes[0].clone();
+    final_list.push(winner.0);
+	let len_dup = all_dup_stakes.len();
+	if len_dup > 1 {
+		for i in 1..len_dup {
+			let mut dup_stake = all_dup_stakes[i].clone();
+			if dup_stake.1 < winner.1 {
 				break;
 			}
-			let _tp = query_club_staking_details(storage, incr_stake.0.clone())?;
-			let mut staked_amount = Uint128::zero();
-			for stake in _tp {
-				staked_amount += stake.staked_amount;
-			}
-			all_dup_stakes.push((incr_stake.0.clone(), staked_amount));
+			final_list.push(dup_stake.0.clone());
 		}
 	}
-	all_dup_stakes.sort_by(|a, b| b.1.cmp(&a.1));
-	println!("all_dup_stakes = {:?}", all_dup_stakes);
-	return Ok(all_dup_stakes[0].0.clone());
+
+    println!("final_list = {:?}", final_list);
+    return Ok(final_list.clone());
 }
 
 fn transfer_from_contract_to_wallet(
@@ -1989,7 +2004,7 @@ fn get_clubs_ranking_by_incremental_stakes(
         .map(|k| String::from_utf8(k).unwrap())
         .collect();
     for club_name in all_clubs {
-		let club_name_clone = club_name.clone();
+        let club_name_clone = club_name.clone();
         let _tp = query_club_staking_details(storage, club_name.clone())?;
         let mut staked_amount = Uint128::zero();
         let mut club_name: Option<String> = None;
@@ -1999,21 +2014,21 @@ fn get_clubs_ranking_by_incremental_stakes(
                 club_name = Some(stake.club_name.clone());
             }
         }
-		let staked_amount_u128: u128 = staked_amount.into();
-		let staked_amount_i128 = staked_amount_u128 as i128;
+        let staked_amount_u128: u128 = staked_amount.into();
+        let staked_amount_i128 = staked_amount_u128 as i128;
 
-		let previous_amount = CLUB_STAKING_SNAPSHOT.may_load(storage, club_name_clone.clone())?.unwrap_or_default();
-		let previous_amount_u128: u128 = previous_amount.into();
-		let previous_amount_i128 = previous_amount_u128 as i128;
+        let previous_amount = CLUB_STAKING_SNAPSHOT.may_load(storage, club_name_clone.clone())?.unwrap_or_default();
+        let previous_amount_u128: u128 = previous_amount.into();
+        let previous_amount_i128 = previous_amount_u128 as i128;
 
-		let difference_amount = staked_amount_i128 - previous_amount_i128;
+        let difference_amount = staked_amount_i128 - previous_amount_i128;
         all_stakes.push((club_name.unwrap(), difference_amount));
-		CLUB_STAKING_SNAPSHOT.save(
+        CLUB_STAKING_SNAPSHOT.save(
                     storage,
                     club_name_clone.clone(),
                     &staked_amount
                 )?;
-	}
+    }
     all_stakes.sort_by(|a, b| (b.1.cmp(&a.1)));
     return Ok(all_stakes);
 }
@@ -4058,7 +4073,7 @@ mod tests {
             mintingContractInfo.clone(),
             "Staker004".to_string(),
             "CLUB003".to_string(),
-            Uint128::from(4000u128),
+            Uint128::from(126718u128),
             SET_AUTO_STAKE,
         );
         increase_reward_amount(
