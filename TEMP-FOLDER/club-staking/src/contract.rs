@@ -2009,7 +2009,7 @@ fn query_all_bonds(storage: &dyn Storage) -> StdResult<Vec<ClubBondingDetails>> 
     return Ok(all_bonds);
 }
 
-fn get_clubs_ranking_by_stakes(storage: &dyn Storage) -> StdResult<(Vec<(String, Uint128)>,u64)> {
+fn get_clubs_ranking_by_stakes(storage: &dyn Storage) -> StdResult<(Vec<(String, i128, Uint128)>,u64)> {
     let mut max_incremental_stake_value = 0i128;
     let mut max_total_stake_value = Uint128::zero();
     let mut matching_winners = 0u64;
@@ -2040,13 +2040,13 @@ fn get_clubs_ranking_by_stakes(storage: &dyn Storage) -> StdResult<(Vec<(String,
 
         if max_incremental_stake_value > difference_amount {
             // smaller difference
-            all_stakes.push((club_name.clone(), staked_amount));
+            all_stakes.push((club_name.clone(), difference_amount, staked_amount));
         } else {
             // equal difference
             if max_incremental_stake_value == difference_amount {
                 if max_total_stake_value > staked_amount {
                     // smaller total
-                    all_stakes.push((club_name.clone(), staked_amount))
+                    all_stakes.push((club_name.clone(), difference_amount, staked_amount))
                 } else {
                     if max_total_stake_value == staked_amount {
                         // equal total
@@ -2055,12 +2055,12 @@ fn get_clubs_ranking_by_stakes(storage: &dyn Storage) -> StdResult<(Vec<(String,
                         // greater total
                         matching_winners = 1u64;
                     }
-//                  all_stakes.splice(0, 0, (club_name.clone(), difference_amount, staked_amount));
+                    all_stakes.insert(0, (club_name.clone(), difference_amount, staked_amount));
                 }
             } else {
                 // greater difference
                 matching_winners = 1u64;
-//              all_stakes.splice(0, 0, (club_name.clone(), difference_amount, staked_amount));
+                all_stakes.insert(0, (club_name.clone(), difference_amount, staked_amount));
             }
         }
 /*
