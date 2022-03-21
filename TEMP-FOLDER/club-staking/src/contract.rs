@@ -1543,7 +1543,7 @@ fn calculate_and_distribute_rewards(
     let mut other_club_count = 0u64;
     let mut total_staking = Uint128::zero();
     for stake in top_rankers_for_total_stake.clone() {
-        total_staking += stake.1;
+        total_staking += stake.2;
         other_club_count += 1u64;
     }
 
@@ -1598,7 +1598,7 @@ fn calculate_and_distribute_rewards(
     let mut clubs_distributed = 0u64;
     for ranker in top_rankers_for_total_stake {
         let club_name = ranker.0.clone();
-        let total_staking_in_club = ranker.1.clone();
+        let total_staking_in_club = ranker.2.clone();
         let club_details = query_club_ownership_details(deps.storage, club_name.clone())?;
         let club_owner_address = club_details.owner_address;
 
@@ -2073,7 +2073,7 @@ fn get_clubs_ranking_by_stakes(storage: &dyn Storage) -> StdResult<(Vec<(String,
     return Ok((all_stakes,matching_winners));
 }
 
-fn get_and_modify_clubs_ranking_by_stakes(storage: &mut dyn Storage) -> StdResult<(Vec<(String, Uint128)>,u64)> {
+fn get_and_modify_clubs_ranking_by_stakes(storage: &mut dyn Storage) -> StdResult<(Vec<(String, i128, Uint128)>,u64)> {
     let mut max_incremental_stake_value = 0i128;
     let mut max_total_stake_value = Uint128::zero();
     let mut matching_winners = 0u64;
@@ -2104,13 +2104,13 @@ fn get_and_modify_clubs_ranking_by_stakes(storage: &mut dyn Storage) -> StdResul
 
         if max_incremental_stake_value > difference_amount {
             // smaller difference
-            all_stakes.push((club_name.clone(), staked_amount));
+            all_stakes.push((club_name.clone(), difference_amount, staked_amount));
         } else {
             // equal difference
             if max_incremental_stake_value == difference_amount {
                 if max_total_stake_value > staked_amount {
                     // smaller total
-                    all_stakes.push((club_name.clone(), staked_amount))
+                    all_stakes.push((club_name.clone(), difference_amount, staked_amount))
                 } else {
                     if max_total_stake_value == staked_amount {
                         // equal total
@@ -2119,12 +2119,12 @@ fn get_and_modify_clubs_ranking_by_stakes(storage: &mut dyn Storage) -> StdResul
                         // greater total
                         matching_winners = 1u64;
                     }
-//                  all_stakes.splice(0, 0, (club_name.clone(), difference_amount, staked_amount));
+                    all_stakes.insert(0, (club_name.clone(), difference_amount, staked_amount));
                 }
             } else {
                 // greater difference
                 matching_winners = 1u64;
-//              all_stakes.splice(0, 0, (club_name.clone(), difference_amount, staked_amount));
+                all_stakes.insert(0,  (club_name.clone(), difference_amount, staked_amount));
             }
         }
         CLUB_STAKING_SNAPSHOT.save(
