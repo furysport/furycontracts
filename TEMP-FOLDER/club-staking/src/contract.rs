@@ -1572,19 +1572,21 @@ fn calculate_and_distribute_rewards(
         .unwrap_or_default();
 
     // distribute the 2% to non winning owners equally
+    let mut total_for_other_owners = Uint128::zero();
     let mut reward_for_other_owners = Uint128::zero();
     if other_club_count > 0u64 {
-        reward_for_other_owners = total_reward
+        total_for_other_owners = total_reward
             .checked_mul(Uint128::from(2u128))
             .unwrap_or_default()
             .checked_div(Uint128::from(100u128))
-            .unwrap_or_default()
+            .unwrap_or_default();
+        reward_for_other_owners = total_for_other_owners
             .checked_div(Uint128::from(other_club_count))
             .unwrap_or_default();
     }
 
     let mut reward_for_winner_owners = total_reward - all_stakers_reward 
-                                        - reward_for_all_winners - reward_for_other_owners;
+                                        - reward_for_all_winners - total_for_other_owners;
     if num_of_winners > 1u64 {
         reward_for_winner_owners = reward_for_winner_owners
             .checked_div(Uint128::from(num_of_winners))
@@ -4133,7 +4135,7 @@ mod tests {
                         assert_eq!(staked_amount, Uint128::from(10000u128));
                     }
                     if staker_address == "Owner003" {
-                        assert_eq!(staked_amount, Uint128::from(10004u128));
+                        assert_eq!(staked_amount, Uint128::from(10000u128));
                     }
                 }
             }
