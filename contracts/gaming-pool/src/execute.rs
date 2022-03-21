@@ -81,6 +81,15 @@ pub fn set_pool_type_params(
             invoker: info.sender.to_string(),
         });
     }
+    let ptd = POOL_TYPE_DETAILS.may_load(deps.storage, pool_type.clone())?;
+    match ptd {
+        Some(_ptd) => {
+            return Err(ContractError::Std(StdError::GenericErr {
+                msg: String::from("Pool type already set"),
+            }));
+        }
+        None => {}
+    };
 
     let mut rake_list: Vec<WalletPercentage> = Vec::new();
     for wp in wallet_percentages {
@@ -176,38 +185,38 @@ pub fn cancel_game(deps: DepsMut, _env: Env, info: MessageInfo) -> Result<Respon
         let refund_amount = pool_type.pool_fee + platform_fee;
 
         // Get the existing teams for this pool
-        let mut teams = Vec::new();
+        // let mut teams = Vec::new();
         let all_teams = POOL_TEAM_DETAILS.may_load(deps.storage, pool_id.clone())?;
         match all_teams {
             Some(some_teams) => {
-                teams = some_teams;
+                let teams = some_teams;
+                let mut updated_teams: Vec<PoolTeamDetails> = Vec::new();
+                for team in teams {
+                    let gamer = team.gamer_address.clone();
+                    let gamer_addr = deps.api.addr_validate(&gamer)?;
+                    GAMING_FUNDS.update(
+                        deps.storage,
+                        &gamer_addr,
+                        |balance: Option<Uint128>| -> StdResult<_> {
+                            Ok(balance.unwrap_or_default() - pool_type.pool_fee)
+                        },
+                    )?;
+
+                    // No transfer to be done to the gamers. Just update their refund amounts.
+                    // They have to come and collect their refund
+                    let mut updated_team = team.clone();
+                    updated_team.refund_amount = refund_amount;
+                    updated_team.claimed_refund = UNCLAIMED_REFUND;
+                    println!(
+                        "refund for {:?} is {:?}",
+                        team.team_id, updated_team.refund_amount
+                    );
+                    updated_teams.push(updated_team);
+                }
+                POOL_TEAM_DETAILS.save(deps.storage, pool_id.clone(), &updated_teams)?;
             }
             None => {}
         }
-        let mut updated_teams: Vec<PoolTeamDetails> = Vec::new();
-        for team in teams {
-            let gamer = team.gamer_address.clone();
-            let gamer_addr = deps.api.addr_validate(&gamer)?;
-            GAMING_FUNDS.update(
-                deps.storage,
-                &gamer_addr,
-                |balance: Option<Uint128>| -> StdResult<_> {
-                    Ok(balance.unwrap_or_default() - pool_type.pool_fee)
-                },
-            )?;
-
-            // No transfer to be done to the gamers. Just update their refund amounts.
-            // They have to come and collect their refund
-            let mut updated_team = team.clone();
-            updated_team.refund_amount = refund_amount;
-            updated_team.claimed_refund = UNCLAIMED_REFUND;
-            println!(
-                "refund for {:?} is {:?}",
-                team.team_id, updated_team.refund_amount
-            );
-            updated_teams.push(updated_team);
-        }
-        POOL_TEAM_DETAILS.save(deps.storage, pool_id.clone(), &updated_teams)?;
     }
     return Ok(Response::new()
         .add_attribute("game_id", game_id.clone())
@@ -287,38 +296,38 @@ pub fn lock_game(deps: DepsMut, _env: Env, info: MessageInfo) -> Result<Response
         let refund_amount = pool_type.pool_fee + platform_fee;
 
         // Get the existing teams for this pool
-        let mut teams = Vec::new();
+        // let mut teams = Vec::new();
         let all_teams = POOL_TEAM_DETAILS.may_load(deps.storage, pool_id.clone())?;
         match all_teams {
             Some(some_teams) => {
-                teams = some_teams;
+                let teams = some_teams;
+                let mut updated_teams: Vec<PoolTeamDetails> = Vec::new();
+                for team in teams {
+                    let gamer = team.gamer_address.clone();
+                    let gamer_addr = deps.api.addr_validate(&gamer)?;
+                    GAMING_FUNDS.update(
+                        deps.storage,
+                        &gamer_addr,
+                        |balance: Option<Uint128>| -> StdResult<_> {
+                            Ok(balance.unwrap_or_default() - pool_type.pool_fee)
+                        },
+                    )?;
+
+                    // No transfer to be done to the gamers. Just update their refund amounts.
+                    // They have to come and collect their refund
+                    let mut updated_team = team.clone();
+                    updated_team.refund_amount = refund_amount;
+                    updated_team.claimed_refund = UNCLAIMED_REFUND;
+                    println!(
+                        "refund for {:?} is {:?}",
+                        team.team_id, updated_team.refund_amount
+                    );
+                    updated_teams.push(updated_team);
+                }
+                POOL_TEAM_DETAILS.save(deps.storage, pool_id.clone(), &updated_teams)?;
             }
             None => {}
         }
-        let mut updated_teams: Vec<PoolTeamDetails> = Vec::new();
-        for team in teams {
-            let gamer = team.gamer_address.clone();
-            let gamer_addr = deps.api.addr_validate(&gamer)?;
-            GAMING_FUNDS.update(
-                deps.storage,
-                &gamer_addr,
-                |balance: Option<Uint128>| -> StdResult<_> {
-                    Ok(balance.unwrap_or_default() - pool_type.pool_fee)
-                },
-            )?;
-
-            // No transfer to be done to the gamers. Just update their refund amounts.
-            // They have to come and collect their refund
-            let mut updated_team = team.clone();
-            updated_team.refund_amount = refund_amount;
-            updated_team.claimed_refund = UNCLAIMED_REFUND;
-            println!(
-                "refund for {:?} is {:?}",
-                team.team_id, updated_team.refund_amount
-            );
-            updated_teams.push(updated_team);
-        }
-        POOL_TEAM_DETAILS.save(deps.storage, pool_id.clone(), &updated_teams)?;
     }
     return Ok(Response::new()
         .add_attribute("game_id", game_id.clone())
