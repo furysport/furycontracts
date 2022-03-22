@@ -2,6 +2,10 @@ import {LocalTerra} from "@terra-money/terra.js";
 import {get_server_epoch_seconds} from "./utils.js";
 import {MnemonicKey,LCDClient} from '@terra-money/terra.js';
 
+
+
+
+
 // Contracts
 export const MintingContractPath = "../artifacts/cw20_base.wasm"
 export const ClubStakingContractPath = "../artifacts/club_staking.wasm"
@@ -57,10 +61,6 @@ export const sameer_wallet = terraClient.wallet(mkSameer);
 export const walletTest1 = sameer_wallet
 export const deployer = sameer_wallet
 
-export const swapinitMessage = {
-    pair_code_id: 321,
-    token_code_id: 123
-}
 
 export const mintInitMessage = {
     name: "Fury",
