@@ -1,8 +1,13 @@
+import dotenv from "dotenv";
+dotenv.config();
 import * as readline from 'node:readline';
 import { promisify } from 'util';
 import { ajay_wallet, ClubStakingContractPath, liquidity_wallet, marketing_wallet, MintingContractPath, mintInitMessage, mint_wallet, nitin_wallet, sameer_wallet, team_wallet, terraClient, treasury_wallet } from './constants.js';
 import { primeAccountsWithFunds } from "./primeCustomAccounts.js";
-import { executeContract, getGasUsed, instantiateContract, queryContract, readArtifact, storeCode, writeArtifact } from './utils.js';
+import { executeContract, getGasUsed, instantiateContract, queryContract, readArtifact, storeCode, 
+    writeArtifact, queryBankUusd,
+    queryTokenBalance
+ } from './utils.js';
 
 const rl = readline.createInterface({
     input: process.stdin,
@@ -13,20 +18,30 @@ const question = promisify(rl.question).bind(rl);
 async function main() {
     try {
         // terraClient.chainID = "bombay-12";
+        terraClient.chainID = "localterra";
+        console.log('terraClient.chainID : '+terraClient.chainID);
         let deploymentDetails = readArtifact(terraClient.chainID);
-        const primeAccounts = await question('Do you want to preload custom accounts? (y/N) ');
-        if (primeAccounts === 'Y' || primeAccounts === 'y') {
-            let txHash = await primeAccountsWithFunds();
-            console.log(txHash);
-            await proceedToSetup(deploymentDetails);
+        // let skipSetup = await question('Do you jump to Repeatable Operations? (y/N) ');
+        // if (skipSetup === 'Y' || skipSetup === 'y') {
+        //     await cycleOperationsOnClubStaking(deploymentDetails);
+        // } else {
+            const primeAccounts = await question('Do you want to preload custom accounts? (y/N) ');
+            if (primeAccounts === 'Y' || primeAccounts === 'y') {
+                let txHash = await primeAccountsWithFunds();
+                console.log(txHash);
+            }
+            const setupAccounts = await question('Do you setup some contracts? (y/N) ');
+            if (setupAccounts === 'Y' || setupAccounts === 'y') {
+                let txHash = proceedToSetup(deploymentDetails);
+                console.log(txHash);
+            }
             deploymentDetails = readArtifact(terraClient.chainID);
             await performOperationsOnClubStaking(deploymentDetails);
-        } else {
-            await proceedToSetup(deploymentDetails);
-            deploymentDetails = readArtifact(terraClient.chainID);
-            await performOperationsOnClubStaking(deploymentDetails);
-        }
+        // }
+
     } catch (error) {
+        // console.log(error.response.data.message)
+        // console.log(error.response.config.data)
         console.log(error);
     } finally {
         rl.close();
@@ -262,89 +277,244 @@ async function instantiateClubStaking(deploymentDetails) {
 }
 
 async function performOperationsOnClubStaking(deploymentDetails) {
-    await queryAllClubOwnerships(deploymentDetails);
-    console.log("Balances of buyer before buy club");
-    await queryBalances(deploymentDetails, deploymentDetails.nitinWallet);
-    console.log("Balances of club_fee_collector before buy club");
-    await queryBalances(deploymentDetails, deploymentDetails.teamWallet);
-    console.log("Balances of platform_fee_collector before buy club");
-    await queryBalances(deploymentDetails, deploymentDetails.adminWallet);
-    await buyAClub(deploymentDetails);
-    console.log("Balances of buyer after buy club");
-    await queryBalances(deploymentDetails, deploymentDetails.nitinWallet);
-    console.log("Balances of club_fee_collector after buy club");
-    await queryBalances(deploymentDetails, deploymentDetails.teamWallet);
-    console.log("Balances of platform_fee_collector after buy club");
-    await queryBalances(deploymentDetails, deploymentDetails.adminWallet);
-    await queryAllClubOwnerships(deploymentDetails);
+ //    await showAllClubOwnerships(deploymentDetails);
+ //    await showAllClubStakes(deploymentDetails);
+ //    console.log("Balances of buyer before buy club");
+ //    await queryBalances(deploymentDetails, deploymentDetails.nitinWallet, true);
+ //    console.log("Balances of club_fee_collector before buy club");
+ //    await queryBalances(deploymentDetails, deploymentDetails.teamWallet, true);
+ //    console.log("Balances of platform_fee_collector before buy club");
+ //    await queryBalances(deploymentDetails, deploymentDetails.adminWallet, true);
+ //    console.log("Buy club activity");
+ //    await buyAClub(deploymentDetails);
+ //    console.log("Balances of buyer after buy club");
+ //    await queryBalances(deploymentDetails, deploymentDetails.nitinWallet, true);
+ //    console.log("Balances of club_fee_collector after buy club");
+ //    await queryBalances(deploymentDetails, deploymentDetails.teamWallet, true);
+ //    console.log("Balances of platform_fee_collector after buy club");
+ //    await queryBalances(deploymentDetails, deploymentDetails.adminWallet, true);
+ //    await showAllClubOwnerships(deploymentDetails);
 
-    await assignAClub(deploymentDetails);
-    console.log("Balances of owner after assign club");
-    await queryBalances(deploymentDetails, deploymentDetails.nitinWallet);
-    await queryAllClubOwnerships(deploymentDetails);
-	await queryAllAssignedClubStakes(deploymentDetails);
-    console.log("Balances of admin before assign club stake");
-    await queryBalances(deploymentDetails, deploymentDetails.adminWallet);
-    await assignStakesToAClub(deploymentDetails);
-    console.log("Balances of admin after assign club stake");
-    await queryBalances(deploymentDetails, deploymentDetails.adminWallet);
-	await queryAllAssignedClubStakes(deploymentDetails);
+ //    console.log("Assign club activity");
+ //    await assignAClub(deploymentDetails);
+ //    console.log("Balances of owner after assign club");
+ //    await queryBalances(deploymentDetails, deploymentDetails.nitinWallet, true);
+ //    await showAllClubOwnerships(deploymentDetails);
+	// await showAllClubStakes(deploymentDetails);
+ //    console.log("Balances of admin before assign club stake");
+ //    await queryBalances(deploymentDetails, deploymentDetails.adminWallet, true);
+ //    console.log("Assign Stake activity");
+ //    await assignStakesToAClub(deploymentDetails);
+ //    console.log("Balances of admin after assign club stake");
+ //    await queryBalances(deploymentDetails, deploymentDetails.adminWallet, true);
+	// await showAllClubStakes(deploymentDetails);
 
-    console.log("Balances of staker before club stake");
-    await queryBalances(deploymentDetails, deploymentDetails.sameerWallet);
-    await stakeOnAClub(deploymentDetails);
-    console.log("Balances of staker after club stake");
-    await queryBalances(deploymentDetails, deploymentDetails.sameerWallet);
-    console.log("Balances of platform_fee_collector after club stake");
-    await queryBalances(deploymentDetails, deploymentDetails.adminWallet);
-    console.log("Balances of contract after club stake");
-    await queryBalances(deploymentDetails, deploymentDetails.clubStakingAddress);
-    console.log("Balances of contract after club stake");
-	await queryAllClubStakes(deploymentDetails);
+ //    console.log("Balances of staker before club stake");
+ //    await queryBalances(deploymentDetails, deploymentDetails.sameerWallet, true);
+ //    console.log("Stake on a club activity");
+ //    await stakeOnAClub(deploymentDetails);
+ //    console.log("Balances of staker after club stake");
+ //    await queryBalances(deploymentDetails, deploymentDetails.sameerWallet, true);
+ //    console.log("Balances of platform_fee_collector after club stake");
+ //    await queryBalances(deploymentDetails, deploymentDetails.adminWallet, true);
+ //    console.log("Balances of contract after club stake");
+ //    await queryBalances(deploymentDetails, deploymentDetails.clubStakingAddress, true);
+ //    console.log("Balances of contract after club stake");
+	await showAllClubStakes(deploymentDetails);
+    console.log("Reward activity");
 	await distributeRewards(deploymentDetails);
-	await queryAllClubStakes(deploymentDetails);
-	// await queryAllClubOwnerships(deploymentDetails);
-	// await claimRewards(deploymentDetails);
+	await showAllClubStakes(deploymentDetails);
+	await showAllClubOwnerships(deploymentDetails);
+	await claimRewards(deploymentDetails);
     console.log("Balances of staker after claim reward");
-    await queryBalances(deploymentDetails, deploymentDetails.sameerWallet);
+    await queryBalances(deploymentDetails, deploymentDetails.sameerWallet, true);
+    console.log("Withdraw Stake activity");
     await withdrawStakeFromAClub(deploymentDetails);
     console.log("Balances of staker after withdraw stake");
-    await queryBalances(deploymentDetails, deploymentDetails.sameerWallet);
+    await queryBalances(deploymentDetails, deploymentDetails.sameerWallet, true);
     console.log("Balances of platform_fee_collector after withdraw stake");
-    await queryBalances(deploymentDetails, deploymentDetails.adminWallet);
+    await queryBalances(deploymentDetails, deploymentDetails.adminWallet, true);
     console.log("Balances of contract after withdraw stake");
-    await queryBalances(deploymentDetails, deploymentDetails.clubStakingAddress);
+    await queryBalances(deploymentDetails, deploymentDetails.clubStakingAddress, true);
 }
 
-async function queryAllClubOwnerships(deploymentDetails) {
+
+async function cycleOperationsOnClubStaking(deploymentDetails) {
+    // await queryClubStakes(deploymentDetails,"ABC");
+    await queryStepByStepClubStakes(deploymentDetails);
+    // await showAllClubStakes(deploymentDetails);
+    // await queryStakerStakes(deploymentDetails,sameer_wallet.key.accAddress);
+    // await queryStakerStakes(deploymentDetails,nitin_wallet.key.accAddress);
+    // let stakeResp = await queryStakerStakes(deploymentDetails,ajay_wallet.key.accAddress);
+    // console.log(JSON.stringify(stakeResp));
+    // console.log("Balances of buyer before buy club");
+    // await queryBalances(deploymentDetails, deploymentDetails.nitinWallet, true);
+    // console.log("Balances of club_fee_collector before buy club");
+    // await queryBalances(deploymentDetails, deploymentDetails.teamWallet, true);
+    // console.log("Balances of platform_fee_collector before buy club");
+    // await queryBalances(deploymentDetails, deploymentDetails.adminWallet, true);
+    // await buyAClub(deploymentDetails);
+    // console.log("Balances of buyer after buy club");
+    // await queryBalances(deploymentDetails, deploymentDetails.nitinWallet, true);
+    // console.log("Balances of club_fee_collector after buy club");
+    // await queryBalances(deploymentDetails, deploymentDetails.teamWallet, true);
+    // console.log("Balances of platform_fee_collector after buy club");
+    // await queryBalances(deploymentDetails, deploymentDetails.adminWallet, true);
+    // await showAllClubOwnerships(deploymentDetails);
+
+    // await assignAClub(deploymentDetails);
+    // console.log("Balances of owner after assign club");
+    // await queryBalances(deploymentDetails, deploymentDetails.nitinWallet, true);
+    // await showAllClubOwnerships(deploymentDetails);
+    // await showAllClubStakes(deploymentDetails);
+    // console.log("Balances of admin before assign club stake");
+    // await queryBalances(deploymentDetails, deploymentDetails.adminWallet, true);
+    // await assignStakesToAClub(deploymentDetails);
+    // console.log("Balances of admin after assign club stake");
+    // await queryBalances(deploymentDetails, deploymentDetails.adminWallet, true);
+    // await showAllClubStakes(deploymentDetails);
+
+    // console.log("Balances of staker before club stake");
+    // await queryBalances(deploymentDetails, deploymentDetails.sameerWallet, true);
+    // await stakeOnAClub(deploymentDetails);
+    // console.log("Balances of staker after club stake");
+    // await queryBalances(deploymentDetails, deploymentDetails.sameerWallet, true);
+    // console.log("Balances of platform_fee_collector after club stake");
+    // await queryBalances(deploymentDetails, deploymentDetails.adminWallet, true);
+    // console.log("Balances of contract after club stake");
+    // await queryBalances(deploymentDetails, deploymentDetails.clubStakingAddress, true);
+    // console.log("Balances of contract after club stake");
+    // await showAllClubStakes(deploymentDetails);
+    // await distributeRewards(deploymentDetails);
+    // await showAllClubStakes(deploymentDetails);
+    // // await showAllClubOwnerships(deploymentDetails);
+    // // await claimRewards(deploymentDetails);
+    // console.log("Balances of staker after claim reward");
+    // await queryBalances(deploymentDetails, deploymentDetails.sameerWallet, true);
+    // await withdrawStakeFromAClub(deploymentDetails);
+    // console.log("Balances of staker after withdraw stake");
+    // await queryBalances(deploymentDetails, deploymentDetails.sameerWallet, true);
+    // console.log("Balances of platform_fee_collector after withdraw stake");
+    // await queryBalances(deploymentDetails, deploymentDetails.adminWallet, true);
+    // console.log("Balances of contract after withdraw stake");
+    // await queryBalances(deploymentDetails, deploymentDetails.clubStakingAddress, true);
+}
+
+async function showAllClubOwnerships(deploymentDetails) {
     //Fetch club ownership details for all clubs
     let coResponse = await queryContract(deploymentDetails.clubStakingAddress, {
         all_club_ownership_details: {}
     });
-    console.log("All clubs ownership = " + JSON.stringify(coResponse));
-
+    let club_string = "All clubs ownership \n";
+    for (let i = 0 ; i < coResponse.length ; i++) {
+        club_string += coResponse[i].owner_address + " " + coResponse[i].club_name 
+            + " : " + coResponse[i].owner_released.toString();
+        if (coResponse[i].owner_released) {
+            club_string += " " + coResponse[i].locking_period +  " " + coResponse[i].start_timestamp + "\n";
+        } else {
+            club_string += "\n";
+        }
+    }
+    console.log(club_string);
 }
 
-async function queryAllClubStakes(deploymentDetails) {
+async function showAllClubStakes(deploymentDetails) {
+    let coResponse = await queryContract(deploymentDetails.clubStakingAddress, {
+        all_stakes: {}
+    });
+    // console.log(JSON.stringify(coResponse));
+    let stake_string = "All stakes \n";
+    for (let i = 0 ; i < coResponse.length ; i++) {
+        stake_string += coResponse[i].staker_address + " " + coResponse[i].club_name 
+            + " " + coResponse[i].staked_amount  
+            + " " + coResponse[i].auto_stake.toString();
+        if (coResponse[i].auto_stake == false) {
+            stake_string += " " + coResponse[i].reward_amount + "\n";
+        } else {
+            stake_string += "\n";
+        }
+    }
+    console.log(stake_string);
+}
+
+async function queryStakerStakes(deploymentDetails,staker) {
     //Fetch club Stakes details for all clubs
-    let csResponse = await queryContract(deploymentDetails.clubStakingAddress, {
-        club_staking_details: {
-            club_name: "ClubB"
+    let coResponse = await queryContract(deploymentDetails.clubStakingAddress, {
+        all_stakes_for_user: {
+            user_address: staker
         }
     });
-    console.log("All clubs stakes = " + JSON.stringify(csResponse));
-
+    let stake_string = "Stakes for " + staker + "\n";
+    for (let i = 0 ; i < coResponse.length ; i++) {
+        stake_string += coResponse[i].club_name 
+            + " " + coResponse[i].staked_amount  
+            + " " + coResponse[i].auto_stake.toString();
+        if (coResponse[i].auto_stake == false) {
+            stake_string += " " + coResponse[i].reward_amount + "\n";
+        } else {
+            stake_string += "\n";
+        }
+    }
+    console.log(stake_string);
+    return coResponse;
 }
 
-async function queryAllAssignedClubStakes(deploymentDetails) {
+async function queryClubStakes(deploymentDetails,club_name) {
     //Fetch club Stakes details for all clubs
-    let csResponse = await queryContract(deploymentDetails.clubStakingAddress, {
+    let coResponse = await queryContract(deploymentDetails.clubStakingAddress, {
         club_staking_details: {
-            club_name: "ClubD"
+            club_name: club_name
         }
     });
-    console.log("All assigned clubs stakes = " + JSON.stringify(csResponse));
+    let stake_string = "Stakes for " + club_name + "\n";
+    for (let i = 0 ; i < coResponse.length; i++) {  
+        stake_string += coResponse[i].club_name 
+            + " " + coResponse[i].staker_address 
+            + " " + coResponse[i].staked_amount  
+            + " " + coResponse[i].auto_stake.toString();
+        if (coResponse[i].auto_stake == false) {
+            stake_string += " " + coResponse[i].reward_amount + "\n";
+        } else {
+            stake_string += "\n";
+        }
+    }
+    console.log(stake_string);
+    // return coResponse;
 }
+
+async function queryStepByStepClubStakes(deploymentDetails) {
+    let clubResponse = await queryContract(deploymentDetails.clubStakingAddress, {
+        all_club_ownership_details: {}
+    });
+    console.log("Total Clubs : " + clubResponse.length.toString());
+    for (let i = 0 ; i < clubResponse.length ; i++) {
+        try {
+            let coResponse = await queryContract(deploymentDetails.clubStakingAddress, {
+                club_staking_details: {
+                    club_name: clubResponse[i].club_name
+                }
+            });
+            //console.log("Stakes for " + clubResponse[i].club_name + " count " + coResponse.length.toString() + "\n");
+            let stake_string = "";
+            for (let i = 0 ; i < coResponse.length; i++) {  // coResponse.length 
+                stake_string += coResponse[i].staker_address 
+                    + " " + coResponse[i].staked_amount  
+                    + " " + coResponse[i].auto_stake.toString() + " " + coResponse[i].club_name.split(" ").join("_");
+                if (coResponse[i].auto_stake == false) {
+                    stake_string += " " + coResponse[i].reward_amount + "\n";
+                } else {
+                    stake_string += "\n";
+                }
+            }
+            console.log(stake_string);
+        } catch (error) {
+            console.log(clubResponse[i].club_name + " Error");
+        } finally {
+            continue;
+        }
+    }
+}
+
 
 async function buyAClub(deploymentDetails) {
     if (!deploymentDetails.clubBought) {
@@ -376,7 +546,7 @@ async function buyAClub(deploymentDetails) {
 }
 
 async function assignAClub(deploymentDetails) {
-	//let Admin assign a club to Nitin
+	//let Admin assign a club to Sameer
 	let aacRequest = {
 		assign_a_club: {
 			buyer: sameer_wallet.key.accAddress,
@@ -500,6 +670,9 @@ async function claimRewards(deploymentDetails) {
         }
     };
     let platformFees = await queryContract(deploymentDetails.clubStakingAddress, { query_platform_fees: { msg: Buffer.from(JSON.stringify(wsfacRequest)).toString('base64') } });
+    if (platformFees == 0) {
+        platformFees = 1;
+    }
     console.log(`platformFees = ${JSON.stringify(platformFees)}`);
 
     let wsfacResponse = await executeContract(sameer_wallet, deploymentDetails.clubStakingAddress, wsfacRequest, { 'uusd': Number(platformFees) });
@@ -517,7 +690,7 @@ async function distributeRewards(deploymentDetails) {
 	let viaMsg = {
 		send : {
 			contract: deploymentDetails.clubStakingAddress, 
-			amount: "1000",
+			amount: "100000",
 			msg: msgString
 		}
 	};
@@ -525,7 +698,7 @@ async function distributeRewards(deploymentDetails) {
     let iraResponse = await executeContract(mint_wallet, deploymentDetails.furyContractAddress, viaMsg);
 
     //ADD DELAY small to check failure of quick withdraw - 30sec
-    await new Promise(resolve => setTimeout(resolve, 30000));
+    // await new Promise(resolve => setTimeout(resolve, 30000));
 
     let cadrRequest = {
         calculate_and_distribute_rewards: {
@@ -536,10 +709,11 @@ async function distributeRewards(deploymentDetails) {
 	console.log("distribute reward transaction hash = " + cadrResponse['txhash']);
 }
 
-async function queryBalances(deploymentDetails, accAddress) {
-    let bankBalances = await terraClient.bank.balance(accAddress);
-    console.log(JSON.stringify(bankBalances));
-    let furyBalance = await queryContract(deploymentDetails.furyContractAddress, { balance: { address: accAddress } });
-    console.log(JSON.stringify(furyBalance));
+async function queryBalances(deploymentDetails, accAddress, print) {
+    let uusd_balance = await queryBankUusd(accAddress);
+    let fury_balance = await queryTokenBalance(deploymentDetails.furyContractAddress,accAddress);
+    if (print) {console.log("wallet: " + accAddress + " uusd: " + uusd_balance + " uFury: " + fury_balance)}
+    return(fury_balance, uusd_balance)
 }
+
 main();

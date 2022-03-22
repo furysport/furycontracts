@@ -137,3 +137,24 @@ export async function get_server_epoch_seconds() {
   let epoch = dateObject.getTime();
   return Math.round(epoch / 1000)
 }
+
+export async function queryBankUusd(address) {
+  let response =  await terraClient.bank.balance(address)
+  let value;
+  try {
+    value = Number(response[0]._coins.uusd.amount);
+  } catch {
+    value = 0;
+  } finally {
+    return value
+  }
+}
+
+
+export async function queryTokenBalance(token_address,address) {
+  let response = await queryContract(token_address,{
+        balance: {address: address}
+    });
+  return Number(response.balance)
+}
+
