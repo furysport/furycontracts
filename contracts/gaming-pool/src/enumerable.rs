@@ -1,5 +1,5 @@
 use cosmwasm_std::{Deps, Order, StdResult};
-use cw20::{AllAccountsResponse, AllAllowancesResponse, AllowanceInfo};
+use cw20::{AllAllowancesResponse, AllowanceInfo};
 
 use crate::state::{ALLOWANCES};
 use cw_storage_plus::Bound;
@@ -34,16 +34,4 @@ pub fn query_all_allowances(
     Ok(AllAllowancesResponse {
         allowances: allowances?,
     })
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
-    use cosmwasm_std::{coins, DepsMut, Uint128};
-    use cw20::{Cw20Coin, Expiration, TokenInfoResponse};
-
-    use crate::msg::{ExecuteMsg, InstantiateMsg};
-
 }

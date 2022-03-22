@@ -7,9 +7,10 @@ pub enum ContractError {
     Std(#[from] StdError),
 
     #[error("Unauthorized")]
-    Unauthorized {
-        invoker: String
-    },
+    Unauthorized {},
+
+    #[error("Error Duplicate Entry")]
+    ErrorDupliacateEntry {},
 
     #[error("Cannot set to own account")]
     CannotSetOwnAccount {},
@@ -37,10 +38,4 @@ pub enum ContractError {
 
     #[error("Invalid png header")]
     InvalidPngHeader {},
-
-    #[error("Insufficient fees in UST sent")]
-    InsufficientFeesUst {},
-
-    #[error("Number Of Coins Sent Is Invalid")]
-    InvalidNumberOfCoinsSent {},
 }

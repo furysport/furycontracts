@@ -270,7 +270,6 @@ mod tests {
             }],
             mint: None,
             marketing: None,
-            vesting: None,
         };
         let info = mock_info("creator", &[]);
         let env = mock_env();

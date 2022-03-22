@@ -1,7 +1,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use cosmwasm_std::{Addr, Timestamp, Uint128};
+use cosmwasm_std::{Addr, Uint128};
 use cw_storage_plus::{Item, Map};
 
 use cw20::AllowanceResponse;
@@ -10,7 +10,10 @@ use cw20::AllowanceResponse;
 pub struct Config {
     pub admin_address: Addr,
     pub minting_contract_address: Addr,
+    pub platform_fees_collector_wallet: Addr,
+    pub astro_proxy_address: Addr,
     pub platform_fee: Uint128,
+    pub transaction_fee: Uint128,
     pub game_id: String,
 }
 
@@ -26,6 +29,13 @@ pub struct GameDetails {
 
     /// Current status of the game - open, close, canceled
     pub game_status: u64,
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
+#[serde(rename_all = "snake_case")]
+pub struct FeeDetails {
+    pub platform_fee: Uint128,
+    pub transaction_fee: Uint128,
 }
 
 
@@ -130,8 +140,8 @@ pub struct GameResult {
     pub gamer_address: String,
     pub game_id: String,
     pub team_id: String,
-    pub reward_amount: Uint128,
-    pub refund_amount: Uint128,
+    pub reward_amount: Uint128, // UST
+    pub refund_amount: Uint128, //  UST
     pub team_rank: u64,
     pub team_points: u64,
 }
