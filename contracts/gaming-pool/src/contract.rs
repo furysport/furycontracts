@@ -51,6 +51,7 @@ pub const GAME_POOL_CLOSED: u64 = 2u64;
 pub const GAME_CANCELLED: u64 = 3u64;
 pub const GAME_COMPLETED: u64 = 4u64;
 pub const HUNDRED_PERCENT: u128 = 10000u128;
+pub const NINETY_NINE_NINE_PERCENT: u128 = 9990u128;
 
 pub const DUMMY_TEAM_ID: &str = "DUMMY_TEAM_ID";
 
