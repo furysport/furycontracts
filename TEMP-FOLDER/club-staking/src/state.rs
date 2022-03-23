@@ -4,17 +4,24 @@ use serde::{Deserialize, Serialize};
 use cosmwasm_std::{Addr, Timestamp, Uint128};
 use cw_storage_plus::{Item, Map};
 
-// use cw20::AllowanceResponse;
-
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Config {
     pub admin_address: Addr,
     pub minting_contract_address: Addr,
+    pub astro_proxy_address: Addr,
     pub club_fee_collector_wallet: Addr,
     pub club_reward_next_timestamp: Timestamp,
     pub reward_periodicity: u64,
     pub club_price: Uint128,
     pub bonding_duration: u64,
+    pub owner_release_locking_duration: u64,
+    pub platform_fees_collector_wallet: Addr,
+    ///Specified in percentage multiplied by 100, i.e. 100% = 10000 and 0.01% = 1
+    pub platform_fees: Uint128,
+    ///Specified in percentage multiplied by 100, i.e. 100% = 10000 and 0.01% = 1
+    pub transaction_fees: Uint128,
+    ///Specified in percentage multiplied by 100, i.e. 100% = 10000 and 0.01% = 1
+    pub control_fees: Uint128,
 }
 
 pub const CONFIG_KEY: &str = "config";
@@ -27,10 +34,11 @@ pub struct ClubOwnershipDetails {
     /// The club name
     pub club_name: String,
     /// The system timestamp to be used as starting point when ownership
-    /// of a club was taken. the 21 days restrictions start from this time
+    /// of a club was released by the owner to sell it to another buyer
     pub start_timestamp: Timestamp,
 
-    /// The locking period(days) expressed in seconds
+    /// The locking period (days) expressed in seconds from start_timestamp
+    /// after which the owner_released flag is no longer applicable
     pub locking_period: u64,
 
     pub owner_address: String,
@@ -48,7 +56,7 @@ pub struct ClubOwnershipDetails {
 /// used by previous owner using new verb PreviousOwnerRewardOut()
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
 #[serde(rename_all = "snake_case")]
-pub struct ClubPreviousOwnerDetails { 
+pub struct ClubPreviousOwnerDetails {
     /// The previous owner name
     pub previous_owner_address: String,
 
@@ -75,6 +83,9 @@ pub struct ClubStakingDetails {
 
     /// reward amount in quantity of tokens
     pub reward_amount: Uint128,
+
+    /// whether rewards are auto-staked or do they need to be claimed
+    pub auto_stake: bool,
 }
 
 /// This is used for saving various bonding details for an unstaked club
@@ -113,13 +124,16 @@ pub const CLUB_BONDING_DETAILS: Map<String, Vec<ClubBondingDetails>> =
     Map::new("club_bonding_details");
 
 /// Map of previous owners and their reward points. the key is owner address and the
-/// ClubPreviousOwnerDetails will contain information about the 
+/// ClubPreviousOwnerDetails will contain information about the
 /// previous owner of the club and his reward points
 pub const CLUB_PREVIOUS_OWNER_DETAILS: Map<String, ClubPreviousOwnerDetails> =
     Map::new("club_previous_owner_details");
 
-pub const STAKING_FUNDS: Map<&Addr, Uint128> = Map::new("contract_wallet");
-
 pub const REWARD: Item<Uint128> = Item::new("staking_reward");
 
 pub const CLUB_REWARD_NEXT_TIMESTAMP: Item<Timestamp> = Item::new("club_reward_next_timestamp");
+
+/// Snapshot of ranking by stakes
+pub const CLUB_STAKING_SNAPSHOT: Map<String, Uint128> =
+    Map::new("club_staking_snapshot");
+
