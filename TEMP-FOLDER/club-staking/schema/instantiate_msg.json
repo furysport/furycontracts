@@ -4,15 +4,24 @@
   "type": "object",
   "required": [
     "admin_address",
+    "astro_proxy_address",
     "bonding_duration",
     "club_fee_collector_wallet",
     "club_price",
     "club_reward_next_timestamp",
+    "control_fees",
     "minting_contract_address",
-    "reward_periodicity"
+    "owner_release_locking_duration",
+    "platform_fees",
+    "platform_fees_collector_wallet",
+    "reward_periodicity",
+    "transaction_fees"
   ],
   "properties": {
     "admin_address": {
+      "type": "string"
+    },
+    "astro_proxy_address": {
       "type": "string"
     },
     "bonding_duration": {
@@ -29,13 +38,45 @@
     "club_reward_next_timestamp": {
       "$ref": "#/definitions/Timestamp"
     },
+    "control_fees": {
+      "description": "Specified in percentage multiplied by 100, i.e. 100% = 10000 and 0.01% = 1",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Uint128"
+        }
+      ]
+    },
     "minting_contract_address": {
+      "type": "string"
+    },
+    "owner_release_locking_duration": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    },
+    "platform_fees": {
+      "description": "Specified in percentage multiplied by 100, i.e. 100% = 10000 and 0.01% = 1",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Uint128"
+        }
+      ]
+    },
+    "platform_fees_collector_wallet": {
       "type": "string"
     },
     "reward_periodicity": {
       "type": "integer",
       "format": "uint64",
       "minimum": 0.0
+    },
+    "transaction_fees": {
+      "description": "Specified in percentage multiplied by 100, i.e. 100% = 10000 and 0.01% = 1",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Uint128"
+        }
+      ]
     }
   },
   "definitions": {

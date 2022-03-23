@@ -36,6 +36,17 @@ export function readArtifact(name = 'artifact') {
     }
 }
 
+
+export function readDistantArtifact(distantPath, name = 'artifact') {
+    try {
+        console.log(`trying path : ${path.join(distantPath, ARTIFACTS_PATH, `${name}.json`)}`)
+        const data = readFileSync(path.join(distantPath, ARTIFACTS_PATH, `${name}.json`), 'utf8')
+        return JSON.parse(data)
+    } catch (e) {
+        return {}
+    }
+}
+
 /**
  * @notice Upload contract code to LocalTerra. Return code ID.
  */
@@ -128,6 +139,11 @@ export async function instantiateContract(deployer, codeId, instantiateMsg) {
 
 export async function queryContract(contractAddress, query) {
   return await terraClient.wasm.contractQuery(contractAddress, query)
+}
+
+export async function queryContractInfo(contractAddress) {
+  const d = await terraClient.wasm.contractInfo(contractAddress);
+  return d
 }
 
 export async function get_server_epoch_seconds() {

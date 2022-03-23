@@ -3,7 +3,6 @@
   "title": "QueryMsg",
   "anyOf": [
     {
-      "description": "Only with \"allowance\" extension. Returns how much spender can use from owner account, 0 if unset. Return type: AllowanceResponse. Returns the current state of vesting information for the given address. Return type: StakingDetails.",
       "type": "object",
       "required": [
         "club_staking_details"
@@ -219,6 +218,56 @@
         }
       },
       "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "query_platform_fees"
+      ],
+      "properties": {
+        "query_platform_fees": {
+          "type": "object",
+          "required": [
+            "msg"
+          ],
+          "properties": {
+            "msg": {
+              "$ref": "#/definitions/Binary"
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "query_staker_rewards"
+      ],
+      "properties": {
+        "query_staker_rewards": {
+          "type": "object",
+          "required": [
+            "club_name",
+            "staker"
+          ],
+          "properties": {
+            "club_name": {
+              "type": "string"
+            },
+            "staker": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "additionalProperties": false
     }
-  ]
+  ],
+  "definitions": {
+    "Binary": {
+      "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
+      "type": "string"
+    }
+  }
 }

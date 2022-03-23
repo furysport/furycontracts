@@ -5,7 +5,7 @@ import { promisify } from 'util';
 import { ajay_wallet, ClubStakingContractPath, liquidity_wallet, marketing_wallet, MintingContractPath, mintInitMessage, mint_wallet, nitin_wallet, sameer_wallet, team_wallet, terraClient, treasury_wallet } from './constants.js';
 import { primeAccountsWithFunds } from "./primeCustomAccounts.js";
 import { executeContract, getGasUsed, instantiateContract, queryContract, readArtifact, storeCode, 
-    writeArtifact, queryBankUusd,
+    writeArtifact, queryBankUusd, queryContractInfo, readDistantArtifact,
     queryTokenBalance
  } from './utils.js';
 
@@ -25,16 +25,15 @@ async function main() {
         // if (skipSetup === 'Y' || skipSetup === 'y') {
         //     await cycleOperationsOnClubStaking(deploymentDetails);
         // } else {
-            const primeAccounts = await question('Do you want to preload custom accounts? (y/N) ');
-            if (primeAccounts === 'Y' || primeAccounts === 'y') {
-                let txHash = await primeAccountsWithFunds();
-                console.log(txHash);
-            }
-            const setupAccounts = await question('Do you setup some contracts? (y/N) ');
-            if (setupAccounts === 'Y' || setupAccounts === 'y') {
-                let txHash = proceedToSetup(deploymentDetails);
-                console.log(txHash);
-            }
+            // const primeAccounts = await question('Do you want to preload custom accounts? (y/N) ');
+            // if (primeAccounts === 'Y' || primeAccounts === 'y') {
+            //     let txHash = await primeAccountsWithFunds();
+            //     console.log(txHash);
+            // }
+            // const setupAccounts = await question('Do you want to setup staking contracts first? (y/N) ');
+            // if (setupAccounts === 'Y' || setupAccounts === 'y') {
+                await proceedToSetup(deploymentDetails);
+            // }
             deploymentDetails = readArtifact(terraClient.chainID);
             await performOperationsOnClubStaking(deploymentDetails);
         // }
@@ -70,30 +69,38 @@ async function proceedToSetup(deploymentDetails) {
         deploymentDetails.sameerWallet = sameer_wallet.key.accAddress;
     }
     writeArtifact(deploymentDetails, terraClient.chainID);
-    let result = await uploadFuryTokenContract(deploymentDetails);
+    let result = await setAstroProxyContractAddress(deploymentDetails);
     if (result) {
-        result = await instantiateFuryTokenContract(deploymentDetails);
-        if (result) {
-            await setAstroProxyContractAddress(deploymentDetails);
-            deploymentDetails = readArtifact(terraClient.chainID);
-            await transferFuryToWallets(deploymentDetails);
-            await uploadClubStaking(deploymentDetails);
-            await instantiateClubStaking(deploymentDetails);
-        }
+        deploymentDetails = readArtifact(terraClient.chainID);
+        await transferFuryToWallets(deploymentDetails);
+        await uploadClubStaking(deploymentDetails);
+        await instantiateClubStaking(deploymentDetails);
     }
     console.log("Leaving proceedToSetup");
 }
 
 async function setAstroProxyContractAddress(deploymentDetails) {
     if (!deploymentDetails.astroProxyContractAddress) {
-        const setAstroProxy = await question('Do you want to set the astro proxy contract address? (y/N)');
-        if (setAstroProxy === 'Y' || setAstroProxy === 'y') {
-            const astroProxyAddress = await question('Please provide the astro proxy contract address? ');
+        let astroProxyAddress = "";
+        let distantDeploymentDetails = readDistantArtifact('../../astroport-core/testing',terraClient.chainID);
+        if (!distantDeploymentDetails.proxyContractAddress) {       
+            astroProxyAddress = await question('Proxy not found, Please provide the astro proxy contract address? ');
             deploymentDetails.astroProxyContractAddress = astroProxyAddress;
+        } else {
+            deploymentDetails.astroProxyContractAddress = distantDeploymentDetails.proxyContractAddress;
+            console.log(`Proxy found at : ${deploymentDetails.astroProxyContractAddress}`);
+            astroProxyAddress = deploymentDetails.astroProxyContractAddress;
+            
         }
+        const proxyInfo = await queryContractInfo(astroProxyAddress);
+        deploymentDetails.furyContractAddress = proxyInfo.init_msg.custom_token_address;
+        const mintInfo = await queryContractInfo(deploymentDetails.furyContractAddress);
+        deploymentDetails.furyTokenCodeId = mintInfo.code_id;
         writeArtifact(deploymentDetails, terraClient.chainID);
+        return true;
     }
 }
+
 async function uploadFuryTokenContract(deploymentDetails) {
     if (!deploymentDetails.furyTokenCodeId) {
         let deployFury = false;
@@ -125,113 +132,27 @@ async function uploadFuryTokenContract(deploymentDetails) {
     return true;
 }
 
-async function instantiateFuryTokenContract(deploymentDetails) {
-    if (!deploymentDetails.furyContractAddress) {
-        let instantiateFury = false;
-        const answer = await question('Do you want to instantiate Fury Token Contract? (y/N) ');
-        if (answer === 'Y' || answer === 'y') {
-            instantiateFury = true;
-        } else if (answer === 'N' || answer === 'n') {
-            const contractAddress = await question('Please provide contract address for Fury Token contract: ');
-            deploymentDetails.furyContractAddress = contractAddress;
-            instantiateFury = false;
-        } else {
-            console.log("Alright! Have fun!! :-)");
-            return false;
-        }
-        if (instantiateFury) {
-            console.log("Instantiating Fury token contract");
-            let initiate = await instantiateContract(mint_wallet, deploymentDetails.furyTokenCodeId, mintInitMessage);
-            // The order is very imp
-            let contractAddress = initiate.logs[0].events[0].attributes[3].value;
-            console.log(`Fury Token Contract ID: ${contractAddress}`);
-            deploymentDetails.furyContractAddress = contractAddress;
-        }
-        writeArtifact(deploymentDetails, terraClient.chainID);
-    }
-    return true;
-}
-
 async function transferFuryToWallets(deploymentDetails) {
-    await transferFuryToTreasury(deploymentDetails);
-    await transferFuryToLiquidity(deploymentDetails);
-    await transferFuryToMarketing(deploymentDetails);
-    await transferFuryToNitin(deploymentDetails);
-    await transferFuryToAjay(deploymentDetails);
-    await transferFuryToSameer(deploymentDetails);
+    await transferFury(deploymentDetails,mint_wallet,treasury_wallet,"5000000000");
+    await transferFury(deploymentDetails,mint_wallet,marketing_wallet,"50000000");
+    await transferFury(deploymentDetails,mint_wallet,liquidity_wallet,"50000000");
+    await transferFury(deploymentDetails,mint_wallet,nitin_wallet,"50000000");
+    await transferFury(deploymentDetails,mint_wallet,ajay_wallet,"50000000");
+    await transferFury(deploymentDetails,mint_wallet,sameer_wallet,"50000000");
 }
 
-async function transferFuryToTreasury(deploymentDetails) {
-    let transferFuryToTreasuryMsg = {
+async function transferFury(deploymentDetails,fromWallet,toWallet,ufury) {
+    let transferFuryMsg = {
         transfer: {
-            recipient: treasury_wallet.key.accAddress,
-            amount: "5000000000"
+            recipient: toWallet.key.accAddress,
+            amount: ufury
         }
     };
-    console.log(`transferFuryToTreasuryMsg = ${JSON.stringify(transferFuryToTreasuryMsg)}`);
-    let response = await executeContract(mint_wallet, deploymentDetails.furyContractAddress, transferFuryToTreasuryMsg);
-    console.log(`transferFuryToTreasuryMsg Response - ${response['txhash']}`);
+    console.log(`transferFuryMsg = ${JSON.stringify(transferFuryMsg)}`);
+    let response = await executeContract(fromWallet, deploymentDetails.furyContractAddress, transferFuryMsg);
+    console.log(`transferFury Response - ${response['txhash']}`);
 }
 
-async function transferFuryToMarketing(deploymentDetails) {
-    let transferFuryToMarketingMsg = {
-        transfer: {
-            recipient: marketing_wallet.key.accAddress,
-            amount: "50000000"
-        }
-    };
-    console.log(`transferFuryToMarketingMsg = ${JSON.stringify(transferFuryToMarketingMsg)}`);
-    let response = await executeContract(mint_wallet, deploymentDetails.furyContractAddress, transferFuryToMarketingMsg);
-    console.log(`transferFuryToMarketingMsg Response - ${response['txhash']}`);
-}
-
-async function transferFuryToLiquidity(deploymentDetails) {
-    let transferFuryToLiquidityMsg = {
-        transfer: {
-            recipient: liquidity_wallet.key.accAddress,
-            amount: "50000000"
-        }
-    };
-    console.log(`transferFuryToLiquidityMsg = ${JSON.stringify(transferFuryToLiquidityMsg)}`);
-    let response = await executeContract(mint_wallet, deploymentDetails.furyContractAddress, transferFuryToLiquidityMsg);
-    console.log(`transferFuryToLiquidityMsg Response - ${response['txhash']}`);
-}
-
-async function transferFuryToNitin(deploymentDetails) {
-    let transferFuryToNitinMsg = {
-        transfer: {
-            recipient: nitin_wallet.key.accAddress,
-            amount: "50000000"
-        }
-    };
-    console.log(`transferFuryToNitinMsg = ${JSON.stringify(transferFuryToNitinMsg)}`);
-    let response = await executeContract(mint_wallet, deploymentDetails.furyContractAddress, transferFuryToNitinMsg);
-    console.log(`transferFuryToNitinMsg Response - ${response['txhash']}`);
-}
-
-async function transferFuryToAjay(deploymentDetails) {
-    let transferFuryToAjayMsg = {
-        transfer: {
-            recipient: ajay_wallet.key.accAddress,
-            amount: "50000000"
-        }
-    };
-    console.log(`transferFuryToAjayMsg = ${JSON.stringify(transferFuryToAjayMsg)}`);
-    let response = await executeContract(mint_wallet, deploymentDetails.furyContractAddress, transferFuryToAjayMsg);
-    console.log(`transferFuryToAjayMsg Response - ${response['txhash']}`);
-}
-
-async function transferFuryToSameer(deploymentDetails) {
-    let transferFuryToSameerMsg = {
-        transfer: {
-            recipient: sameer_wallet.key.accAddress,
-            amount: "50000000"
-        }
-    };
-    console.log(`transferFuryToSameerMsg = ${JSON.stringify(transferFuryToSameerMsg)}`);
-    let response = await executeContract(mint_wallet, deploymentDetails.furyContractAddress, transferFuryToSameerMsg);
-    console.log(`transferFuryToSameerMsg Response - ${response['txhash']}`);
-}
 
 async function uploadClubStaking(deploymentDetails) {
     if (!deploymentDetails.clubStakingId) {
@@ -277,49 +198,49 @@ async function instantiateClubStaking(deploymentDetails) {
 }
 
 async function performOperationsOnClubStaking(deploymentDetails) {
- //    await showAllClubOwnerships(deploymentDetails);
- //    await showAllClubStakes(deploymentDetails);
- //    console.log("Balances of buyer before buy club");
- //    await queryBalances(deploymentDetails, deploymentDetails.nitinWallet, true);
- //    console.log("Balances of club_fee_collector before buy club");
- //    await queryBalances(deploymentDetails, deploymentDetails.teamWallet, true);
- //    console.log("Balances of platform_fee_collector before buy club");
- //    await queryBalances(deploymentDetails, deploymentDetails.adminWallet, true);
- //    console.log("Buy club activity");
- //    await buyAClub(deploymentDetails);
- //    console.log("Balances of buyer after buy club");
- //    await queryBalances(deploymentDetails, deploymentDetails.nitinWallet, true);
- //    console.log("Balances of club_fee_collector after buy club");
- //    await queryBalances(deploymentDetails, deploymentDetails.teamWallet, true);
- //    console.log("Balances of platform_fee_collector after buy club");
- //    await queryBalances(deploymentDetails, deploymentDetails.adminWallet, true);
- //    await showAllClubOwnerships(deploymentDetails);
+    await showAllClubOwnerships(deploymentDetails);
+    await showAllClubStakes(deploymentDetails);
+    console.log("Balances of buyer before buy club");
+    await queryBalances(deploymentDetails, deploymentDetails.nitinWallet, true);
+    console.log("Balances of club_fee_collector before buy club");
+    await queryBalances(deploymentDetails, deploymentDetails.teamWallet, true);
+    console.log("Balances of platform_fee_collector before buy club");
+    await queryBalances(deploymentDetails, deploymentDetails.adminWallet, true);
+    console.log("Buy club activity");
+    await buyAClub(deploymentDetails);
+    console.log("Balances of buyer after buy club");
+    await queryBalances(deploymentDetails, deploymentDetails.nitinWallet, true);
+    console.log("Balances of club_fee_collector after buy club");
+    await queryBalances(deploymentDetails, deploymentDetails.teamWallet, true);
+    console.log("Balances of platform_fee_collector after buy club");
+    await queryBalances(deploymentDetails, deploymentDetails.adminWallet, true);
+    await showAllClubOwnerships(deploymentDetails);
 
- //    console.log("Assign club activity");
- //    await assignAClub(deploymentDetails);
- //    console.log("Balances of owner after assign club");
- //    await queryBalances(deploymentDetails, deploymentDetails.nitinWallet, true);
- //    await showAllClubOwnerships(deploymentDetails);
-	// await showAllClubStakes(deploymentDetails);
- //    console.log("Balances of admin before assign club stake");
- //    await queryBalances(deploymentDetails, deploymentDetails.adminWallet, true);
- //    console.log("Assign Stake activity");
- //    await assignStakesToAClub(deploymentDetails);
- //    console.log("Balances of admin after assign club stake");
- //    await queryBalances(deploymentDetails, deploymentDetails.adminWallet, true);
-	// await showAllClubStakes(deploymentDetails);
+    console.log("Assign club activity");
+    await assignAClub(deploymentDetails);
+    console.log("Balances of owner after assign club");
+    await queryBalances(deploymentDetails, deploymentDetails.nitinWallet, true);
+    await showAllClubOwnerships(deploymentDetails);
+	await showAllClubStakes(deploymentDetails);
+    console.log("Balances of admin before assign club stake");
+    await queryBalances(deploymentDetails, deploymentDetails.adminWallet, true);
+    console.log("Assign Stake activity");
+    await assignStakesToAClub(deploymentDetails);
+    console.log("Balances of admin after assign club stake");
+    await queryBalances(deploymentDetails, deploymentDetails.adminWallet, true);
+	await showAllClubStakes(deploymentDetails);
 
- //    console.log("Balances of staker before club stake");
- //    await queryBalances(deploymentDetails, deploymentDetails.sameerWallet, true);
- //    console.log("Stake on a club activity");
- //    await stakeOnAClub(deploymentDetails);
- //    console.log("Balances of staker after club stake");
- //    await queryBalances(deploymentDetails, deploymentDetails.sameerWallet, true);
- //    console.log("Balances of platform_fee_collector after club stake");
- //    await queryBalances(deploymentDetails, deploymentDetails.adminWallet, true);
- //    console.log("Balances of contract after club stake");
- //    await queryBalances(deploymentDetails, deploymentDetails.clubStakingAddress, true);
- //    console.log("Balances of contract after club stake");
+    console.log("Balances of staker before club stake");
+    await queryBalances(deploymentDetails, deploymentDetails.sameerWallet, true);
+    console.log("Stake on a club activity");
+    await stakeOnAClub(deploymentDetails);
+    console.log("Balances of staker after club stake");
+    await queryBalances(deploymentDetails, deploymentDetails.sameerWallet, true);
+    console.log("Balances of platform_fee_collector after club stake");
+    await queryBalances(deploymentDetails, deploymentDetails.adminWallet, true);
+    console.log("Balances of contract after club stake");
+    await queryBalances(deploymentDetails, deploymentDetails.clubStakingAddress, true);
+    console.log("Balances of contract after club stake");
 	await showAllClubStakes(deploymentDetails);
     console.log("Reward activity");
 	await distributeRewards(deploymentDetails);
@@ -590,7 +511,7 @@ async function assignStakesToAClub(deploymentDetails) {
     let increaseAllowanceMsg = {
         increase_allowance: {
             spender: deploymentDetails.clubStakingAddress,
-            amount: "100000"
+            amount: "1010000"
         }
     };
     let incrAllowResp = await executeContract(mint_wallet, deploymentDetails.furyContractAddress, increaseAllowanceMsg);
@@ -605,7 +526,7 @@ async function assignStakesToAClub(deploymentDetails) {
 					club_name: "ClubD",
 					staker_address: ajay_wallet.key.accAddress,
 					staking_start_timestamp: "1640447808000000000",
-					staked_amount: "100000",
+					staked_amount: "1010000",
 					staking_duration: 0,
 					reward_amount: "0",
 					auto_stake: true

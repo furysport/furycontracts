@@ -5,30 +5,6 @@
     {
       "type": "object",
       "required": [
-        "buy_a_club"
-      ],
-      "properties": {
-        "buy_a_club": {
-          "$ref": "#/definitions/BuyClubCommand"
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "required": [
-        "stake_on_a_club"
-      ],
-      "properties": {
-        "stake_on_a_club": {
-          "$ref": "#/definitions/StakeOnAClubCommand"
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "required": [
         "increase_reward_amount"
       ],
       "properties": {
@@ -40,25 +16,6 @@
     }
   ],
   "definitions": {
-    "BuyClubCommand": {
-      "type": "object",
-      "required": [
-        "buyer",
-        "club_name",
-        "seller"
-      ],
-      "properties": {
-        "buyer": {
-          "type": "string"
-        },
-        "club_name": {
-          "type": "string"
-        },
-        "seller": {
-          "type": "string"
-        }
-      }
-    },
     "IncreaseRewardAmountCommand": {
       "type": "object",
       "required": [
@@ -66,21 +23,6 @@
       ],
       "properties": {
         "reward_from": {
-          "type": "string"
-        }
-      }
-    },
-    "StakeOnAClubCommand": {
-      "type": "object",
-      "required": [
-        "club_name",
-        "staker"
-      ],
-      "properties": {
-        "club_name": {
-          "type": "string"
-        },
-        "staker": {
           "type": "string"
         }
       }
