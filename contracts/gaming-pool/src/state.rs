@@ -176,8 +176,6 @@ pub const POOL_DETAILS: Map<String, PoolDetails> =
 pub const POOL_TEAM_DETAILS: Map<String, Vec<PoolTeamDetails>> =
     Map::new("pool_team_details");
 
-pub const GAMING_FUNDS: Map<&Addr, Uint128> = Map::new("gaming_funds");
-
 pub const CONTRACT_POOL_COUNT: Map<&Addr, Uint128> = Map::new("contract_pool_count");
 
 pub const GAME_RESULT_DUMMY: Map<&Addr, GameResult> = Map::new("game_result");

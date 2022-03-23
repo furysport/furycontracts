@@ -11,7 +11,7 @@ use crate::ContractError;
 use crate::msg::{ProxyQueryMsgs, QueryMsgSimulation, ReceivedMsg};
 use crate::query::{get_team_count_for_user_in_pool_type, query_pool_details, query_pool_type_details};
 use crate::state::{CONFIG, CONTRACT_POOL_COUNT, FeeDetails, GAME_DETAILS, GameDetails,
-                   GameResult, GAMING_FUNDS, PLATFORM_WALLET_PERCENTAGES, POOL_DETAILS,
+                   GameResult, PLATFORM_WALLET_PERCENTAGES, POOL_DETAILS,
                    POOL_TEAM_DETAILS, POOL_TYPE_DETAILS, PoolDetails, PoolTeamDetails,
                    PoolTypeDetails, WalletPercentage, WalletTransferDetails};
 
@@ -117,7 +117,6 @@ pub fn cancel_game(deps: DepsMut, _env: Env, info: MessageInfo) -> Result<Respon
             invoker: info.sender.to_string(),
         });
     }
-    let platform_fee = config.platform_fee;
     let game_id = config.game_id;
 
     let gd = GAME_DETAILS.may_load(deps.storage, game_id.clone())?;
@@ -182,7 +181,7 @@ pub fn cancel_game(deps: DepsMut, _env: Env, info: MessageInfo) -> Result<Respon
                 }));
             }
         };
-        let refund_amount = pool_type.pool_fee + platform_fee;
+        let refund_amount = pool_type.pool_fee ;
 
         // Get the existing teams for this pool
         // let mut teams = Vec::new();
@@ -192,16 +191,6 @@ pub fn cancel_game(deps: DepsMut, _env: Env, info: MessageInfo) -> Result<Respon
                 let teams = some_teams;
                 let mut updated_teams: Vec<PoolTeamDetails> = Vec::new();
                 for team in teams {
-                    let gamer = team.gamer_address.clone();
-                    let gamer_addr = deps.api.addr_validate(&gamer)?;
-                    GAMING_FUNDS.update(
-                        deps.storage,
-                        &gamer_addr,
-                        |balance: Option<Uint128>| -> StdResult<_> {
-                            Ok(balance.unwrap_or_default() - pool_type.pool_fee)
-                        },
-                    )?;
-
                     // No transfer to be done to the gamers. Just update their refund amounts.
                     // They have to come and collect their refund
                     let mut updated_team = team.clone();
@@ -230,7 +219,6 @@ pub fn lock_game(deps: DepsMut, _env: Env, info: MessageInfo) -> Result<Response
             invoker: info.sender.to_string(),
         });
     }
-    let platform_fee = config.platform_fee;
     let game_id = config.game_id;
 
     let gd = GAME_DETAILS.may_load(deps.storage, game_id.clone())?;
@@ -293,7 +281,7 @@ pub fn lock_game(deps: DepsMut, _env: Env, info: MessageInfo) -> Result<Response
         if pool.current_teams_count >= pool_type.min_teams_for_pool {
             continue;
         }
-        let refund_amount = pool_type.pool_fee + platform_fee;
+        let refund_amount = pool_type.pool_fee ;
 
         // Get the existing teams for this pool
         // let mut teams = Vec::new();
@@ -303,16 +291,6 @@ pub fn lock_game(deps: DepsMut, _env: Env, info: MessageInfo) -> Result<Response
                 let teams = some_teams;
                 let mut updated_teams: Vec<PoolTeamDetails> = Vec::new();
                 for team in teams {
-                    let gamer = team.gamer_address.clone();
-                    let gamer_addr = deps.api.addr_validate(&gamer)?;
-                    GAMING_FUNDS.update(
-                        deps.storage,
-                        &gamer_addr,
-                        |balance: Option<Uint128>| -> StdResult<_> {
-                            Ok(balance.unwrap_or_default() - pool_type.pool_fee)
-                        },
-                    )?;
-
                     // No transfer to be done to the gamers. Just update their refund amounts.
                     // They have to come and collect their refund
                     let mut updated_team = team.clone();
@@ -481,28 +459,29 @@ pub fn game_pool_bid_submit(
         }
     }
 
-    let gamer_addr = deps.api.addr_validate(&gamer)?;
-    let mut asset: Asset = Asset {
-        info: AssetInfo::NativeToken { denom: info.funds[0].denom.clone() },
-        amount: info.funds[0].amount,
-    };
-    if info.funds.clone().len() != 1 {
-        return Err(ContractError::InvalidNumberOfCoinsSent {});
-    }
-    let fund = info.funds.clone();
+	if !testing {
+		let mut asset: Asset = Asset {
+			info: AssetInfo::NativeToken { denom: info.funds[0].denom.clone() },
+			amount: info.funds[0].amount,
+		};
+		if info.funds.clone().len() != 1 {
+			return Err(ContractError::InvalidNumberOfCoinsSent {});
+		}
+		let fund = info.funds.clone();
 
-    if fund[0].denom == "uusd" {
-        if fund[0].amount < required_platform_fee_ust.add(transaction_fee) {
-            asset = Asset {
-                info: AssetInfo::NativeToken { denom: fund[0].denom.clone() },
-                amount: fund[0].amount,
-            };
-            println!("Asset {}", asset);
-        }
-    } else {
-        return Err(ContractError::InsufficientFeesUst {});
-    }
-    println!("Asset {}", asset);
+		if fund[0].denom == "uusd" {
+			if fund[0].amount < required_platform_fee_ust.add(transaction_fee) {
+				asset = Asset {
+					info: AssetInfo::NativeToken { denom: fund[0].denom.clone() },
+					amount: fund[0].amount,
+				};
+				println!("Asset {}", asset);
+			}
+		} else {
+			return Err(ContractError::InsufficientFeesUst {});
+		}
+		println!("Asset {}", asset);
+	}
 
 
     let mut pool_fee: Uint128 = pool_type_details.pool_fee;
@@ -589,12 +568,6 @@ pub fn game_pool_bid_submit(
             msg: String::from("pool max team limit reached "),
         }));
     }
-    GAMING_FUNDS.update(
-        deps.storage,
-        &gamer_addr,
-        |balance: Option<Uint128>| -> StdResult<_> { Ok(balance.unwrap_or_default() + pool_fee) },
-    )?;
-
 
     // Sending Fury token to the contract
     let transfer_msg = Cw20ExecuteMsg::TransferFrom {
@@ -815,7 +788,7 @@ pub fn claim_refund(
                 updated_team.claimed_refund = CLAIMED_REFUND;
                 let pool_details = query_pool_type_details(deps.storage, team.pool_type)?;
                 let refund_details = query_platform_fees(pool_details.pool_fee, config.platform_fee, config.transaction_fee)?;
-                refund_in_ust_fees = refund_details.transaction_fee.add(refund_details.platform_fee);
+                refund_in_ust_fees += refund_details.transaction_fee.add(refund_details.platform_fee);
             }
             updated_teams.push(updated_team);
         }
