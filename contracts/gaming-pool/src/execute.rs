@@ -6,7 +6,7 @@ use cosmwasm_std::{Coin, CosmosMsg, Decimal, DepsMut, Env, from_binary, MessageI
 
 use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg};
 
-use crate::contract::{CLAIMED_REFUND, CLAIMED_REWARD, DUMMY_WALLET, GAME_CANCELLED, GAME_COMPLETED, GAME_POOL_CLOSED, GAME_POOL_OPEN, HUNDRED_PERCENT, INITIAL_REFUND_AMOUNT, INITIAL_REWARD_AMOUNT, INITIAL_TEAM_POINTS, INITIAL_TEAM_RANK, REWARDS_DISTRIBUTED, REWARDS_NOT_DISTRIBUTED, UNCLAIMED_REFUND, UNCLAIMED_REWARD};
+use crate::contract::{CLAIMED_REFUND, CLAIMED_REWARD, DUMMY_WALLET, GAME_CANCELLED, GAME_COMPLETED, GAME_POOL_CLOSED, GAME_POOL_OPEN, HUNDRED_PERCENT, NINETY_NINE_NINE_PERCENT, INITIAL_REFUND_AMOUNT, INITIAL_REWARD_AMOUNT, INITIAL_TEAM_POINTS, INITIAL_TEAM_RANK, REWARDS_DISTRIBUTED, REWARDS_NOT_DISTRIBUTED, UNCLAIMED_REFUND, UNCLAIMED_REWARD};
 use crate::ContractError;
 use crate::msg::{ProxyQueryMsgs, QueryMsgSimulation, ReceivedMsg};
 use crate::query::{get_team_count_for_user_in_pool_type, query_pool_details, query_pool_type_details};
@@ -193,13 +193,16 @@ pub fn cancel_game(deps: DepsMut, _env: Env, info: MessageInfo) -> Result<Respon
                 for team in teams {
                     // No transfer to be done to the gamers. Just update their refund amounts.
                     // They have to come and collect their refund
-                    let mut updated_team = team.clone();
-                    updated_team.refund_amount = refund_amount;
-                    updated_team.claimed_refund = UNCLAIMED_REFUND;
-                    println!(
-                        "refund for {:?} is {:?}",
-                        team.team_id, updated_team.refund_amount
-                    );
+                    // In case of refund due to lock_game min_team_count not met for the pool_type
+					let mut updated_team = team.clone();
+                    if updated_team.refund_amount == Uint128::zero() {
+                        updated_team.refund_amount = refund_amount;
+                        updated_team.claimed_refund = UNCLAIMED_REFUND;
+                        println!(
+                            "refund for {:?} is {:?}",
+                            team.team_id, updated_team.refund_amount
+                        );
+                    }
                     updated_teams.push(updated_team);
                 }
                 POOL_TEAM_DETAILS.save(deps.storage, pool_id.clone(), &updated_teams)?;
@@ -499,7 +502,9 @@ pub fn game_pool_bid_submit(
     // let transaction_fee = pool_fee.checked_mul(config.transaction_fee)?;
     let max_teams_for_pool = pool_type_details.max_teams_for_pool;
     let max_teams_for_gamer = pool_type_details.max_teams_for_gamer;
-    let amount_required = pool_fee;
+    let amount_required = pool_fee  
+        * (Uint128::from(NINETY_NINE_NINE_PERCENT))
+        / (Uint128::from(HUNDRED_PERCENT));
     if amount < amount_required {
         return Err(ContractError::Std(StdError::GenericErr {
             msg: String::from("Amount being bid does not match the pool fee and the platform fee"),
@@ -1143,6 +1148,10 @@ pub fn transfer_from_contract_to_wallet(
     // };
     // messages.push(CosmosMsg::Wasm(exec));
 
+	// 23 March 2022 : 
+	// TODO Deduct platform fee and transaction fee from user also, while 
+	//      doing claim_reward or claim_refund
+
     if is_refund {
         let refund = Coin {
             denom: "uusd".to_string(),
@@ -1150,6 +1159,10 @@ pub fn transfer_from_contract_to_wallet(
         };
         let mut refund_: Vec<Coin> = vec![];
         refund_.push(refund);
+        // 23 March 2022 : this refund of fee in UST has been masked temporarily
+        //   maybe as feee charges and refunds are not balanced out
+        // TODO unmask it with proper accounting of gaming flows
+
         // messages.push(CosmosMsg::Bank(BankMsg::Send {
         //     to_address: String::from(info.sender),
         //     amount: refund_,
