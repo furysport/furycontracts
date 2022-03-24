@@ -510,24 +510,20 @@ pub fn game_pool_bid_submit(
             msg: String::from("Amount being bid does not match the pool fee and the platform fee"),
         }));
     }
-    let user_team_count;
-    let uct = get_team_count_for_user_in_pool_type(
-        deps.storage,
-        gamer.clone(),
-        game_id.clone(),
-        pool_type.clone(),
-    );
-
-    match uct {
-        Ok(uct) => {
-            user_team_count = uct;
-        }
-        Err(_e) => {
-            return Err(ContractError::Std(StdError::GenericErr {
-                msg: String::from("Cant get user team count "),
-            }));
-        }
+    let mut user_team_count = 0;
+    let ptd = POOL_TEAM_DETAILS.may_load(deps.storage, pool_id.clone())?;
+	match ptd {
+        Some(std) => {
+			let all_teams = std;
+			for team in all_teams {
+				if team.gamer_address == gamer {
+					user_team_count += 1;
+				}
+			}
+		}
+        None => {}
     }
+	println!("user team count = {:?}", user_team_count);
     if user_team_count >= max_teams_for_gamer {
         return Err(ContractError::Std(StdError::GenericErr {
             msg: String::from("User max team limit reached "),
