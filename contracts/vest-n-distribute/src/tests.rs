@@ -1,9 +1,10 @@
+
 #[cfg(test)]
 mod tests {
     // use crate::msg::InstantiateMsg;
+    use crate::execute::{calculate_tokens_for_this_period, distribute_vested};
     use cosmwasm_std::testing::{mock_dependencies, mock_env};
     use cosmwasm_std::{Addr, Deps, Uint128};
-    use crate::contract::query_balance;
     use crate::query::query_balance;
     use crate::state::VestingDetails;
 
