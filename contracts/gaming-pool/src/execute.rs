@@ -450,48 +450,21 @@ pub fn game_pool_bid_submit(
             }));
         }
     }
-    let required_platform_fee_ust;
-    let transaction_fee;
-    match testing {
-        true => {
-            required_platform_fee_ust = Uint128::zero();
-            transaction_fee = Uint128::zero();
-        }
-        false => {
-            let fee_details = query_platform_fees(
-                ptd.unwrap().pool_fee,
-                platform_fee,
-                config.transaction_fee,
-            )?;
-            required_platform_fee_ust = fee_details.platform_fee;
-            transaction_fee = fee_details.transaction_fee;
-        }
-    }
-
-    if !testing {
-        let mut asset: Asset = Asset {
-            info: AssetInfo::NativeToken { denom: info.funds[0].denom.clone() },
-            amount: info.funds[0].amount,
-        };
-        if info.funds.clone().len() != 1 {
-            return Err(ContractError::InvalidNumberOfCoinsSent {});
-        }
-        let fund = info.funds.clone();
-
-        if fund[0].denom == "uusd" {
-            if fund[0].amount < required_platform_fee_ust.add(transaction_fee) {
-                asset = Asset {
-                    info: AssetInfo::NativeToken { denom: fund[0].denom.clone() },
-                    amount: fund[0].amount,
-                };
-                println!("Asset {}", asset);
-            }
-        } else {
-            return Err(ContractError::InsufficientFeesUst {});
-        }
-        println!("Asset {}", asset);
-    }
-
+    // match testing {
+    //     true => {
+    //         required_platform_fee_ust = Uint128::zero();
+    //         transaction_fee = Uint128::zero();
+    //     }
+    //     false => {
+    //         let fee_details = query_platform_fees(
+    //             ptd.unwrap().pool_fee,
+    //             platform_fee,
+    //             config.transaction_fee,
+    //         )?;
+    //         required_platform_fee_ust = fee_details.platform_fee;
+    //         transaction_fee = fee_details.transaction_fee;
+    //     }
+    // }
 
     let mut pool_fee: Uint128 = pool_type_details.pool_fee;
     if !testing {
@@ -621,6 +594,19 @@ pub fn game_pool_bid_submit(
             msg: to_binary(&swap_message)?
         },
     )?;
+    if !testing {
+        if info.funds.clone().len() != 1 {
+            return Err(ContractError::InvalidNumberOfCoinsSent {});
+        }
+        let fund = info.funds.clone();
+        if fund[0].denom == "uusd" {
+            if fund[0].amount < platform_fees {
+                return Err(ContractError::InsufficientFeesUst {});
+            }
+        }
+    }
+
+
     messages.push(CosmosMsg::Wasm(WasmMsg::Execute {
         contract_addr: config.clone().astro_proxy_address.to_string(),
         msg: to_binary(&swap_message).unwrap(),
@@ -1025,12 +1011,12 @@ pub fn game_pool_reward_distribute(
         );
     }
 
-    // let rsp = transfer_to_multiple_wallets(
-    //     wallet_transfer_details,
-    //     "rake_and_platform_fee".to_string(),
-    //     deps,
-    // )?;
-    return Ok(Response::new()
+    let rsp = _transfer_to_multiple_wallets(
+        wallet_transfer_details,
+        "rake_and_platform_fee".to_string(),
+        deps,
+    )?;
+    return Ok(rsp
         .add_attribute("game_status", "GAME_COMPLETED".to_string())
         .add_attribute("game_id", game_id.clone())
         .add_attribute("pool_status", "POOL_REWARD_DISTRIBUTED".to_string())
