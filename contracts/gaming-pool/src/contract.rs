@@ -1,18 +1,13 @@
 use cosmwasm_std::{
-    to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult, Uint128,
+    Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult, to_binary, Uint128,
 };
-
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 
 use cw2::set_contract_version;
 
 use crate::error::ContractError;
-use crate::execute::{
-    cancel_game, claim_refund, claim_reward, create_pool, game_pool_bid_submit,
-    game_pool_reward_distribute, lock_game, received_message, save_team_details,
-    set_platform_fee_wallets, set_pool_type_params,
-};
+use crate::execute::{cancel_game, claim_refund, claim_reward, create_pool, execute_sweep, game_pool_bid_submit, game_pool_reward_distribute, lock_game, received_message, save_team_details, set_platform_fee_wallets, set_pool_type_params};
 use crate::msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
 use crate::query::{
     get_team_count_for_user_in_pool_type, query_all_pool_type_details, query_all_pools_in_game,
@@ -20,7 +15,7 @@ use crate::query::{
     query_pool_details, query_pool_team_details, query_pool_type_details, query_refund,
     query_reward, query_team_details,
 };
-use crate::state::{Config, GameDetails, GameResult, CONFIG, GAME_DETAILS, GAME_RESULT_DUMMY};
+use crate::state::{Config, CONFIG, GAME_DETAILS, GAME_RESULT_DUMMY, GameDetails, GameResult};
 
 // version info for migration info
 pub const CONTRACT_NAME: &str = "crates.io:gaming-pool";
@@ -179,6 +174,7 @@ pub fn execute(
         } => game_pool_bid_submit(
             deps, env, info, gamer, pool_type, pool_id, team_id, amount, false,
         ),
+        ExecuteMsg::Sweep { funds } => execute_sweep(deps, info, funds)
     }
 }
 

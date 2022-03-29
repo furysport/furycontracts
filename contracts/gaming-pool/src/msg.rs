@@ -1,9 +1,13 @@
 use astroport::asset::Asset;
 use astroport::factory::PairType;
-use cosmwasm_std::{Addr, Binary, Decimal, Uint128};
-use cw20::{Cw20ReceiveMsg, Logo};
+use cosmwasm_std::{Addr, Binary, Coin, Decimal, Uint128};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+
+use cw20::{Cw20ReceiveMsg, Logo};
+
+use crate::ContractError;
+use crate::state::{GameResult, WalletPercentage};
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug, Clone, PartialEq)]
 pub struct InstantiateMarketingInfo {
@@ -23,8 +27,6 @@ pub struct InstantiateMsg {
     pub platform_fee: Uint128,
     pub game_id: String,
 }
-
-use crate::state::{GameResult, WalletPercentage};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct MigrateMsg {}
@@ -80,6 +82,7 @@ pub enum ExecuteMsg {
         amount: Uint128,
 
     },
+    Sweep { funds: Vec<Coin> },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

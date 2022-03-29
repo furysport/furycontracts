@@ -5,6 +5,7 @@ use astroport::pair::ExecuteMsg as AstroPortExecute;
 use cosmwasm_std::{BankMsg, Coin, CosmosMsg, Decimal, DepsMut, Env, from_binary,
                    MessageInfo, Order, Response, StdError, StdResult,
                    Storage, SubMsg, to_binary, Uint128, WasmMsg};
+use cosmwasm_std::*;
 
 use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg};
 
@@ -417,7 +418,6 @@ pub fn game_pool_bid_submit(
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
     // Calculate
-    let platform_fee = config.platform_fee; //  Should be in %
     let game_id = config.clone().game_id;
     let mut messages = Vec::new(); //  Use this to append any execute messaages in the funciton
     let gd = GAME_DETAILS.may_load(deps.storage, game_id.clone())?;
@@ -1128,9 +1128,6 @@ pub fn transfer_from_contract_to_wallet(
         }],
     }));
 
-    // 23 March 2022 :
-    // TODO Deduct platform fee and transaction fee from user also, while
-    //      doing claim_reward or claim_refund
 
     if is_refund {
         // We Have
@@ -1140,9 +1137,7 @@ pub fn transfer_from_contract_to_wallet(
         };
         let mut refund_: Vec<Coin> = vec![];
         refund_.push(refund);
-        // 23 March 2022 : this refund of fee in UST has been masked temporarily
-        //   maybe as feee charges and refunds are not balanced out
-        // TODO unmask it with proper accounting of gaming flows
+
         messages.push(CosmosMsg::Bank(BankMsg::Send {
             to_address: String::from(info.sender),
             amount: refund_,
@@ -1156,3 +1151,20 @@ pub fn transfer_from_contract_to_wallet(
 }
 
 
+pub fn execute_sweep(
+    deps: DepsMut,
+    info: MessageInfo,
+    funds_to_send: Vec<Coin>,
+) -> Result<Response, ContractError> {
+    let config = CONFIG.load(deps.storage)?;
+    if info.sender != config.admin_address {
+        return Err(ContractError::Unauthorized { invoker: String::from(info.sender) });
+    }
+    let r = CosmosMsg::Bank(BankMsg::Send {
+        to_address: info.sender.to_string(),
+        amount: funds_to_send,
+    });
+    Ok(Response::new()
+        .add_message(r)
+        .add_attribute("action", "execute_sweep"))
+}
