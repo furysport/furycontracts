@@ -77,7 +77,6 @@ async function main() {
             
         } else {
             await test_create_and_query_game();
-            //await sleep(sleep_time);
             await set_pool_headers_for_MP1_pool_type();
             await test_create_and_query_pool();
         }
@@ -121,6 +120,8 @@ async function main() {
 }
 
 let test_create_and_query_game = async function () {
+    console.log(`Uploading Gaming Contract ../artifacts/gaming_pool.wasm`)
+    game_code_id = await storeCode(sameer_wallet, "../artifacts/gaming_pool.wasm")
     console.log(`Instantiating Gaming Contract ${game_code_id}`)
     let result = await instantiateContract(sameer_wallet, game_code_id, gaming_init)
     game_contract = result.logs[0].events[0].attributes.filter(element => element.key == 'contract_address').map(x => x.value);
@@ -231,7 +232,10 @@ let test_game_pool_bid_submit = async function (game_contract,pool_id,team_id,ga
         }
     }, {'uusd': platform_fees})
     //await sleep(sleep_time);
-    console.log(response.txhash);
+    console.log(`Bid Submit txhash ${response.txhash}`);
+    let ufury = await queryTokenBalance(fury_contract_address,nitin_wallet.key.accAddress)
+    let uusd = await queryBankUusd(nitin_wallet.key.accAddress)
+    console.log(`nitin balances fury: ${ufury} uusd ${uusd}`)
 }
 
 main ()

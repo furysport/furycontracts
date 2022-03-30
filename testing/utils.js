@@ -121,6 +121,17 @@ export async function sendTransaction(senderWallet, msgs, verbose = false) {
 /**
  * @notice Instantiate a contract from an existing code ID. Return contract address.
  */
+export async function uploadCodeId(deployer, path) {
+    return await sendTransaction(deployer, [
+        new MsgInstantiateContract(
+            deployer.key.accAddress,
+            deployer.key.accAddress,
+            codeId,
+            instantiateMsg
+        ),
+    ]);
+}
+
 export async function instantiateContract(deployer, codeId, instantiateMsg) {
     return await sendTransaction(deployer, [
         new MsgInstantiateContract(
