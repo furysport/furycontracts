@@ -5,11 +5,12 @@ use cosmwasm_std::{
 use cw20::{AllowanceResponse, Cw20ReceiveMsg, Expiration};
 
 use crate::error::ContractError;
-use crate::state::{ALLOWANCES, BALANCES, TOKEN_INFO};
+use crate::state::{ALLOWANCES, BALANCES, TOKEN_INFO, RESTRICTED_TIMESTAMP, RESTRICTED_WALLET_LIST, RESTRICTED_CONTRACT_LIST};
+use crate::contract::{query_white_list_restrictions};
 
 pub fn execute_increase_allowance(
     deps: DepsMut,
-    _env: Env,
+    env: Env,
     info: MessageInfo,
     spender: String,
     amount: Uint128,
@@ -18,6 +19,11 @@ pub fn execute_increase_allowance(
     let spender_addr = deps.api.addr_validate(&spender)?;
     if spender_addr == info.sender {
         return Err(ContractError::CannotSetOwnAccount {});
+    }
+
+    let white_list_restrictions = query_white_list_restrictions(deps.as_ref(), env, info.sender.to_string(), spender.clone(), true)?;
+    if white_list_restrictions {
+        return Err(StdError::generic_err("Whitelist Restricted").into());
     }
 
     ALLOWANCES.update(
