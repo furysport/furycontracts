@@ -136,10 +136,58 @@ export async function queryContract(contractAddress, query) {
     return await terraClient.wasm.contractQuery(contractAddress, query);
 }
 
+export async function queryContractInfo(contractAddress) {
+  const d = await terraClient.wasm.contractInfo(contractAddress);
+  return d
+}
+
 export async function get_server_epoch_seconds() {
     const blockInfo = await terraClient.tendermint.blockInfo()
     const time = blockInfo['block']['header']['time']
     let dateObject = new Date(time);
     let epoch = dateObject.getTime();
     return Math.round(epoch / 1000)
+}
+
+export async function queryBankUusd(address) {
+  let response =  await terraClient.bank.balance(address)
+  let value;
+  try {
+    value = Number(response[0]._coins.uusd.amount);
+  } catch {
+    value = 0;
+  } finally {
+    return value
+  }
+}
+
+
+export async function queryTokenBalance(token_address,address) {
+  let response = await queryContract(token_address,{
+        balance: {address: address}
+    });
+  return Number(response.balance)
+}
+
+export async function bankTransferFund(wallet_from, wallet_to, uluna_amount, uusd_amount) {
+    console.log(`Funding ${wallet_to.key.accAddress}`);
+    return new Promise(resolve => {
+        // create a simple message that moves coin balances
+        const send1 = new MsgSend(
+            wallet_from.key.accAddress,
+            wallet_to.key.accAddress,
+            { uluna: uluna_amount, uusd: uusd_amount }
+        );
+
+        wallet_from
+            .createAndSignTx({
+                msgs: [send1],
+                memo: 'Initial Funding!',
+            })
+            .then(tx => terraClient.tx.broadcast(tx))
+            .then(result => {
+                console.log(result.txhash);
+                resolve(result.txhash);
+            });
+    })
 }

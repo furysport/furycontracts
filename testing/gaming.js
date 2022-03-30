@@ -22,10 +22,10 @@ const question = promisify(rl.question).bind(rl);
 
 const assert = chai.assert;
 // Init and Vars
-const sleep_time = 11000
+const sleep_time = 500
 let gaming_contract_address = ""
-let proxy_contract_address = "terra17z8hs6xyfdpsyf564xkjwfwp423zkkam6hquh5"
-let fury_contract_address = "terra1zjthyw8e8jayngkvg5kddccwa9v46s4w9sq2pq"
+let proxy_contract_address = "terra19zpyd046u4swqpksr3n44cej4j8pg6ah2y6dcg"
+let fury_contract_address = "terra18vd8fpwxzck93qlwghaj6arh4p7c5n896xzem5"
 const gamer = treasury_wallet.key.accAddress
 // const gamer_extra_1 = walletTest3.key.accAddress
 // const gamer_extra_2 = walletTest4.key.accAddress
@@ -327,10 +327,10 @@ await test_create_and_query_game(sleep_time)
 await test_create_and_query_pool(sleep_time)
 // await test_get_team_count_for_user_in_pool_type(sleep_time)
 await set_pool_headers_for_H2H_pool_type(sleep_time)
-await test_game_pool_bid_submit_when_pool_team_in_range(sleep_time)
-await test_game_lock_once_pool_is_closed(sleep_time)
-await reward_distribution_for_locked_game_for_H2H(sleep_time)
-await claim(sleep_time)
+//await test_game_pool_bid_submit_when_pool_team_in_range(sleep_time)
+//await test_game_lock_once_pool_is_closed(sleep_time)
+//await reward_distribution_for_locked_game_for_H2H(sleep_time)
+//await claim(sleep_time)
 // // Claim
 // await test_migrate(sleep_time)
 // await test_create_and_query_game(sleep_time)

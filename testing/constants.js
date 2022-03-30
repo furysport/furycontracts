@@ -11,11 +11,12 @@ export const MintingContractPath = "../artifacts/cw20_base.wasm"
 export const ClubStakingContractPath = "../artifacts/club_staking.wasm"
 export const GamingContractPath = "../artifacts/gaming_pool.wasm"
 
-// export const terraClient = new LocalTerra();
-export const terraClient = new LCDClient({
-  URL: 'https://bombay-lcd.terra.dev',
-  chainID: 'bombay-12',
-});
+export const terraClient = new LocalTerra();
+terraClient.chainID = 'localterra';
+// export const terraClient = new LCDClient({
+//   URL: 'https://bombay-lcd.terra.dev',
+//   chainID: 'bombay-12',
+// });
 // Accounts
 // export const deployer = terraClient.wallets.test1; // used as operator on all contracts
 // // These can be the client wallets to interact
