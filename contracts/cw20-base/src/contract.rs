@@ -269,10 +269,10 @@ pub fn restricted_wallet_list_update(
         }
     }
     for rem_elem in remove_list {
-        let rwl = RESTRICTED_WALLET_LIST.may_load(deps.storage, rem_elem)?;
+        let rwl = RESTRICTED_WALLET_LIST.may_load(deps.storage, rem_elem.clone())?;
         match rwl {
-            Some(existing_elem) => {
-                RESTRICTED_WALLET_LIST.remove(deps.storage, existing_elem.to_string());
+            Some(_existing_elem) => {
+                RESTRICTED_WALLET_LIST.remove(deps.storage, rem_elem);
             }
             None => {}
         }
@@ -301,10 +301,10 @@ pub fn restricted_contract_list_update(
         }
     }
     for rem_elem in remove_list {
-        let rwl = RESTRICTED_CONTRACT_LIST.may_load(deps.storage, rem_elem)?;
+        let rwl = RESTRICTED_CONTRACT_LIST.may_load(deps.storage, rem_elem.clone())?;
         match rwl {
-            Some(existing_elem) => {
-                RESTRICTED_CONTRACT_LIST.remove(deps.storage, existing_elem.to_string());
+            Some(_existing_elem) => {
+                RESTRICTED_CONTRACT_LIST.remove(deps.storage, rem_elem);
             }
             None => {}
         }
