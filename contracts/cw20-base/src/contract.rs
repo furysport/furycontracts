@@ -643,10 +643,12 @@ pub fn query_white_list_restrictions(
         if contract_check_needed {
             contract_is_restricted = query_is_restricted_contract(deps, contract_address.clone())?;
         }
+        println!("contract_is_restricted={:?} wallet_is_restricted={:?}", contract_is_restricted, wallet_is_restricted);
         if wallet_is_restricted && !contract_is_restricted {
             restricted = true;
         }
     }
+    println!("restricted = {:?}", restricted);
     Ok(restricted)
 }
 
