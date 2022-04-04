@@ -136,10 +136,108 @@ export async function queryContract(contractAddress, query) {
     return await terraClient.wasm.contractQuery(contractAddress, query);
 }
 
+export async function queryContractInfo(contractAddress) {
+  const d = await terraClient.wasm.contractInfo(contractAddress);
+  return d
+}
+
+export async function queryCodeInfo(code_id) {
+  const d = await terraClient.wasm.codeInfo(code_id);
+  return d
+}
+
 export async function get_server_epoch_seconds() {
     const blockInfo = await terraClient.tendermint.blockInfo()
     const time = blockInfo['block']['header']['time']
     let dateObject = new Date(time);
     let epoch = dateObject.getTime();
     return Math.round(epoch / 1000)
+}
+
+export async function queryBankUusd(address) {
+  let response =  await terraClient.bank.balance(address)
+  let value;
+  try {
+    value = Number(response[0]._coins.uusd.amount);
+  } catch {
+    value = 0;
+  } finally {
+    return value
+  }
+}
+
+
+export async function queryTokenBalance(token_address,address) {
+  let response = await queryContract(token_address,{
+        balance: {address: address}
+    });
+  return Number(response.balance)
+}
+
+export async function transferToken(wallet_from, wallet_to_address, token_addres, token_amount) {
+    let token_info = await queryContractInfo(token_addres)
+    console.log(`Funding ${wallet_to_address} from ${wallet_from.key.accAddress} : ${token_amount} ${token_info.name}`);
+    await executeContract(wallet_from, token_addres,{transfer : {recipient : wallet_to_address, amount : token_amount}})
+}
+
+export async function bankTransferUusd(wallet_from, wallet_to_address, uusd_amount) {
+    console.log(`Funding ${wallet_to_address} ${uusd_amount} uusd`);
+
+    return new Promise(resolve => {
+        // create a simple message that moves coin balances
+        const send1 = new MsgSend(
+            wallet_from.key.accAddress,
+            wallet_to_address,
+            {uusd: uusd_amount}
+        );
+
+        wallet_from
+            .createAndSignTx({
+                msgs: [send1],
+                memo: 'transfer uusd',
+            })
+            .then(tx => terraClient.tx.broadcast(tx))
+            .then(result => {
+                console.log(result.txhash);
+                resolve(result.txhash);
+            });
+    })
+}
+
+export async function bankTransferFund(wallet_from, wallet_to, uluna_amount, uusd_amount) {
+    console.log(`Funding ${wallet_to.key.accAddress}`);
+    let funds;
+    if ( uluna_amount == 0 ) {
+        if ( uusd_amount == 0 ) {
+            return
+        } else {
+            funds = {uusd: uusd_amount}
+        }
+    } else {
+        if ( uusd_amount == 0 ) {
+            funds = {uluna: uluna_amount}
+        } else {
+            funds = {uluna: uluna_amount, uusd: uusd_amount}
+        }
+    }
+
+
+    return new Promise(resolve => {
+        // create a simple message that moves coin balances
+        const send1 = new MsgSend(
+            wallet_from.key.accAddress,
+            wallet_to.key.accAddress,
+            funds
+        );
+        wallet_from
+            .createAndSignTx({
+                msgs: [send1],
+                memo: 'Initial Funding!',
+            })
+            .then(tx => terraClient.tx.broadcast(tx))
+            .then(result => {
+                console.log(result.txhash);
+                resolve(result.txhash);
+            });
+    })
 }
