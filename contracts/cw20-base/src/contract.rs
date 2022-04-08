@@ -515,7 +515,7 @@ pub fn query_download_logo(deps: Deps) -> StdResult<DownloadLogoResponse> {
             data: logo,
         }),
         Logo::Embedded(EmbeddedLogo::Png(logo)) => Ok(DownloadLogoResponse {
-            mime_type: "image/png".to_owned(),
+            mime_type: "image/png".to_owned(), 
             data: logo,
         }),
         Logo::Url(_) => Err(StdError::not_found("logo")),
@@ -1134,6 +1134,214 @@ mod tests {
             query_token_info(deps.as_ref()).unwrap().total_supply,
             amount1
         );
+    }
+
+    #[test]
+    fn test_whitelist_restriction_list_creation() {
+        let mut deps = mock_dependencies(&[]);
+
+        let genesis = String::from("genesis");
+        let amount = Uint128::new(11223344);
+        let minter = String::from("asmodat");
+        let limit = Uint128::new(511223344);
+        do_instantiate_with_minter(deps.as_mut(), &genesis, amount, &minter, Some(limit));
+
+        // minter can mint coins to some winner
+        let winner = String::from("lucky");
+        let prize = Uint128::new(222_222_222);
+        let msg = Cw20ExecuteMsg::Mint {
+            recipient: winner.clone(),
+            amount: prize,
+        };
+
+        let info = mock_info(minter.as_ref(), &[]);
+        let env = mock_env();
+        let res = execute(deps.as_mut(), env.clone(), info.clone(), msg).unwrap();
+        assert_eq!(0, res.messages.len());
+        assert_eq!(get_balance(deps.as_ref(), genesis), amount);
+        assert_eq!(get_balance(deps.as_ref(), winner.clone()), prize);
+
+        let mut wallet_whitelist = Vec::new();
+        let mut remove_list = Vec::new();
+        wallet_whitelist.push("Alphawallet".to_string());
+        wallet_whitelist.push("Betawallet".to_string());
+        let mut contract_whitelist = Vec::new();
+        contract_whitelist.push("Alphacontract".to_string());
+        contract_whitelist.push("Betacontract".to_string());
+        set_whitelist_expiration_timestamp(deps.as_mut(), env.clone(), info.clone(), env.clone().block.time.plus_seconds(10*86400));
+        restricted_wallet_list_update(deps.as_mut(), env.clone(), info.clone(), wallet_whitelist, remove_list.clone());
+        restricted_contract_list_update(deps.as_mut(), env.clone(), info.clone(), contract_whitelist, remove_list.clone());
+        let timestamp = query_restricted_list_timestamp(deps.as_ref()).unwrap();
+        assert_eq!(timestamp, env.clone().block.time.plus_seconds(10*86400));
+        let res2 = query_restricted_wallet_list(deps.as_ref()).unwrap();
+        println!("wallet list = {:?}", res2);
+        assert_eq!(res2.len(), 2);
+        let res3 = query_restricted_contract_list(deps.as_ref()).unwrap();
+        println!("contract list = {:?}", res3);
+        assert_eq!(res3.len(), 2);
+        remove_list.push("Betacontract".to_string());
+        remove_list.push("Betawallet".to_string());
+        let empty_add_list = Vec::new();
+        restricted_contract_list_update(deps.as_mut(), env.clone(), info.clone(), empty_add_list.clone(), remove_list.clone());
+        let res4 = query_restricted_contract_list(deps.as_ref()).unwrap();
+        println!("contract list after removal = {:?}", res4);
+        assert_eq!(res4.len(), 1);
+        restricted_wallet_list_update(deps.as_mut(), env.clone(), info.clone(), empty_add_list.clone(), remove_list.clone());
+        let res5 = query_restricted_wallet_list(deps.as_ref()).unwrap();
+        println!("wallet list after removal = {:?}", res5);
+        assert_eq!(res5.len(), 1);
+    }
+
+    #[test]
+    fn test_whitelist_executions() {   //TODO: needs to be reviewed 
+        use cw20::{Expiration};
+
+        let mut deps = mock_dependencies(&[]);
+
+        let genesis = String::from("genesis");
+        let amount = Uint128::new(11223344);
+        let minter = String::from("asmodat");
+        let limit = Uint128::new(511223344);
+        do_instantiate_with_minter(deps.as_mut(), &genesis, amount, &minter, Some(limit));
+
+        // minter can mint coins to some winner
+        let winner = String::from("lucky");
+        let prize = Uint128::new(222_222_222);
+        let msg = Cw20ExecuteMsg::Mint {
+            recipient: winner.clone(),
+            amount: prize,
+        };
+
+        let info = mock_info(minter.as_ref(), &[]);
+        let env = mock_env();
+        let res = execute(deps.as_mut(), env.clone(), info.clone(), msg).unwrap();
+        assert_eq!(0, res.messages.len());
+        assert_eq!(get_balance(deps.as_ref(), genesis), amount);
+        assert_eq!(get_balance(deps.as_ref(), winner.clone()), prize);
+
+        let mut wallet_whitelist = Vec::new();
+        let mut remove_list = Vec::new();
+        wallet_whitelist.push("Alphawallet".to_string());
+        wallet_whitelist.push("Betawallet".to_string());
+        let mut contract_whitelist = Vec::new();
+        contract_whitelist.push("Alphacontract".to_string());
+        contract_whitelist.push("Betacontract".to_string());
+        set_whitelist_expiration_timestamp(deps.as_mut(), env.clone(), info.clone(), env.clone().block.time.plus_seconds(10*86400));
+        restricted_wallet_list_update(deps.as_mut(), env.clone(), info.clone(), wallet_whitelist, remove_list.clone());
+        restricted_contract_list_update(deps.as_mut(), env.clone(), info.clone(), contract_whitelist, remove_list.clone());
+
+        let unrestricted_contract = String::from("contract");
+        let send_msg = Binary::from(r#"{"some":123}"#.as_bytes());
+        let restricted_wallet = String::from("Alphawallet");
+        let addr2 = String::from("addr0002");
+        let restricted_contract = String::from("Alphacontract");
+        let info1 = mock_info(restricted_wallet.as_ref(), &[]);
+        let info2 = mock_info(addr2.as_ref(), &[]);
+        let amount1 = Uint128::from(12340000u128);
+        do_instantiate(deps.as_mut(), &restricted_wallet, amount1);
+        let amount2 = Uint128::from(120u128);
+
+        println!("");
+        println!("send wallet = {:?} contract = {:?}", restricted_wallet.clone(), unrestricted_contract.clone());
+        let err0 = execute_send(deps.as_mut(), env.clone(), info1.clone(), unrestricted_contract.clone(), amount2, send_msg.clone());
+        println!("err0 = {:?}", err0);
+        assert_eq!(err0, Err(StdError::generic_err("Whitelist Restricted").into()));
+
+        println!("");
+        println!("send wallet = {:?} contract = {:?}", restricted_wallet.clone(), restricted_contract.clone());
+        let res0 = execute_send(deps.as_mut(), env.clone(), info1.clone(), restricted_contract.clone(), amount2, send_msg.clone());
+        println!("res0 = {:?}", res0);
+        assert_ne!(res0, Err(StdError::generic_err("Whitelist Restricted").into()));
+
+        println!("");
+        println!("send wallet = {:?} contract = {:?}", addr2.clone(), restricted_contract.clone());
+        let res1 = execute_send(deps.as_mut(), env.clone(), info2.clone(), restricted_contract.clone(), amount2, send_msg.clone());
+        println!("res1 = {:?}", res1);
+        assert_ne!(res1, Err(StdError::generic_err("Whitelist Restricted").into()));
+
+        println!("");
+        println!("transfer wallet = {:?} contract = {:?}", restricted_wallet.clone(), unrestricted_contract.clone());
+        let err2 = execute_transfer(deps.as_mut(), env.clone(), info1.clone(), unrestricted_contract.clone(), amount2);
+        println!("err2 = {:?}", err2);
+        assert_eq!(err2, Err(StdError::generic_err("Whitelist Restricted").into()));
+
+        println!("");
+        println!("transfer wallet = {:?} contract = {:?}", restricted_wallet.clone(), restricted_contract.clone());
+        let res2 = execute_transfer(deps.as_mut(), env.clone(), info1.clone(), restricted_contract.clone(), amount2);
+        println!("res2 = {:?}", res2);
+        assert_eq!(res2, Err(StdError::generic_err("Whitelist Restricted").into()));
+
+        println!("");
+        println!("transfer wallet = {:?} contract = {:?}", addr2.clone(), restricted_contract.clone());
+        let res3 = execute_transfer(deps.as_mut(), env.clone(), info2.clone(), restricted_contract.clone(), amount2);
+        println!("res3 = {:?}", res3);
+        assert_ne!(res3, Err(StdError::generic_err("Whitelist Restricted").into()));
+
+
+        println!("");
+        println!("allowance wallet = {:?} contract = {:?}", restricted_wallet.clone(), restricted_contract.clone());
+        let res4 = execute_increase_allowance(deps.as_mut(), env.clone(), info1.clone(), restricted_contract.clone(), amount2,
+                Some(Expiration::Never{}));
+        println!("res4 = {:?}", res4);
+        assert_ne!(res4, Err(StdError::generic_err("Whitelist Restricted").into()));
+
+        println!("");
+        println!("allowance wallet = {:?} contract = {:?}", restricted_wallet.clone(), unrestricted_contract.clone());
+        let res5 = execute_increase_allowance(deps.as_mut(), env.clone(), info1.clone(), unrestricted_contract.clone(), amount2,
+                Some(Expiration::Never{}));
+        println!("res5 = {:?}", res5);
+        assert_eq!(res5, Err(StdError::generic_err("Whitelist Restricted").into()));
+
+        println!("");
+        println!("allowance wallet = {:?} contract = {:?}", addr2.clone(), restricted_contract.clone());
+        let res6 = execute_increase_allowance(deps.as_mut(), env.clone(), info2.clone(), restricted_contract.clone(), amount2,
+                Some(Expiration::Never{}));
+        println!("res6 = {:?}", res6);
+        assert_ne!(res6, Err(StdError::generic_err("Whitelist Restricted").into()));
+    }
+
+    #[test]
+    fn test_whitelist_restriction_list_creation_unauthorized() {
+        let mut deps = mock_dependencies(&[]);
+
+        let genesis = String::from("genesis");
+        let amount = Uint128::new(11223344);
+        let minter = String::from("asmodat");
+        let limit = Uint128::new(511223344);
+        do_instantiate_with_minter(deps.as_mut(), &genesis, amount, &minter, Some(limit));
+
+        // minter can mint coins to some winner
+        let winner = String::from("lucky");
+        let prize = Uint128::new(222_222_222);
+        let msg = Cw20ExecuteMsg::Mint {
+            recipient: winner.clone(),
+            amount: prize,
+        };
+
+        let info = mock_info(minter.as_ref(), &[]);
+        let env = mock_env();
+        let res = execute(deps.as_mut(), env.clone(), info.clone(), msg).unwrap();
+        assert_eq!(0, res.messages.len());
+        assert_eq!(get_balance(deps.as_ref(), genesis), amount);
+        assert_eq!(get_balance(deps.as_ref(), winner.clone()), prize);
+
+        let info2 = mock_info(winner.as_ref(), &[]);
+        let mut wallet_whitelist = Vec::new();
+        let mut remove_list = Vec::new();
+        wallet_whitelist.push("Alphawallet".to_string());
+        wallet_whitelist.push("Betawallet".to_string());
+        let mut contract_whitelist = Vec::new();
+        contract_whitelist.push("Alphacontract".to_string());
+        contract_whitelist.push("Betacontract".to_string());
+        set_whitelist_expiration_timestamp(deps.as_mut(), env.clone(), info2.clone(), env.clone().block.time.plus_seconds(10*86400));
+        restricted_wallet_list_update(deps.as_mut(), env.clone(), info2.clone(), wallet_whitelist, remove_list.clone());
+        restricted_contract_list_update(deps.as_mut(), env.clone(), info2.clone(), contract_whitelist, remove_list.clone());
+        let err = query_restricted_list_timestamp(deps.as_ref());
+        assert_eq!(err, Err(StdError::generic_err("Restricted Timestamp not found")));
+        let res2 = query_restricted_wallet_list(deps.as_ref()).unwrap();
+        assert_eq!(res2.len(), 0);
+        let res3 = query_restricted_contract_list(deps.as_ref()).unwrap();
+        assert_eq!(res3.len(), 0);
     }
 
     mod marketing {
