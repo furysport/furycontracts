@@ -2,15 +2,11 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use cosmwasm_std::{
-    entry_point, to_binary, Addr, Attribute, Binary, Deps, DepsMut, Env, MessageInfo,
-    OverflowError, OverflowOperation, Response, StdError, StdResult, SubMsg, Timestamp, Uint128,
-    WasmMsg,
+    entry_point, to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo,
+    Response, StdResult, Uint128
 };
 
 use cw2::set_contract_version;
-use cw20::{
-    BalanceResponse, Cw20ExecuteMsg, Cw20QueryMsg,
-};
 
 use crate::error::ContractError;
 use crate::execute::{add_vesting_schedules, claim_vested_tokens, periodically_calculate_vesting, periodically_transfer_to_categories};
@@ -63,7 +59,6 @@ pub fn instantiate_category_vesting_schedules(
     vesting_info: InstantiateVestingSchedulesInfo,
     add: Option<bool>,
 ) -> Result<Response, ContractError> {
-    // Some(vesting_info) => {
     let mut check_duplicate_ = false;
     match add {
         None => {}
