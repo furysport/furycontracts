@@ -2,7 +2,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::logo::Logo;
-use cosmwasm_std::{Binary, Uint128};
+use cosmwasm_std::{Binary, Uint128, Timestamp};
 use cw0::Expiration;
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
@@ -68,4 +68,7 @@ pub enum Cw20ExecuteMsg {
     },
     /// If set as the "marketing" role on the contract, upload a new URL, SVG, or PNG for the token
     UploadLogo(Logo),
+    SetWhiteListExpirationTimestamp { timestamp: Timestamp },
+    RestrictedWalletListUpdate { add_list: Vec<String>, remove_list: Vec<String> },
+    RestrictedContractListUpdate { add_list: Vec<String>, remove_list: Vec<String> },
 }

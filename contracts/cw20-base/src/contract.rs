@@ -1,7 +1,7 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError, StdResult, Uint128,
+    to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError, StdResult, Uint128, Timestamp, Order,
 };
 
 use cw2::set_contract_version;
@@ -17,7 +17,9 @@ use crate::allowances::{
 use crate::enumerable::{query_all_accounts, query_all_allowances};
 use crate::error::ContractError;
 use crate::msg::{InstantiateMsg, QueryMsg, MigrateMsg};
-use crate::state::{MinterData, TokenInfo, BALANCES, LOGO, MARKETING_INFO, TOKEN_INFO};
+use crate::state::{MinterData, TokenInfo, BALANCES, LOGO, MARKETING_INFO, TOKEN_INFO,
+    RESTRICTED_TIMESTAMP, RESTRICTED_WALLET_LIST, RESTRICTED_CONTRACT_LIST};
+
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:cw20-base";
@@ -210,18 +212,120 @@ pub fn execute(
             marketing,
         } => execute_update_marketing(deps, env, info, project, description, marketing),
         Cw20ExecuteMsg::UploadLogo(logo) => execute_upload_logo(deps, env, info, logo),
+        Cw20ExecuteMsg::SetWhiteListExpirationTimestamp { timestamp } => {
+            set_whitelist_expiration_timestamp(deps, env, info, timestamp)
+        }
+        Cw20ExecuteMsg::RestrictedWalletListUpdate { add_list, remove_list } => {
+            restricted_wallet_list_update(deps, env, info, add_list, remove_list)
+        }
+        Cw20ExecuteMsg::RestrictedContractListUpdate { add_list, remove_list } => {
+            restricted_contract_list_update(deps, env, info, add_list, remove_list)
+        }
     }
+}
+
+pub fn set_whitelist_expiration_timestamp(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    expiration_timestamp: Timestamp,
+) -> Result<Response, ContractError> {
+    let mut config = TOKEN_INFO.load(deps.storage)?;
+    if config.mint.is_none() || config.mint.as_ref().unwrap().minter != info.sender {
+        return Err(ContractError::Unauthorized {});
+    }
+    let rts = RESTRICTED_TIMESTAMP.may_load(deps.storage)?;
+    match rts {
+        Some(_ts) => {
+            return Err(StdError::generic_err("Restricted Timestamp already set").into());
+        }
+        None => {}
+    }
+    if env.block.time > expiration_timestamp {
+        return Err(StdError::generic_err("Cannot set Restricted Timestamp to past").into());
+    }
+    RESTRICTED_TIMESTAMP.save(deps.storage, &expiration_timestamp)?;
+    Ok(Response::default())
+}
+
+pub fn restricted_wallet_list_update(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    add_list: Vec<String>,
+    remove_list: Vec<String>,
+) -> Result<Response, ContractError> {
+    let mut config = TOKEN_INFO.load(deps.storage)?;
+    if config.mint.is_none() || config.mint.as_ref().unwrap().minter != info.sender {
+        return Err(ContractError::Unauthorized {});
+    }
+    for add_elem in add_list {
+        let rwl = RESTRICTED_WALLET_LIST.may_load(deps.storage, add_elem.clone())?;
+        match rwl {
+            Some(_existing_elem) => {}
+            None => {
+                RESTRICTED_WALLET_LIST.save(deps.storage, add_elem, &env.block.time)?;
+            }
+        }
+    }
+    for rem_elem in remove_list {
+        let rwl = RESTRICTED_WALLET_LIST.may_load(deps.storage, rem_elem.clone())?;
+        match rwl {
+            Some(_existing_elem) => {
+                RESTRICTED_WALLET_LIST.remove(deps.storage, rem_elem);
+            }
+            None => {}
+        }
+    }
+    Ok(Response::default())
+}
+
+pub fn restricted_contract_list_update(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    add_list: Vec<String>,
+    remove_list: Vec<String>,
+) -> Result<Response, ContractError> {
+    let mut config = TOKEN_INFO.load(deps.storage)?;
+    if config.mint.is_none() || config.mint.as_ref().unwrap().minter != info.sender {
+        return Err(ContractError::Unauthorized {});
+    }
+    for add_elem in add_list {
+        let rwl = RESTRICTED_CONTRACT_LIST.may_load(deps.storage, add_elem.clone())?;
+        match rwl {
+            Some(_existing_elem) => {}
+            None => {
+                RESTRICTED_CONTRACT_LIST.save(deps.storage, add_elem, &env.block.time)?;
+            }
+        }
+    }
+    for rem_elem in remove_list {
+        let rwl = RESTRICTED_CONTRACT_LIST.may_load(deps.storage, rem_elem.clone())?;
+        match rwl {
+            Some(_existing_elem) => {
+                RESTRICTED_CONTRACT_LIST.remove(deps.storage, rem_elem);
+            }
+            None => {}
+        }
+    }
+    Ok(Response::default())
 }
 
 pub fn execute_transfer(
     deps: DepsMut,
-    _env: Env,
+    env: Env,
     info: MessageInfo,
     recipient: String,
     amount: Uint128,
 ) -> Result<Response, ContractError> {
     if amount == Uint128::zero() {
         return Err(ContractError::InvalidZeroAmount {});
+    }
+
+    let restrictions = query_white_list_restrictions(deps.as_ref(), env, info.sender.to_string(), "".to_string(), false)?;
+    if restrictions {
+        return Err(StdError::generic_err("Whitelist Restricted").into());
     }
 
     let rcpt_addr = deps.api.addr_validate(&recipient)?;
@@ -320,7 +424,7 @@ pub fn execute_mint(
 
 pub fn execute_send(
     deps: DepsMut,
-    _env: Env,
+    env: Env,
     info: MessageInfo,
     contract: String,
     amount: Uint128,
@@ -328,6 +432,11 @@ pub fn execute_send(
 ) -> Result<Response, ContractError> {
     if amount == Uint128::zero() {
         return Err(ContractError::InvalidZeroAmount {});
+    }
+
+    let white_list_restrictions = query_white_list_restrictions(deps.as_ref(), env, info.sender.to_string(), contract.clone(), true)?;
+    if white_list_restrictions {
+        return Err(StdError::generic_err("Whitelist Restricted").into());
     }
 
     let rcpt_addr = deps.api.addr_validate(&contract)?;
@@ -469,8 +578,104 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         }
         QueryMsg::MarketingInfo {} => to_binary(&query_marketing_info(deps)?),
         QueryMsg::DownloadLogo {} => to_binary(&query_download_logo(deps)?),
+        QueryMsg::IsRestrictedWallet { address } => to_binary(&query_is_restricted_wallet(deps, address)?),
+        QueryMsg::IsRestrictedContract { address } => to_binary(&query_is_restricted_contract(deps, address)?),
+        QueryMsg::RestrictedWalletList {} => to_binary(&query_restricted_wallet_list(deps)?),
+        QueryMsg::RestrictedContractList {} => to_binary(&query_restricted_contract_list(deps)?),
+        QueryMsg::RestrictedListTimestamp {} => to_binary(&query_restricted_list_timestamp(deps)?),
     }
 }
+
+pub fn query_restricted_list_timestamp(
+    deps: Deps, 
+) -> StdResult<Timestamp> {
+    let rts = RESTRICTED_TIMESTAMP.may_load(deps.storage)?;
+    match rts {
+        Some(ts) => {
+            return Ok(ts);
+        }
+        None => {
+            return Err(StdError::generic_err("Restricted Timestamp not found"));
+        }
+    }
+}
+
+pub fn query_restricted_wallet_list(
+    deps: Deps, 
+) -> StdResult<Vec<String>> {
+    let all_wallets: Vec<String> = RESTRICTED_WALLET_LIST
+        .keys(deps.storage, None, None, Order::Ascending)
+        .map(|k| String::from_utf8(k).unwrap())
+        .collect();
+    return Ok(all_wallets);
+}
+
+pub fn query_restricted_contract_list(
+    deps: Deps, 
+) -> StdResult<Vec<String>> {
+    let all_contracts: Vec<String> = RESTRICTED_CONTRACT_LIST
+        .keys(deps.storage, None, None, Order::Ascending)
+        .map(|k| String::from_utf8(k).unwrap())
+        .collect();
+    return Ok(all_contracts);
+}
+
+pub fn query_white_list_restrictions(
+    deps: Deps, 
+    env: Env, 
+    wallet_address: String,
+    contract_address: String,
+    contract_check_needed: bool
+) -> StdResult<bool> {
+    let mut restricted = false;
+    let rts = RESTRICTED_TIMESTAMP.may_load(deps.storage)?;
+    let now = env.block.time;
+    let mut restricted_timestamp = now;
+    match rts {
+        Some(ts) => {
+            restricted_timestamp = ts;
+        }
+        None => {}
+    }
+    if now < restricted_timestamp {
+        let wallet_is_restricted = query_is_restricted_wallet(deps, wallet_address.clone())?;
+        let mut contract_is_restricted = false;
+        if contract_check_needed {
+            contract_is_restricted = query_is_restricted_contract(deps, contract_address.clone())?;
+        }
+        println!("contract_is_restricted={:?} wallet_is_restricted={:?}", contract_is_restricted, wallet_is_restricted);
+        if wallet_is_restricted && !contract_is_restricted {
+            restricted = true;
+        }
+    }
+    println!("restricted = {:?}", restricted);
+    Ok(restricted)
+}
+
+pub fn query_is_restricted_wallet(deps: Deps, address: String) -> StdResult<bool> {
+    let mut wallet_is_restricted = false;
+    let rwl = RESTRICTED_WALLET_LIST.may_load(deps.storage, address)?;
+    match rwl {
+        Some(_elem) => {
+            wallet_is_restricted = true;
+        }
+        None => {}
+    }
+    Ok(wallet_is_restricted)
+}
+
+pub fn query_is_restricted_contract(deps: Deps, address: String) -> StdResult<bool> {
+    let mut contract_is_restricted = false;
+    let rcl = RESTRICTED_CONTRACT_LIST.may_load(deps.storage, address)?;
+    match rcl {
+        Some(_elem) => {
+            contract_is_restricted = true;
+        }
+        None => {}
+    }
+    Ok(contract_is_restricted)
+}
+
 
 pub fn query_balance(deps: Deps, address: String) -> StdResult<BalanceResponse> {
     let address = deps.api.addr_validate(&address)?;

@@ -110,6 +110,11 @@ pub enum QueryMsg {
     /// contract.
     /// Return type: DownloadLogoResponse.
     DownloadLogo {},
+    IsRestrictedWallet{address: String},
+    IsRestrictedContract{address: String},
+    RestrictedWalletList{},
+    RestrictedContractList{},
+    RestrictedListTimestamp{},
 }
 
 /// We currently take no arguments for migrations

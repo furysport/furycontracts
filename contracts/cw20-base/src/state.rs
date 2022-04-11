@@ -1,7 +1,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use cosmwasm_std::{Addr, Uint128};
+use cosmwasm_std::{Addr, Uint128, Timestamp};
 use cw_storage_plus::{Item, Map};
 
 use cw20::{AllowanceResponse, Logo, MarketingInfoResponse};
@@ -34,3 +34,8 @@ pub const MARKETING_INFO: Item<MarketingInfoResponse> = Item::new("marketing_inf
 pub const LOGO: Item<Logo> = Item::new("logo");
 pub const BALANCES: Map<&Addr, Uint128> = Map::new("balance");
 pub const ALLOWANCES: Map<(&Addr, &Addr), AllowanceResponse> = Map::new("allowance");
+
+/// Wallets that need to be restricted in token movement for “SEND”, “TRANSFER”,  “INCREASE_ALLOWANCE”
+pub const RESTRICTED_TIMESTAMP: Item<Timestamp> = Item::new("restricted_timestamp");
+pub const RESTRICTED_WALLET_LIST: Map<String, Timestamp> = Map::new("restricted_wallet_list");
+pub const RESTRICTED_CONTRACT_LIST: Map<String, Timestamp> = Map::new("restricted_contract_list");
