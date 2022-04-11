@@ -163,6 +163,82 @@
         }
       },
       "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "is_restricted_wallet"
+      ],
+      "properties": {
+        "is_restricted_wallet": {
+          "type": "object",
+          "required": [
+            "address"
+          ],
+          "properties": {
+            "address": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "is_restricted_contract"
+      ],
+      "properties": {
+        "is_restricted_contract": {
+          "type": "object",
+          "required": [
+            "address"
+          ],
+          "properties": {
+            "address": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "restricted_wallet_list"
+      ],
+      "properties": {
+        "restricted_wallet_list": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "restricted_contract_list"
+      ],
+      "properties": {
+        "restricted_contract_list": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "restricted_list_timestamp"
+      ],
+      "properties": {
+        "restricted_list_timestamp": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
     }
   ]
 }
