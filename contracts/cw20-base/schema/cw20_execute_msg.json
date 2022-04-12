@@ -307,6 +307,86 @@
         }
       },
       "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "set_white_list_expiration_timestamp"
+      ],
+      "properties": {
+        "set_white_list_expiration_timestamp": {
+          "type": "object",
+          "required": [
+            "timestamp"
+          ],
+          "properties": {
+            "timestamp": {
+              "$ref": "#/definitions/Timestamp"
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "restricted_wallet_list_update"
+      ],
+      "properties": {
+        "restricted_wallet_list_update": {
+          "type": "object",
+          "required": [
+            "add_list",
+            "remove_list"
+          ],
+          "properties": {
+            "add_list": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "remove_list": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "restricted_contract_list_update"
+      ],
+      "properties": {
+        "restricted_contract_list_update": {
+          "type": "object",
+          "required": [
+            "add_list",
+            "remove_list"
+          ],
+          "properties": {
+            "add_list": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "remove_list": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "additionalProperties": false
     }
   ],
   "definitions": {
