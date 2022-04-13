@@ -68,7 +68,14 @@ pub enum Cw20ExecuteMsg {
     },
     /// If set as the "marketing" role on the contract, upload a new URL, SVG, or PNG for the token
     UploadLogo(Logo),
+    /// Sets the Timestamp, when the Restrictions shall expire
     SetWhiteListExpirationTimestamp { timestamp: Timestamp },
+    /// Updates the list of wallet addresses in the Restricted Wallet List,
+    /// add_list is used to add,
+    /// remove_list is used to remove 
     RestrictedWalletListUpdate { add_list: Vec<String>, remove_list: Vec<String> },
+    /// Updates the list of contract addresses in the Restricted Contract List,
+    /// add_list is used to add,
+    /// remove_list is used to remove 
     RestrictedContractListUpdate { add_list: Vec<String>, remove_list: Vec<String> },
 }

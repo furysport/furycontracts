@@ -3,6 +3,7 @@
   "title": "QueryMsg",
   "anyOf": [
     {
+      "description": "Returns the current status of Vesting for specified category wallet address",
       "type": "object",
       "required": [
         "vesting_details"

@@ -9,13 +9,28 @@
   ],
   "properties": {
     "admin_wallet": {
-      "$ref": "#/definitions/Addr"
+      "description": "Wallet with Administrator privileges",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Addr"
+        }
+      ]
     },
     "fury_token_contract": {
-      "$ref": "#/definitions/Addr"
+      "description": "Fury Token Contract Address",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Addr"
+        }
+      ]
     },
     "vesting": {
-      "$ref": "#/definitions/InstantiateVestingSchedulesInfo"
+      "description": "Array of Vesting schedules for various categories",
+      "allOf": [
+        {
+          "$ref": "#/definitions/InstantiateVestingSchedulesInfo"
+        }
+      ]
     }
   },
   "definitions": {
@@ -30,6 +45,7 @@
       ],
       "properties": {
         "vesting_schedules": {
+          "description": "Array of individual vesting schedules applicable to some category",
           "type": "array",
           "items": {
             "$ref": "#/definitions/VestingSchedule"

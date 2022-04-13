@@ -309,6 +309,7 @@
       "additionalProperties": false
     },
     {
+      "description": "Sets the Timestamp, when the Restrictions shall expire",
       "type": "object",
       "required": [
         "set_white_list_expiration_timestamp"
@@ -329,6 +330,7 @@
       "additionalProperties": false
     },
     {
+      "description": "Updates the list of wallet addresses in the Restricted Wallet List, add_list is used to add, remove_list is used to remove",
       "type": "object",
       "required": [
         "restricted_wallet_list_update"
@@ -359,6 +361,7 @@
       "additionalProperties": false
     },
     {
+      "description": "Updates the list of contract addresses in the Restricted Contract List, add_list is used to add, remove_list is used to remove",
       "type": "object",
       "required": [
         "restricted_contract_list_update"

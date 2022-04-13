@@ -110,10 +110,17 @@ pub enum QueryMsg {
     /// contract.
     /// Return type: DownloadLogoResponse.
     DownloadLogo {},
+    /// Checks whether the given address is in the Restricted Wallet List,
+    /// Return type: boolean
     IsRestrictedWallet{address: String},
+    /// Checks whether the given address is in the Restricted Contract List,
+    /// Return type: boolean
     IsRestrictedContract{address: String},
+    /// Returns the list of wallet addresses in the Restricted Wallet List
     RestrictedWalletList{},
+    /// Returns the list of contract addresses in the Restricted Contract List
     RestrictedContractList{},
+    /// Returns the Timestamp, when the Restrictions shall expire
     RestrictedListTimestamp{},
 }
 

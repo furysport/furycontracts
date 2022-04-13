@@ -3,6 +3,7 @@
   "title": "ExecuteMsg",
   "anyOf": [
     {
+      "description": "Administrative function for Vesting and transfer of Tokens",
       "type": "object",
       "required": [
         "periodically_transfer_to_categories"
@@ -15,6 +16,7 @@
       "additionalProperties": false
     },
     {
+      "description": "Administrative function for Vesting of Tokens that can be claimed subsequently by beneficiary",
       "type": "object",
       "required": [
         "periodically_calculate_vesting"
@@ -27,6 +29,7 @@
       "additionalProperties": false
     },
     {
+      "description": "Beneficiary can call this function to claim Vested Tokens",
       "type": "object",
       "required": [
         "claim_vested_tokens"
@@ -47,6 +50,7 @@
       "additionalProperties": false
     },
     {
+      "description": "Administrative function to add new vesting schedule",
       "type": "object",
       "required": [
         "add_vesting_schedules"
@@ -75,6 +79,7 @@
       ],
       "properties": {
         "vesting_schedules": {
+          "description": "Array of individual vesting schedules applicable to some category",
           "type": "array",
           "items": {
             "$ref": "#/definitions/VestingSchedule"

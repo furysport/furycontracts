@@ -25,24 +25,32 @@ pub struct VestingSchedule {
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug, Clone, PartialEq)]
 pub struct InstantiateVestingSchedulesInfo {
+    /// Array of individual vesting schedules applicable to some category
     pub vesting_schedules: Vec<VestingSchedule>,
 }
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug, Clone, PartialEq)]
 pub struct InstantiateMsg {
+    /// Wallet with Administrator privileges
     pub admin_wallet: Addr,
+    /// Fury Token Contract Address 
     pub fury_token_contract: Addr,
+    /// Array of Vesting schedules for various categories
     pub vesting: InstantiateVestingSchedulesInfo,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
+    /// Administrative function for Vesting and transfer of Tokens
     PeriodicallyTransferToCategories {},
+    /// Administrative function for Vesting of Tokens that can be claimed subsequently by beneficiary
     PeriodicallyCalculateVesting {},
+    /// Beneficiary can call this function to claim Vested Tokens
     ClaimVestedTokens {
         amount: Uint128,
     },
+    /// Administrative function to add new vesting schedule
     AddVestingSchedules {
         schedules: InstantiateVestingSchedulesInfo,
     },
@@ -50,6 +58,7 @@ pub enum ExecuteMsg {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
+    /// Returns the current status of Vesting for specified category wallet address
     VestingDetails { address: String },
 }
 
