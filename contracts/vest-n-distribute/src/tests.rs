@@ -8,8 +8,6 @@ mod tests {
     use crate::query::query_balance;
     use crate::state::VestingDetails;
 
-    use super::*;
-
     fn get_balance<T: Into<String>>(deps: Deps, address: T) -> Uint128 {
         query_balance(deps, address.into()).unwrap().balance
     }
