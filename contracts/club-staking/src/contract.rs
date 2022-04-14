@@ -828,7 +828,6 @@ fn stake_on_a_club(
         }
     }
     if ownership_details.is_some() {
-        let owner = ownership_details.unwrap();
         // Now save the staking details
         save_staking_details(
             deps.storage,
@@ -1315,7 +1314,6 @@ fn save_staking_details(
         CLUB_STAKING_DETAILS.save(storage, (&club_name.clone(), &staker.clone()), &updated_stakes)?;
     } else if increase_stake == INCREASE_STAKE {
         stakes.push(ClubStakingDetails {
-            // TODO duration and timestamp fields no longer needed - should be removed
             staker_address: staker.clone(),
             staking_start_timestamp: env.block.time,
             staked_amount: amount,
@@ -1550,11 +1548,14 @@ fn calculate_and_distribute_rewards(
             .add_attribute("next_timestamp", next_reward_time.to_string())
         );
     }
-    distribute_reward_to_club_stakers(deps, staker_list.clone(), club_name.clone(), total_reward, is_first_batch, is_final_batch)
+    distribute_reward_to_club_stakers(deps, env, config.reward_periodicity,
+        staker_list.clone(), club_name.clone(), total_reward, is_first_batch, is_final_batch)
 }
 
 fn distribute_reward_to_club_stakers(
     deps: DepsMut,
+    env: Env,
+    reward_periodicity: u64,
     staker_list: Vec<String>,
     club_name: String,
     total_reward: Uint128,
@@ -1657,7 +1658,14 @@ fn distribute_reward_to_club_stakers(
 
                 for mut stake in staking_details {
                     let mut updated_stake = stake.clone();
+                    println!("stake = {:?}", updated_stake);
+                    if updated_stake.staking_start_timestamp > env.block.time {
+                        continue;
+                    }
+                    updated_stake.staking_start_timestamp = updated_stake.staking_start_timestamp.plus_seconds(reward_periodicity);
+
                     let auto_stake = updated_stake.auto_stake;
+
                     // Calculate for All Staker - 78% proportional
                     let mut reward_for_this_stake = all_stakers_reward
                         .checked_mul(stake.staked_amount)
@@ -1959,19 +1967,19 @@ pub fn query_platform_fees(deps: Deps, msg: Binary) -> StdResult<Uint128> {
 pub fn query_club_staking_details(
     storage: &dyn Storage,
     club_name: String,
-	user_list: Vec<String>
+    user_list: Vec<String>
 ) -> StdResult<Vec<ClubStakingDetails>> {
     let mut all_stakes = Vec::new();
-	for user in user_list {
-		let csd = CLUB_STAKING_DETAILS.may_load(storage, (&club_name.clone(), &user.clone()))?;
-		match csd {
-			Some(staking_details) => {
-				for stake in staking_details {
-					all_stakes.push(stake);
-				}
-			}
-			None => {}
-		}
+    for user in user_list {
+        let csd = CLUB_STAKING_DETAILS.may_load(storage, (&club_name.clone(), &user.clone()))?;
+        match csd {
+            Some(staking_details) => {
+                for stake in staking_details {
+                    all_stakes.push(stake);
+                }
+            }
+            None => {}
+        }
     }
     return Ok(all_stakes);
 }
@@ -2579,7 +2587,6 @@ mod tests {
             user_address_list.push(staker.clone());
             println!("staker is {}", staker);
             stake_list.push(ClubStakingDetails {
-                // TODO duration and timestamp fields no longer needed - should be removed
                 staker_address: staker,
                 staking_start_timestamp: now,
                 staked_amount: Uint128::from(330000u128),
@@ -3965,14 +3972,50 @@ mod tests {
             "reward_from abc".to_string(),
             Uint128::from(1000000u128),
         );
+        println!("stakes before distribution");
+        let queryRes00 = query_all_stakes(&mut deps.storage, user_address_list.clone());
+        match queryRes00 {
+            Ok(all_stakes) => {
+                println!("all stakes : {:?}", all_stakes);
+            }
+            Err(e) => {
+                println!("error parsing header: {:?}", e);
+                assert_eq!(1, 2);
+            }
+        }
+
         let mut queryReward = query_reward_amount(&mut deps.storage);
         println!("reward amount before distribution: {:?}", queryReward);
         let club_name1 = "CLUB001".to_string();
         calculate_and_distribute_rewards(deps.as_mut(), mock_env(), adminInfo.clone(), user_address_list.clone(), club_name1, true, false);
+        println!("stakes after first distribution");
+        let queryRes01 = query_all_stakes(&mut deps.storage, user_address_list.clone());
+        match queryRes01 {
+            Ok(all_stakes) => {
+                println!("all stakes : {:?}", all_stakes);
+            }
+            Err(e) => {
+                println!("error parsing header: {:?}", e);
+                assert_eq!(1, 2);
+            }
+        }
+
         queryReward = query_reward_amount(&mut deps.storage);
         println!("reward amount after first distribution: {:?}", queryReward);
         let club_name2 = "CLUB002".to_string();
         calculate_and_distribute_rewards(deps.as_mut(), mock_env(), adminInfo.clone(), user_address_list.clone(), club_name2, false, false);
+        println!("stakes after second distribution");
+        let queryRes01 = query_all_stakes(&mut deps.storage, user_address_list.clone());
+        match queryRes01 {
+            Ok(all_stakes) => {
+                println!("all stakes : {:?}", all_stakes);
+            }
+            Err(e) => {
+                println!("error parsing header: {:?}", e);
+                assert_eq!(1, 2);
+            }
+        }
+
         queryReward = query_reward_amount(&mut deps.storage);
         println!("reward amount after second distribution: {:?}", queryReward);
         let club_name3 = "CLUB003".to_string();
@@ -3980,6 +4023,7 @@ mod tests {
 
         queryReward = query_reward_amount(&mut deps.storage);
         println!("reward amount after third distribution: {:?}", queryReward);
+        println!("stakes after third distribution");
         let queryRes = query_all_stakes(&mut deps.storage, user_address_list.clone());
         match queryRes {
             Ok(all_stakes) => {
@@ -4075,8 +4119,9 @@ mod tests {
             adminInfo.clone(),
             instantiate_msg,
         )
-            .unwrap();
+        .unwrap();
 
+/*
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
@@ -4104,6 +4149,7 @@ mod tests {
             Uint128::from(126718u128),
             SET_AUTO_STAKE,
         );
+*/
         increase_reward_amount(
             deps.as_mut(),
             mock_env(),
