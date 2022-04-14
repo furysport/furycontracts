@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use cw20::{Cw20ReceiveMsg, Logo};
 
 use crate::ContractError;
-use crate::state::{GameResult, WalletPercentage};
+use crate::state::{GameResult, SwapBalanceDetails, WalletPercentage};
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug, Clone, PartialEq)]
 pub struct InstantiateMarketingInfo {
@@ -60,19 +60,8 @@ pub enum ExecuteMsg {
     GamePoolRewardDistribute {
         pool_id: String,
         game_winners: Vec<GameResult>,
-    },
-    SaveTeamDetails {
-        gamer: String,
-        pool_id: String,
-        team_id: String,
-        game_id: String,
-        pool_type: String,
-        reward_amount: Uint128,
-        claimed_reward: bool,
-        refund_amount: Uint128,
-        claimed_refund: bool,
-        team_points: u64,
-        team_rank: u64,
+        is_final_batch: bool,
+        ust_for_rake: Uint128,
     },
     GamePoolBidSubmitCommand {
         gamer: String,
@@ -83,6 +72,11 @@ pub enum ExecuteMsg {
 
     },
     Sweep { funds: Vec<Coin> },
+    Swap {
+        amount: Uint128,
+        pool_id: String,
+        max_spread: Option<Decimal>,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -90,6 +84,7 @@ pub enum ExecuteMsg {
 pub enum QueryMsg {
     PoolTeamDetails {
         pool_id: String,
+        user: String,
     },
     PoolDetails {
         pool_id: String,
@@ -98,7 +93,7 @@ pub enum QueryMsg {
         pool_type: String,
     },
     AllPoolTypeDetails {},
-    AllTeams {},
+    AllTeams { users: Vec<String> },
     QueryReward {
         gamer: String
     },
@@ -114,6 +109,7 @@ pub enum QueryMsg {
     PoolTeamDetailsWithTeamId {
         pool_id: String,
         team_id: String,
+        gamer: String,
     },
     AllPoolsInGame {},
     PoolCollection {
@@ -123,6 +119,9 @@ pub enum QueryMsg {
         gamer: String,
         game_id: String,
         pool_type: String,
+    },
+    SwapInfo {
+        pool_id: String
     },
 }
 
@@ -191,4 +190,10 @@ pub enum QueryMsgSimulation {
     QueryPlatformFees {
         msg: Binary,
     },
+}
+
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+pub struct BalanceResponse {
+    pub balance: Uint128,
 }

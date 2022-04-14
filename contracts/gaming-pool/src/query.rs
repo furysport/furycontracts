@@ -1,6 +1,8 @@
 use cosmwasm_std::{Deps, Order, StdError, StdResult, Storage, Uint128};
-use crate::contract::{DUMMY_WALLET, INITIAL_TEAM_POINTS, INITIAL_TEAM_RANK, UNCLAIMED_REFUND, UNCLAIMED_REWARD};
-use crate::state::{CONFIG, GAME_DETAILS, GAME_RESULT_DUMMY, GameDetails, GameResult, POOL_DETAILS, POOL_TEAM_DETAILS, POOL_TYPE_DETAILS, PoolDetails, PoolTeamDetails, PoolTypeDetails};
+
+use crate::contract::{DUMMY_WALLET, INITIAL_TEAM_POINTS, INITIAL_TEAM_RANK,
+                      UNCLAIMED_REFUND, UNCLAIMED_REWARD};
+use crate::state::{CONFIG, GAME_DETAILS, GAME_RESULT_DUMMY, GameDetails, GameResult, POOL_DETAILS, POOL_TEAM_DETAILS, POOL_TYPE_DETAILS, PoolDetails, PoolTeamDetails, PoolTypeDetails, SWAP_BALANCE_INFO, SwapBalanceDetails};
 
 pub fn query_pool_type_details(
     storage: &dyn Storage,
@@ -29,24 +31,34 @@ pub fn query_all_pool_type_details(storage: &dyn Storage) -> StdResult<Vec<PoolT
 pub fn query_pool_team_details(
     storage: &dyn Storage,
     pool_id: String,
+    user: String,
 ) -> StdResult<Vec<PoolTeamDetails>> {
-    let ptd = POOL_TEAM_DETAILS.may_load(storage, pool_id)?;
+    let ptd = POOL_TEAM_DETAILS.may_load(storage, (&*pool_id, user.as_ref()))?;
     match ptd {
         Some(ptd) => return Ok(ptd),
         None => return Err(StdError::generic_err("No team details found")),
     };
 }
 
-pub fn query_all_teams(storage: &dyn Storage) -> StdResult<Vec<PoolTeamDetails>> {
+pub fn query_all_teams(storage: &dyn Storage, users: Vec<String>) -> StdResult<Vec<PoolTeamDetails>> {
     let mut all_teams = Vec::new();
     let all_pools: Vec<String> = POOL_DETAILS
         .keys(storage, None, None, Order::Ascending)
         .map(|k| String::from_utf8(k).unwrap())
         .collect();
     for pool_id in all_pools {
-        let team_details = POOL_TEAM_DETAILS.load(storage, pool_id.clone())?;
-        for team in team_details {
-            all_teams.push(team);
+        for user in users.clone() {
+            let team_details = POOL_TEAM_DETAILS.load(storage, (&*pool_id.clone(), user.as_ref()));
+            match team_details {
+                Ok(teams) => {
+                    for team in teams {
+                        all_teams.push(team);
+                    }
+                }
+                Err(_) => {
+                    //     pass
+                }
+            }
         }
     }
     return Ok(all_teams);
@@ -62,7 +74,7 @@ pub fn query_reward(storage: &dyn Storage, gamer: String) -> StdResult<Uint128> 
     for pool_id in all_pools {
         // Get the existing teams for this pool
         let mut teams = Vec::new();
-        let all_teams = POOL_TEAM_DETAILS.may_load(storage, pool_id.clone())?;
+        let all_teams = POOL_TEAM_DETAILS.may_load(storage, (&*pool_id.clone(), gamer.as_ref()))?;
         match all_teams {
             Some(some_teams) => {
                 teams = some_teams;
@@ -88,7 +100,7 @@ pub fn query_refund(storage: &dyn Storage, gamer: String) -> StdResult<Uint128> 
     for pool_id in all_pools {
         // Get the existing teams for this pool
         let mut teams = Vec::new();
-        let all_teams = POOL_TEAM_DETAILS.may_load(storage, pool_id.clone())?;
+        let all_teams = POOL_TEAM_DETAILS.may_load(storage, (&*pool_id.clone(), gamer.as_ref()))?;
         match all_teams {
             Some(some_teams) => {
                 teams = some_teams;
@@ -131,7 +143,7 @@ pub fn query_game_result(
 
     // Get the existing teams for this pool
     let mut teams = Vec::new();
-    let all_teams = POOL_TEAM_DETAILS.may_load(deps.storage, pool_id.clone())?;
+    let all_teams = POOL_TEAM_DETAILS.may_load(deps.storage, (&*pool_id.clone(), gamer.as_ref()))?;
     match all_teams {
         Some(some_teams) => {
             teams = some_teams;
@@ -184,7 +196,7 @@ pub fn get_team_count_for_user_in_pool_type(
         .map(|k| String::from_utf8(k).unwrap())
         .collect();
     for pool_id in all_pools {
-        let team_details = POOL_TEAM_DETAILS.load(storage, pool_id.clone())?;
+        let team_details = POOL_TEAM_DETAILS.load(storage, (&*pool_id.clone(), gamer.as_ref()))?;
         for team in team_details {
             if team.pool_type == pool_type && team.game_id == game_id && team.gamer_address == gamer && team.pool_id == pool_id
             {
@@ -211,8 +223,9 @@ pub fn query_team_details(
     storage: &dyn Storage,
     pool_id: String,
     team_id: String,
+    gamer: String,
 ) -> StdResult<PoolTeamDetails> {
-    let team_details = POOL_TEAM_DETAILS.load(storage, pool_id.clone())?;
+    let team_details = POOL_TEAM_DETAILS.load(storage, (&*pool_id.clone(), gamer.as_ref()))?;
     for team in team_details {
         if team.team_id == team_id.to_string() {
             return Ok(team.clone());
@@ -261,4 +274,12 @@ pub fn query_pool_collection(storage: &dyn Storage, pool_id: String) -> StdResul
         .checked_mul(Uint128::from(pool.current_teams_count))
         .unwrap_or_default();
     return Ok(pool_collection);
+}
+
+pub fn query_swap_data_for_pool(
+    storage: &dyn Storage,
+    pool_id: String,
+) -> StdResult<SwapBalanceDetails> {
+    let info = SWAP_BALANCE_INFO.load(storage, pool_id)?;
+    return Ok(info)
 }

@@ -1,10 +1,9 @@
+use cosmwasm_std::{Addr, Uint128};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use cosmwasm_std::{Addr, Uint128};
-use cw_storage_plus::{Item, Map};
-
 use cw20::AllowanceResponse;
+use cw_storage_plus::{Item, Map};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Config {
@@ -19,6 +18,8 @@ pub struct Config {
 
 pub const CONFIG_KEY: &str = "config";
 pub const CONFIG: Item<Config> = Item::new(CONFIG_KEY);
+// This param will enable or disable contract completely as a fail safe
+pub const ACTIVATION_STATUS: Item<bool> = Item::new("activation_status");
 
 /// This is used for saving various vesting details
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
@@ -92,6 +93,11 @@ pub struct PoolDetails {
 
     /// Whether rewards are distributed for this pool
     pub rewards_distributed: bool,
+
+    pub pool_refund_status: bool,
+
+    pub pool_reward_status: bool,
+
 }
 
 
@@ -140,8 +146,10 @@ pub struct GameResult {
     pub gamer_address: String,
     pub game_id: String,
     pub team_id: String,
-    pub reward_amount: Uint128, // UST
-    pub refund_amount: Uint128, //  UST
+    pub reward_amount: Uint128,
+    // FURY
+    pub refund_amount: Uint128,
+    //  UST
     pub team_rank: u64,
     pub team_points: u64,
 }
@@ -153,6 +161,7 @@ pub struct WalletTransferDetails {
     pub wallet_address: String,
     pub amount: Uint128,
 }
+
 
 pub const ALLOWANCES: Map<(&Addr, &Addr), AllowanceResponse> = Map::new("allowance");
 
@@ -173,7 +182,7 @@ pub const POOL_DETAILS: Map<String, PoolDetails> =
 
 /// Map of pools and its gamers. the key is pool id and the
 /// PoolBettingDetails will contain information about the betters and amount betted
-pub const POOL_TEAM_DETAILS: Map<String, Vec<PoolTeamDetails>> =
+pub const POOL_TEAM_DETAILS: Map<(&str, &str), Vec<PoolTeamDetails>> =
     Map::new("pool_team_details");
 
 pub const CONTRACT_POOL_COUNT: Map<&Addr, Uint128> = Map::new("contract_pool_count");
@@ -182,3 +191,19 @@ pub const GAME_RESULT_DUMMY: Map<&Addr, GameResult> = Map::new("game_result");
 
 pub const PLATFORM_WALLET_PERCENTAGES: Map<String, WalletPercentage> = Map::new("platform_wallet_percentages");
 
+pub const CURRENT_REWARD_FOR_POOL: Map<String, Uint128> = Map::new("current_reward_for_pool");
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
+#[serde(rename_all = "snake_case")]
+pub struct SwapBalanceDetails {
+    pub balance_pre_swap: Uint128,
+    pub balance_post_swap: Uint128,
+    pub exchange_rate: Uint128,
+    pub ust_amount_swapped: Uint128,
+    pub ust_for_rake: Uint128,
+}
+
+// This is a simple store we use to save the balance of the contact
+// pre swap and use it to compute the amount of CW20 tokens gained
+// In the swap
+pub const SWAP_BALANCE_INFO: Map<String, SwapBalanceDetails> = Map::new("current_reward_for_pool");

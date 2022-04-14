@@ -22,6 +22,7 @@ pub struct Config {
     pub transaction_fees: Uint128,
     ///Specified in percentage multiplied by 100, i.e. 100% = 10000 and 0.01% = 1
     pub control_fees: Uint128,
+    pub max_bonding_limit_per_user: u64,
 }
 
 pub const CONFIG_KEY: &str = "config";
@@ -50,6 +51,9 @@ pub struct ClubOwnershipDetails {
 
     /// has owner released the club to let another buyer purchase it
     pub owner_released: bool,
+
+    /// total amount staked across all stakes for this club
+    pub total_staked_amount: Uint128,
 }
 
 /// Used to shift previous owner from ClubOwnerShipDetails to a new state variable -
@@ -106,21 +110,30 @@ pub struct ClubBondingDetails {
     pub bonding_duration: u64,
 }
 
-// pub const ALLOWANCES: Map<(&Addr, &Addr), AllowanceResponse> = Map::new("allowance");
+
+/// This is used for saving various bonding details for an unstaked club
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
+#[serde(rename_all = "snake_case")]
+pub struct WinningClubDetails {
+    pub total_number_of_clubs: u64,
+    pub total_stake_across_all_clubs: Uint128,
+    pub total_stake_in_winning_club: Uint128,
+    pub winner_list: Vec<String>,
+}
 
 /// Map of clubs and its owners. the key is club name and the
 /// ClubOwnershipDetails will contain information about the owner
 pub const CLUB_OWNERSHIP_DETAILS: Map<String, ClubOwnershipDetails> =
     Map::new("club_ownership_details");
 
-/// Map of clubs and its stakers. the key is club name and the
+/// Map of clubs and its stakers. the key is club name and staker address and the
 /// ClubStakingDetails will contain information about the stakers and amount staked
-pub const CLUB_STAKING_DETAILS: Map<String, Vec<ClubStakingDetails>> =
+pub const CLUB_STAKING_DETAILS: Map<(&str, &str), Vec<ClubStakingDetails>> =
     Map::new("club_staking_details");
 
-/// Map of clubs and its bonders. the key is club name and the
+/// Map of clubs and its bonders. the key is club name and (un)staker address and the
 /// ClubBondingDetails will contain information about the bonders and amount bonded
-pub const CLUB_BONDING_DETAILS: Map<String, Vec<ClubBondingDetails>> =
+pub const CLUB_BONDING_DETAILS: Map<(&str, &str), Vec<ClubBondingDetails>> =
     Map::new("club_bonding_details");
 
 /// Map of previous owners and their reward points. the key is owner address and the
@@ -130,10 +143,12 @@ pub const CLUB_PREVIOUS_OWNER_DETAILS: Map<String, ClubPreviousOwnerDetails> =
     Map::new("club_previous_owner_details");
 
 pub const REWARD: Item<Uint128> = Item::new("staking_reward");
-
+pub const REWARD_GIVEN_IN_CURRENT_TIMESTAMP: Item<Uint128> = Item::new("reward_given_in_current_timestamp");
 pub const CLUB_REWARD_NEXT_TIMESTAMP: Item<Timestamp> = Item::new("club_reward_next_timestamp");
 
 /// Snapshot of ranking by stakes
 pub const CLUB_STAKING_SNAPSHOT: Map<String, Uint128> =
     Map::new("club_staking_snapshot");
 
+/// Snapshot of winning club details
+pub const WINNING_CLUB_DETAILS_SNAPSHOT: Item<WinningClubDetails> = Item::new("winning_club_details_snapshot");

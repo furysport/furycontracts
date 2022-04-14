@@ -1,4 +1,4 @@
-use cosmwasm_std::StdError;
+use cosmwasm_std::{StdError, Uint128};
 use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq)]
@@ -43,4 +43,32 @@ pub enum ContractError {
 
     #[error("Number Of Coins Sent Is Invalid")]
     InvalidNumberOfCoinsSent {},
+
+    #[error("Refund already claimed")]
+    RefundAlreadyClaimed {},
+    #[error("Reward already claimed")]
+    RewardAlreadyClaimed {},
+    #[error("Error Calcualting Plarform fee")]
+    ErrorCalculatingPlatformFee {},
+
+    #[error("Error Processing Batch For Reward Distribute, Both reward and refund cannot be zero ")]
+    ErrorProcessingBatch {},
+
+    #[error("Invalid Reply ID ")]
+    InvalidReplyId {},
+
+    #[error("Invalid Ammount to swap")]
+    InvalidSwap {
+        total_collection_in_pool: Uint128,
+        amount_to_swap: Uint128,
+    },
+    #[error("Value Mismatch ")]
+    ValueMismatch {
+        reward_in_fury: Uint128,
+        reward_in_total: Uint128,
+    },
+
+    #[error("Swap Info Not Found for Pool ")]
+    SwapInfoNotFound {},
+
 }
