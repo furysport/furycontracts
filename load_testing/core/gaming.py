@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 class GamingTestEngine(Engine):
     def __init__(self, debug, admin_wallet_memonic=None, admin_shift=None):
-        super().__init__(debug, admin_wallet_memonic,admin_shift)
+        super().__init__(debug, admin_wallet_memonic, admin_shift)
         logger.info("Setting Up Gaming Contract")
         self.contract_id = self.upload_wasm(self.admin_wallet, GAMING_CONTRACT_PATH)
         self.game_id = "Game001"
@@ -54,7 +54,7 @@ class GamingTestEngine(Engine):
     def perform_bidsubmit(self, wallet: Wallet, pool_type="H2H", pool_id="1", team_id="Team001"):
         logger.info("Loading Balance")
         logger.info(f"Current Gamer {wallet.key.acc_address}")
-        self.load_fury(wallet.key.acc_address, "5000000000")
+        # self.load_fury(wallet.key.acc_address, "5000000000")
         logger.info("Getting Funds To Send In Fury")
         funds_to_send = self.get_fury_equivalent_to_ust(self.pool_fee)
         logger.info(f"Sending {funds_to_send} FURY")
