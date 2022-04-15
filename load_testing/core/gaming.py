@@ -2,7 +2,7 @@ import logging
 
 from terra_sdk.client.lcd import Wallet
 
-from core.constants import GAMING_CONTRACT_PATH, GAMING_INIT, FURY_CONTRACT_ADDRESS
+from core.constants import GAMING_CONTRACT_PATH, GAMING_INIT, FURY_CONTRACT_ADDRESS, LIQUIDITY_PROVIDER
 from core.engine import Engine
 
 logger = logging.getLogger(__name__)
@@ -159,6 +159,10 @@ class GamingTestEngine(Engine):
         for wallet in wallets_for_test:
             self.fund_wallet(wallet)
             self.perform_bidsubmit(wallet)
+        if number_of_users > 5:
+            logger.info("Seeding the liquidity provider")
+            # More users require us to seed the LP so there is enough liquidity to perform swap
+            self.fund_wallet(LIQUIDITY_PROVIDER)
         self.lock_game_and_swap_balance(int(self.pool_fee) * number_of_users)
         self.reward_distribution_for_users(wallets_for_test)
         for wallet in wallets_for_test:

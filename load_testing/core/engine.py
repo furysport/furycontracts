@@ -190,9 +190,10 @@ class Engine(object):
         :param wallet:
         :return:
         """
-        logger.info(f"Funding Wallet {wallet.key.acc_address}")
-        self.load_fury(wallet.key.acc_address, "100000000")
-        self.load_ust(wallet.key.acc_address, 50000000)
+        address = wallet.key.acc_address if type(wallet) != str else wallet
+        logger.info(f"Funding Wallet {address}")
+        self.load_fury(address, "100000000")
+        self.load_ust(address, 50000000)
 
     def estimate_fee(self, message_list, wallet):
         estimate_fee = self.terra.tx.estimate_fee(
@@ -213,3 +214,10 @@ class Engine(object):
         """
         for i in range(0, len(principal_list), chunk_size):
             yield principal_list[i:i + chunk_size]
+
+    def get_wallet_from_addr(self, address):
+        return {
+            "key": {
+                "acc_address": address
+            }
+        }
