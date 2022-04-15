@@ -1,4 +1,6 @@
+import base64
 import datetime
+import json
 import logging
 from time import sleep
 from typing import Optional
@@ -227,3 +229,17 @@ class Engine(object):
                 "acc_address": address
             }
         }
+
+    def increase_allowance(self, sender: Wallet, spender: str, amount: str):
+        logger.info(f"Performing Increase Allowance From {sender.key.acc_address} to {spender} for {amount} $FURY")
+        response = self.sign_and_execute_contract(sender, FURY_CONTRACT_ADDRESS, {
+            "increase_allowance": {
+                "spender": "club_staking_address",
+                "amount": "100000"
+            }
+        })
+        logger.info(f"Increase Allowance Response Hash :{response.txhash}")
+
+    @staticmethod
+    def base64_encode_dict(dict_: dict):
+        return base64.urlsafe_b64encode(json.dumps(dict_).encode()).decode()

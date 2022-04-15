@@ -15,6 +15,6 @@ logging.basicConfig(
     }
 )
 
-with ThreadPoolExecutor(max_workers=5) as executor:
+with ThreadPoolExecutor(max_workers=20) as executor:
     for i in range(1, 9):
         future = executor.submit(GamingTestEngine(debug=debug, admin_wallet_memonic=None, admin_shift=i).run_test_1, 20)
