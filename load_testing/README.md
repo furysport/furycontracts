@@ -3,8 +3,9 @@
 ## Setup
 
 1. Make sure python is installed
-2. Run `pip install -r requirements.txt`
-3. Now To Run the Tests `python main.py`
+2. Replace LocalTerra/cofig/config.toml with the `config.toml` from this directory and then `docker-compose up`
+3. Run `pip install -r requirements.txt`
+4. Now To Run the Tests `python main.py`
 
 ## Notes:
 

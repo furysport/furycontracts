@@ -14,7 +14,9 @@ logging.basicConfig(
         logging.StreamHandler(sys.stdout)
     }
 )
+GamingTestEngine(debug).run_test_1(10)
+#
+# with ThreadPoolExecutor(max_workers=10) as executor:
+#     for i in range(1, 10):
+#         future = executor.submit(GamingTestEngine(debug=debug, admin_wallet_memonic=None, admin_shift=i).run_test_1, 20)
 
-with ThreadPoolExecutor(max_workers=20) as executor:
-    for i in range(1, 9):
-        future = executor.submit(GamingTestEngine(debug=debug, admin_wallet_memonic=None, admin_shift=i).run_test_1, 20)
