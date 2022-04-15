@@ -5,6 +5,7 @@ with open('json/localterra.json', 'r') as f:
 GAMING_CONTRACT_PATH = "../artifacts/gaming_pool.wasm"
 FURY_CONTRACT_ADDRESS = deployment_details.get("furyContractAddress")
 PROXY_CONTRACT_ADDRESS = deployment_details.get("proxyContractAddress")
+LIQUIDITY_PROVIDER = deployment_details.get("authLiquidityProvider")
 GAMING_INIT = {
     "minting_contract_address": FURY_CONTRACT_ADDRESS,
     "admin_address": "",
