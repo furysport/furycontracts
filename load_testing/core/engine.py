@@ -4,6 +4,7 @@ from time import sleep
 from typing import Optional
 
 import requests
+from core.constants import MINTING_WALLET_MEMONIC, PROXY_CONTRACT_ADDRESS, FURY_CONTRACT_ADDRESS
 from terra_sdk.client.lcd import LCDClient, Wallet
 from terra_sdk.client.localterra import LocalTerra
 from terra_sdk.core import Coins
@@ -13,8 +14,6 @@ from terra_sdk.core.wasm import MsgInstantiateContract, MsgExecuteContract, MsgS
 from terra_sdk.key.mnemonic import MnemonicKey
 from terra_sdk.util.contract import get_code_id, read_file_as_b64, get_contract_address
 
-from core.constants import MINTING_WALLET_MEMONIC, PROXY_CONTRACT_ADDRESS, FURY_CONTRACT_ADDRESS
-
 logger = logging.getLogger(__name__)
 
 
@@ -23,12 +22,15 @@ class Engine(object):
     Engine is a base for any test process and is meant to be inherited from.
     Methods from engine include handler for init,execute and query.
     Along with this Engine also has short hands for commonly used methods.
+    NOTE:
+    Admin shift is only applicable for LOCAL TERRA Use, we can use it to shift the admin to any from test_1 to test_10
     """
 
     def __init__(
             self,
             debug,
-            admin_wallet_memonic=None
+            admin_wallet_memonic=None,
+            admin_shift=None
     ):
         self.debug = debug
         self.config = {}
@@ -48,7 +50,11 @@ class Engine(object):
         if admin_wallet_memonic:
             self.admin_wallet = self.generate_wallet(admin_wallet_memonic)
         else:
-            self.admin_wallet = self.terra.wallets["test1"]
+            if admin_shift:
+                self.admin_wallet = self.terra.wallets[f"test{admin_shift}"]
+            else:
+                self.admin_wallet = self.terra.wallets["test1"]
+
         self.minting_wallet = self.generate_wallet(MINTING_WALLET_MEMONIC)
         logger.info(f"Current Admin Address:{self.admin_wallet.key.acc_address}")
 

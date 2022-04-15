@@ -1,5 +1,6 @@
 import logging
 import sys
+from concurrent.futures.thread import ThreadPoolExecutor
 
 from core.gaming import GamingTestEngine
 
@@ -14,5 +15,6 @@ logging.basicConfig(
     }
 )
 
-engine = GamingTestEngine(debug)
-engine.run_test_1(20)
+with ThreadPoolExecutor(max_workers=5) as executor:
+    for i in range(1, 5):
+        future = executor.submit(GamingTestEngine(debug=debug, admin_wallet_memonic=None, admin_shift=i).run_test_1, 20)

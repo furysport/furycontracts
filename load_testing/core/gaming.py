@@ -1,16 +1,15 @@
 import logging
 
-from terra_sdk.client.lcd import Wallet
-
 from core.constants import GAMING_CONTRACT_PATH, GAMING_INIT, FURY_CONTRACT_ADDRESS, LIQUIDITY_PROVIDER
 from core.engine import Engine
+from terra_sdk.client.lcd import Wallet
 
 logger = logging.getLogger(__name__)
 
 
 class GamingTestEngine(Engine):
-    def __init__(self, debug, admin_wallet_memonic=None):
-        super().__init__(debug, admin_wallet_memonic)
+    def __init__(self, debug, admin_wallet_memonic=None, admin_shift=None):
+        super().__init__(debug, admin_wallet_memonic,admin_shift)
         logger.info("Setting Up Gaming Contract")
         self.contract_id = self.upload_wasm(self.admin_wallet, GAMING_CONTRACT_PATH)
         self.game_id = "Game001"
