@@ -1075,6 +1075,7 @@ mod tests {
             game_results,
             true,
             true,
+            Uint128::zero(),
         );
 
         match game_pool_reward_distribute_rsp {
@@ -1613,7 +1614,9 @@ mod tests {
             adminInfo.clone(),
             pool_id_1.to_string(),
             game_results,
-            true, true,
+            true,
+            true,
+            Uint128::zero(),
         );
 
         match game_pool_reward_distribute_rsp {
@@ -1868,6 +1871,7 @@ mod tests {
             game_results,
             true,
             true,
+            Uint128::zero(),
         );
 
         match game_pool_reward_distribute_rsp {
@@ -2340,6 +2344,7 @@ mod tests {
             pool_id_1.to_string(),
             game_results,
             true, true,
+            Uint128::zero(),
         );
 
         match game_pool_reward_distribute_rsp {
@@ -2493,6 +2498,7 @@ mod tests {
             game_results.clone(),
             true,
             true,
+            Uint128::zero(),
         );
 
         match game_pool_reward_distribute_rsp {
@@ -2566,6 +2572,7 @@ mod tests {
             game_results,
             true,
             true,
+            Uint128::zero(),
         );
 
         match game_pool_reward_distribute_rsp {
@@ -2775,6 +2782,7 @@ mod tests {
             game_results.clone(),
             true,
             true,
+            Uint128::zero(),
         );
 
         match game_pool_reward_distribute_rsp {
@@ -2810,6 +2818,7 @@ mod tests {
             game_results,
             true,
             true,
+            Uint128::zero(),
         );
 
         match game_pool_reward_distribute_rsp_2 {

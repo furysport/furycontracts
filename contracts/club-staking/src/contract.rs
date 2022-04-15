@@ -1327,7 +1327,7 @@ fn save_staking_details(
         CLUB_STAKING_DETAILS.save(storage, (&club_name.clone(), &staker.clone()), &stakes)?;
     }
 
-    // Now update the total stake for this club 
+    // Now update the total stake for this club
     let owner = CLUB_OWNERSHIP_DETAILS.load(storage, club_name.clone())?;
     let mut total_staked_amount = owner.total_staked_amount;
     if increase_stake == INCREASE_STAKE {
@@ -1696,7 +1696,7 @@ fn distribute_reward_to_club_stakers(
         CLUB_STAKING_DETAILS.save(deps.storage, (&club_name.clone(), &staker.clone()), &updated_stakes_for_this_staker)?;
     }
 
-    // Now update the total stake for this club 
+    // Now update the total stake for this club
     CLUB_OWNERSHIP_DETAILS.save(
         deps.storage,
         club_name.clone(),
@@ -2887,7 +2887,7 @@ mod tests {
 
         /*
         27 Feb 2022, Commenting this out - because the reward is now moved to stake
-                     so there will be no previous owner details    
+                     so there will be no previous owner details
 
         let queryPrevOwnerDetailsBeforeRewardClaim =
             query_club_previous_owner_details(&mut deps.storage, "Owner001".to_string());
@@ -2898,7 +2898,7 @@ mod tests {
                     pod.previous_owner_address, pod.reward_amount
                 );
                 assert_eq!(pod.previous_owner_address, "Owner001".to_string());
-                assert_eq!(pod.reward_amount, Uint128::from(10000u128)); 
+                assert_eq!(pod.reward_amount, Uint128::from(10000u128));
             }
             Err(e) => {
                 println!("error parsing cpod header: {:?}", e);
