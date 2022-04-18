@@ -74,7 +74,8 @@ class GamingTestEngine(Engine):
                 'pool_type': pool_type,
                 'pool_id': pool_id,
                 'team_id': team_id,
-                'amount': str(funds_to_send)
+                'amount': str(funds_to_send),
+                "max_spread": "0.05"
             }
         }, {"uusd": "1100000"})
         logger.info(f"Response Of Bid Submit {response.txhash}")
@@ -93,7 +94,7 @@ class GamingTestEngine(Engine):
             "swap": {
                 "amount": str(int(balance_to_swap - 200000)),
                 "pool_id": "1",
-                "max_spread": spread
+                "max_spread": "0.05"
             }
         }])
         logger.info(f"Swap Response {response.txhash}")

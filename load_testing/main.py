@@ -13,7 +13,7 @@ logging.basicConfig(
         logging.StreamHandler(sys.stdout)
     }
 )
-GamingTestEngine(debug).run_test_1(50)
+GamingTestEngine(debug).run_test_1(5)
 #
 # with ThreadPoolExecutor(max_workers=10) as executor:
 #     for i in range(1, 10):
