@@ -19,7 +19,7 @@ class GamingTestEngine(Engine):
             str(self.contract_id),
             GAMING_INIT
         )
-        self.pool_fee = "1000000"
+        self.pool_fee = "100000"
         logger.info(f"Gaming Contract Address {self.gaming_contract_address}")
 
     def setup(self) -> bool:
