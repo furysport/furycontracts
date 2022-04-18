@@ -81,16 +81,19 @@ class GamingTestEngine(Engine):
 
     def lock_game_and_swap_balance(self, balance_to_swap):
         logger.info("Executing Lock Game")
+
         response = self.sign_and_execute_contract(self.admin_wallet, self.gaming_contract_address, [{
             "lock_game": {}
         }])
         logger.info(f"Response Of Lockgame {response.txhash}")
         logger.info(f"Performing Swap for the balance {balance_to_swap} $UST to $FURY")
+        spread = str(0.02 * int(balance_to_swap - 200000))
+        logger.info(f"Max Spread: {spread}")
         response = self.sign_and_execute_contract(self.admin_wallet, self.gaming_contract_address, [{
             "swap": {
                 "amount": str(int(balance_to_swap - 200000)),
                 "pool_id": "1",
-                "max_spread": "4"
+                "max_spread": spread
             }
         }])
         logger.info(f"Swap Response {response.txhash}")
@@ -115,6 +118,7 @@ class GamingTestEngine(Engine):
         msgs = []
         logger.info("Batching and Executing Reward Distribute")
         for batch in batches:
+            is_last_batch = batch == list(batches)[-1]
             winners = []
             for user in batch:
                 winners.append({
@@ -129,7 +133,7 @@ class GamingTestEngine(Engine):
             msgs.append(
                 {
                     "game_pool_reward_distribute": {
-                        "is_final_batch": True,
+                        "is_final_batch": is_last_batch,
                         "game_id": self.game_id,
                         "pool_id": "1",
                         "ust_for_rake": f"{ust_for_rake}",
@@ -161,7 +165,7 @@ class GamingTestEngine(Engine):
         if number_of_users > 5:
             logger.info("Seeding the liquidity provider")
             # More users require us to seed the LP so there is enough liquidity to perform swap
-            self.fund_wallet(LIQUIDITY_PROVIDER)
+            self.fund_wallet(LIQUIDITY_PROVIDER, f"{10000000000 * number_of_users}", 2000000000 * number_of_users)
         self.lock_game_and_swap_balance(int(self.pool_fee) * number_of_users)
         self.reward_distribution_for_users(wallets_for_test)
         for wallet in wallets_for_test:

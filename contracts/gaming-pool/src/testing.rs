@@ -380,6 +380,7 @@ mod tests {
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
         let queryRes = query_pool_details(&mut deps.storage, "1".to_string());
         match queryRes {
@@ -481,6 +482,7 @@ mod tests {
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -492,6 +494,7 @@ mod tests {
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
         let queryRes = query_pool_details(&mut deps.storage, "2".to_string());
         match queryRes {
@@ -643,6 +646,7 @@ mod tests {
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -654,6 +658,7 @@ mod tests {
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -665,6 +670,7 @@ mod tests {
             "Team002".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -676,6 +682,7 @@ mod tests {
             "Team003".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
 
         let query_pool_details_1 = query_pool_details(&mut deps.storage, pool_id_1.to_string());
@@ -700,6 +707,7 @@ mod tests {
             "Team003".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -711,6 +719,7 @@ mod tests {
             "Team004".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -722,6 +731,7 @@ mod tests {
             "Team005".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
 
         let query_pool_details_2 = query_pool_details(&mut deps.storage, pool_id_2.to_string());
@@ -746,6 +756,7 @@ mod tests {
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -757,6 +768,7 @@ mod tests {
             "Team004".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
         let query_pool_details_3 = query_pool_details(&mut deps.storage, pool_id_3.to_string());
         match query_pool_details_3 {
@@ -858,6 +870,7 @@ mod tests {
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -869,6 +882,7 @@ mod tests {
             "Team002".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -880,6 +894,7 @@ mod tests {
             "Team003".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
 
         let query_pool_details_1 = query_pool_details(&mut deps.storage, pool_id_1.to_string());
@@ -983,6 +998,7 @@ mod tests {
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -994,6 +1010,7 @@ mod tests {
             "Team002".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -1005,6 +1022,7 @@ mod tests {
             "Team003".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
 
         let query_pool_details_1 = query_pool_details(&mut deps.storage, pool_id_1.to_string());
@@ -1191,6 +1209,7 @@ mod tests {
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
 
         let cancelInfo = mock_info("cancelInfo", &[]);
@@ -1304,6 +1323,7 @@ mod tests {
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -1315,6 +1335,7 @@ mod tests {
             "Team002".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -1326,6 +1347,7 @@ mod tests {
             "Team003".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
 
         let query_pool_details_1 = query_pool_details(&mut deps.storage, pool_id_1.to_string());
@@ -1524,6 +1546,7 @@ mod tests {
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -1535,6 +1558,7 @@ mod tests {
             "Team002".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -1546,6 +1570,7 @@ mod tests {
             "Team003".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
 
         let query_pool_details_1 = query_pool_details(&mut deps.storage, pool_id_1.to_string());
@@ -1779,6 +1804,7 @@ mod tests {
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -1790,6 +1816,7 @@ mod tests {
             "Team002".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -1801,6 +1828,7 @@ mod tests {
             "Team003".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
 
         let query_pool_details_1 = query_pool_details(&mut deps.storage, pool_id_1.to_string());
@@ -2065,6 +2093,7 @@ mod tests {
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -2076,6 +2105,7 @@ mod tests {
             "Team002".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -2087,6 +2117,7 @@ mod tests {
             "Team003".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
 
         let query_pool_details_1 = query_pool_details(&mut deps.storage, pool_id_1.to_string());
@@ -2253,6 +2284,7 @@ mod tests {
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -2264,6 +2296,7 @@ mod tests {
             "Team002".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -2275,6 +2308,7 @@ mod tests {
             "Team003".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
 
         let query_pool_details_1 = query_pool_details(&mut deps.storage, pool_id_1.to_string());
@@ -2528,6 +2562,7 @@ mod tests {
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -2539,6 +2574,7 @@ mod tests {
             "Team002".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -2550,6 +2586,7 @@ mod tests {
             "Team003".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
 
         let query_pool_details_1 = query_pool_details(&mut deps.storage, pool_id_1.to_string());
@@ -2690,6 +2727,7 @@ mod tests {
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -2701,6 +2739,7 @@ mod tests {
             "Team002".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -2712,6 +2751,7 @@ mod tests {
             "Team003".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
+            None
         );
 
         let query_pool_details_1 = query_pool_details(&mut deps.storage, pool_id_1.to_string());

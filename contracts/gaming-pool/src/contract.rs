@@ -12,7 +12,7 @@ use cw2::set_contract_version;
 use crate::error::ContractError;
 use crate::execute::{cancel_game, claim_refund, claim_reward, create_pool, execute_sweep,
                      game_pool_bid_submit, game_pool_reward_distribute, lock_game,
-                     received_message, save_team_details, set_platform_fee_wallets,
+                     save_team_details, set_platform_fee_wallets,
                      set_pool_type_params, swap};
 use crate::msg::{BalanceResponse, ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
 use crate::query::{get_team_count_for_user_in_pool_type, query_all_pool_type_details, query_all_pools_in_game, query_all_teams, query_game_details, query_game_result, query_pool_collection, query_pool_details, query_pool_team_details, query_pool_type_details, query_refund, query_reward, query_swap_data_for_pool, query_team_details};
@@ -109,7 +109,6 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
-        ExecuteMsg::Receive(msg) => received_message(deps, env, info, msg),
         ExecuteMsg::SetPlatformFeeWallets { wallet_percentages } => {
             set_platform_fee_wallets(deps, info, wallet_percentages)
         }
@@ -135,7 +134,7 @@ pub fn execute(
         ExecuteMsg::LockGame {} => lock_game(deps, env, info),
         ExecuteMsg::CreatePool { pool_type } => create_pool(deps, env, info, pool_type),
         ExecuteMsg::ClaimReward { gamer } => claim_reward(deps, info, gamer, env),
-        ExecuteMsg::ClaimRefund { gamer } => claim_refund(deps, info, gamer, env, None),
+        ExecuteMsg::ClaimRefund { gamer, max_spread } => claim_refund(deps, info, gamer, env, None, max_spread),
         ExecuteMsg::GamePoolRewardDistribute {
             pool_id,
             game_winners,
@@ -148,9 +147,9 @@ pub fn execute(
             pool_id,
             team_id,
             amount,
+            max_spread
         } => game_pool_bid_submit(
-            deps, env, info, gamer, pool_type, pool_id, team_id, amount, false,
-        ),
+            deps, env, info, gamer, pool_type, pool_id, team_id, amount, false, max_spread),
         ExecuteMsg::Sweep { funds } => execute_sweep(deps, info, funds),
         ExecuteMsg::Swap {
             amount,

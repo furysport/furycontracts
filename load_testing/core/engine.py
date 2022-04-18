@@ -192,7 +192,7 @@ class Engine(object):
         response = self.terra.tx.broadcast(execute_tx)
         logger.info(f"Response Hash From UST Trasfer:{response.txhash}")
 
-    def fund_wallet(self, wallet: Wallet):
+    def fund_wallet(self, wallet: Wallet, amount_fury="100000000", amount_ust=50000000):
         """
         This method will Fund any provided wallet with LUNA AND UST COINS and AlSO FURY TOKENS
         :param wallet:
@@ -200,8 +200,8 @@ class Engine(object):
         """
         address = wallet.key.acc_address if type(wallet) != str else wallet
         logger.info(f"Funding Wallet {address}")
-        self.load_fury(address, "100000000")
-        self.load_ust(address, 50000000)
+        self.load_fury(address, amount_fury)
+        self.load_ust(address, amount_fury)
 
     def estimate_fee(self, message_list, wallet):
         estimate_fee = self.terra.tx.estimate_fee(

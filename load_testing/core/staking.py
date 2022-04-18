@@ -20,6 +20,7 @@ class StakingTestEngine(Engine):
         logger.info("Staking Test Instantiated, Setting new Club owners")
         self.club_owners = self.generate_wallets(2)
         self.auto_stake = True
+        self.amount_to_stake_per_club = "100000"
         [self.fund_wallet(owner) for owner in self.club_owners]
         self.contract_id = self.upload_wasm(self.admin_wallet, CLUB_STAKING_CONTRACT_PATH)
         CLUB_STAKING_INIT['admin_address'] = self.admin_wallet.key.acc_address
@@ -53,9 +54,38 @@ class StakingTestEngine(Engine):
         for owner in self.club_owners:
             self.buy_club(owner)
 
+    def stake_to_club(self, wallet: Wallet, club_name: str):
+        logger.info(f"Initiating Staaking for {wallet.key.acc_address} On Club {club_name}")
+        self.increase_allowance(wallet, self.club_staking_address, self.amount_to_stake_per_club)
+        logger.info("Getting Platform Fees For Staking On The Club")
+        stake_on_a_club_request = {
+            'stake_on_a_club': {
+                'staker': wallet.key.acc_address,
+                'club_name': club_name,
+                'amount': self.amount_to_stake_per_club,
+                'auto_stake': self.auto_stake,
+            }
+        }
+        platform_fees = self.query_contract(self.club_staking_address, {
+            "query_platform_fees": {
+                "msg": self.base64_encode_dict(stake_on_a_club_request)
+            }
+        })
+        logger.info(f"Response Of Platform Fees {platform_fees}")
+        logger.info("Executing Stake On a Club")
+        response = self.sign_and_execute_contract(
+            wallet,
+            self.club_staking_address,
+            stake_on_a_club_request,
+            {"uusd": platform_fees}
+        )
+        logger.info(f"Staking On a Club TX Hash {response.txhash}")
+
     def run_test_1(self, number_of_users):
         self.setup_clubs()
         logger.info(f"Loading {number_of_users} Users for Test")
         wallets_for_test = self.generate_wallets(number_of_users)
         for wallet in wallets_for_test:
             self.fund_wallet(wallet)
+            for owner in self.club_owners:
+                self.stake_to_club(wallet, self.get_club_name(owner))

@@ -34,7 +34,6 @@ pub struct MigrateMsg {}
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
-    Receive(Cw20ReceiveMsg),
     SetPlatformFeeWallets {
         wallet_percentages: Vec<WalletPercentage>
     },
@@ -55,7 +54,8 @@ pub enum ExecuteMsg {
         gamer: String
     },
     ClaimRefund {
-        gamer: String
+        gamer: String,
+        max_spread: Option<Decimal>,
     },
     GamePoolRewardDistribute {
         pool_id: String,
@@ -69,6 +69,7 @@ pub enum ExecuteMsg {
         pool_id: String,
         team_id: String,
         amount: Uint128,
+        max_spread: Option<Decimal>,
 
     },
     Sweep { funds: Vec<Coin> },
@@ -98,7 +99,7 @@ pub enum QueryMsg {
         gamer: String
     },
     QueryRefund {
-        gamer: String
+        gamer: String,
     },
     QueryGameResult {
         gamer: String,

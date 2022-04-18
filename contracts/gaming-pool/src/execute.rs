@@ -25,29 +25,6 @@ use crate::state::{CONFIG, CONTRACT_POOL_COUNT, CURRENT_REWARD_FOR_POOL, FeeDeta
                    PoolTypeDetails, SWAP_BALANCE_INFO, SwapBalanceDetails,
                    WalletPercentage, WalletTransferDetails};
 
-pub fn received_message(
-    deps: DepsMut,
-    env: Env,
-    info: MessageInfo,
-    message: Cw20ReceiveMsg,
-) -> Result<Response, ContractError> {
-    let msg: ReceivedMsg = from_binary(&message.msg)?;
-    let amount = Uint128::from(message.amount);
-    match msg {
-        ReceivedMsg::GamePoolBidSubmit(gpbsc) => game_pool_bid_submit(
-            deps,
-            env,
-            info,
-            gpbsc.gamer,
-            gpbsc.pool_type,
-            gpbsc.pool_id,
-            gpbsc.team_id,
-            amount,
-            false,
-        ),
-    }
-}
-
 pub fn set_platform_fee_wallets(
     deps: DepsMut,
     info: MessageInfo,
@@ -424,6 +401,7 @@ pub fn game_pool_bid_submit(
     team_id: String,
     amount: Uint128,
     testing: bool,
+    max_spread: Option<Decimal>,
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
     // Calculate
@@ -623,7 +601,7 @@ pub fn game_pool_bid_submit(
     let swap_message = AstroPortExecute::Swap {
         offer_asset: fury_asset_info,
         belief_price: None,
-        max_spread: Option::from(Decimal::from("0.5".to_string().parse().unwrap())),
+        max_spread: max_spread,
         to: Option::from(env.contract.address.to_string()),
     };
     // let tax_in_fury = fury_asset_info.deduct_tax(&deps.querier)?;
@@ -800,6 +778,7 @@ pub fn claim_refund(
     gamer: String,
     env: Env,
     testing: Option<bool>,
+    max_spread: Option<Decimal>,
 ) -> Result<Response, ContractError> {
     let testing_status = testing.unwrap_or(false);
     let mut refund_in_ust_fees = Uint128::default();
@@ -871,7 +850,7 @@ pub fn claim_refund(
     let swap_message = AstroPortExecute::Swap {
         offer_asset: ust_asset.clone(),
         belief_price: None,
-        max_spread: Option::from(Decimal::from_str("0.01")?),
+        max_spread: max_spread,
         to: Option::from(info.sender.to_string()),
     };
 
@@ -1207,7 +1186,7 @@ pub fn swap(
     let swap_message = AstroPortExecute::Swap {
         offer_asset: ust_asset.clone(),
         belief_price: None,
-        max_spread: Option::from(Decimal::from_str("0.05")?),
+        max_spread: max_spread,
         to: Option::from(env.contract.address.to_string()),
     };
 
