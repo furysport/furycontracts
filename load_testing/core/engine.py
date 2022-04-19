@@ -2,7 +2,6 @@ import base64
 import datetime
 import json
 import logging
-from pprint import pprint
 from time import sleep
 from typing import Optional
 
@@ -203,6 +202,43 @@ class Engine(object):
         logger.info(f"Funding Wallet {address}")
         self.load_fury(address, amount_fury)
         self.load_ust(address, amount_fury)
+
+    def fund_wallets(self, wallets: [Wallet], amount_fury="100000000", amount_ust=50000000):
+        logger.info(f"Funding {len(wallets)} $FURY {amount_fury} and $UST {amount_ust}")
+        total_fury = []
+        total_ust = []
+        for wallet in wallets:
+            msg = MsgExecuteContract(
+                sender=self.minting_wallet.key.acc_address,
+                contract=FURY_CONTRACT_ADDRESS,
+                execute_msg={
+                    "transfer": {
+                        "amount": str(amount_fury),
+                        "recipient": wallet.key.acc_address
+                    }
+                })
+            total_fury.append(msg)
+            msg = MsgSend(
+                self.admin_wallet.key.acc_address,
+                wallet.key.acc_address,
+                {"uusd": amount_ust, "uluna": "100000000"}
+            )
+            total_ust.append(msg)
+        batches_fury = list(self.divide_to_batches(total_fury, 500))
+        batches_ust = list(self.divide_to_batches(total_ust, 500))
+        for i in range(0, len(batches_ust)):
+            ust = batches_ust[i]
+            fury = batches_fury[i]
+            logger.info("Funding Batch With UST")
+            fee = self.estimate_fee(ust, self.admin_wallet)
+            execute_tx = self.admin_wallet.create_and_sign_tx(ust, fee=fee)
+            response = self.terra.tx.broadcast(execute_tx)
+            logger.info(f"Response From Funding Batch:{response.txhash}")
+            logger.info("Funding Batch With Fury")
+            fee = self.estimate_fee(fury, self.minting_wallet)
+            execute_tx = self.minting_wallet.create_and_sign_tx(fury, fee=fee)
+            response = self.terra.tx.broadcast(execute_tx)
+            logger.info(f"Response From Funding Batch:{response.txhash}")
 
     def estimate_fee(self, message_list, wallet):
         estimate_fee = self.terra.tx.estimate_fee(

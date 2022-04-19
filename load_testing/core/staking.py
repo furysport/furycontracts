@@ -1,8 +1,9 @@
 import logging
 
-from core.constants import CLUB_STAKING_CONTRACT_PATH, CLUB_STAKING_INIT, FURY_CONTRACT_ADDRESS
-from core.engine import Engine
 from terra_sdk.client.lcd import Wallet
+
+from load_testing.core.constants import CLUB_STAKING_CONTRACT_PATH, CLUB_STAKING_INIT, FURY_CONTRACT_ADDRESS
+from load_testing.core.engine import Engine
 
 """
 Notes
@@ -116,7 +117,7 @@ class StakingTestEngine(Engine):
 
     def distribute_reward_per_batch(self, club_name, users):
         logger.info("Executing Reward Distribute in Batches")
-        batches = list(self.divide_to_batches(users, 2))
+        batches = list(self.divide_to_batches(users, 500))
         logger.info(f"Batch-Sized to {len(batches)} Batches")
         for batch in batches:
             is_first = batch == batches[0]
@@ -136,8 +137,8 @@ class StakingTestEngine(Engine):
         self.setup_clubs()
         logger.info(f"Loading {number_of_users} Users for Test")
         wallets_for_test = self.generate_wallets(number_of_users)
+        self.fund_wallets(wallets_for_test)
         for wallet in wallets_for_test:
-            self.fund_wallet(wallet)
             for owner in self.club_owners:
                 self.stake_to_club(wallet, self.get_club_name(owner))
         for owner in self.club_owners:

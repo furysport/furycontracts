@@ -9,12 +9,12 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers={
-        logging.FileHandler("debug.log"),
+        logging.FileHandler("staking.log"),
         logging.StreamHandler(sys.stdout)
     }
 )
 # GamingTestEngine(debug).run_test_1(100)
-StakingTestEngine(debug).run_test_1(2000)
+StakingTestEngine(debug).run_test_1(5000)
 #
 # with ThreadPoolExecutor(max_workers=10) as executor:
 #     for i in range(1, 10):
