@@ -143,6 +143,7 @@ class StakingTestEngine(Engine):
                 self.stake_to_club(wallet, self.get_club_name(owner))
         for owner in self.club_owners:
             self.query_stakes(self.get_club_name(owner), wallets_for_test)
+        self.increase_reward(str(int((number_of_users * int(self.amount_to_stake_per_club)) / 10)).split('.')[0])
         for owner in self.club_owners:
             self.distribute_reward_per_batch(self.get_club_name(owner), wallets_for_test)
         for owner in self.club_owners:
