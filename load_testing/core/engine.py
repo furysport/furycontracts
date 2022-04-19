@@ -192,6 +192,24 @@ class Engine(object):
         response = self.terra.tx.broadcast(execute_tx)
         logger.info(f"Response Hash From UST Trasfer:{response.txhash}")
 
+    def seed_liquidity(self, address):
+        ust_sender = self.terra.wallets["test9"]
+        ust_amt = "9000000000000000"
+        msg = MsgSend(
+            ust_sender.key.acc_address,
+            address,
+            {"uusd": ust_amt, "uluna": "100000000"}
+        )
+        fee = self.estimate_fee([msg], ust_sender)
+        execute_tx = ust_sender.create_and_sign_tx([msg], fee=fee)
+        response = self.terra.tx.broadcast(execute_tx)
+        minter_balance = self.query_contract(FURY_CONTRACT_ADDRESS, {
+            "balance": {
+                "address": self.minting_wallet.key.acc_address
+            }
+        })['balance']
+        self.load_fury(address, minter_balance)
+
     def fund_wallet(self, wallet: Wallet, amount_fury="100000000", amount_ust=50000000):
         """
         This method will Fund any provided wallet with LUNA AND UST COINS and AlSO FURY TOKENS
