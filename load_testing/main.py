@@ -1,8 +1,12 @@
 import logging
 import sys
+from pprint import pprint
 
-from core.constants import LIQUIDITY_PROVIDER
+import self as self
+
+from core.constants import PROXY_CONTRACT_ADDRESS, LIQUIDITY_PROVIDER
 from core.engine import Engine
+from core.gaming import GamingTestEngine
 
 debug = True
 # This is the wallet with the most number of funds and so use it to seed and fund other wallets
@@ -24,4 +28,27 @@ logging.basicConfig(
 
 # Swap Test
 
-engine = Engine(debug).seed_liquidity(LIQUIDITY_PROVIDER)
+# engine = Engine(debug).seed_liquidity(LIQUIDITY_PROVIDER)
+
+engine = GamingTestEngine(debug)
+# engine.seed_liquidity(LIQUIDITY_PROVIDER)
+# engine.load_ust(engine.minting_wallet.key.acc_address, "10000000000")
+# pprint(engine.get_max_spread(50000000))
+swap = {
+    "swap": {
+        "to": engine.gaming_contract_address,
+        "offer_asset": {
+            "info": {
+                "native_token": {
+                    "denom": "uusd"
+                }
+            },
+            "amount": "100000000",
+        },
+        "max_spread": "0.05"
+    }
+}
+response = engine.execute(engine.terra.wallets["test6"], PROXY_CONTRACT_ADDRESS, swap, {
+    "uusd": "90000000"
+})
+pprint(response)
