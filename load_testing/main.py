@@ -14,7 +14,7 @@ logging.basicConfig(
     }
 )
 # GamingTestEngine(debug).run_test_1(100)
-StakingTestEngine(debug).run_test_1(10)
+StakingTestEngine(debug).run_test_1(2000)
 #
 # with ThreadPoolExecutor(max_workers=10) as executor:
 #     for i in range(1, 10):
