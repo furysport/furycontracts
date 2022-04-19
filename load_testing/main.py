@@ -1,7 +1,7 @@
 import logging
 import sys
 
-from core.gaming import GamingTestEngine
+from core.staking import StakingTestEngine
 
 debug = True
 # This is the wallet with the most number of funds and so use it to seed and fund other wallets
@@ -13,7 +13,8 @@ logging.basicConfig(
         logging.StreamHandler(sys.stdout)
     }
 )
-GamingTestEngine(debug).run_test_1(100)
+# GamingTestEngine(debug).run_test_1(100)
+StakingTestEngine(debug).run_test_1(10)
 #
 # with ThreadPoolExecutor(max_workers=10) as executor:
 #     for i in range(1, 10):

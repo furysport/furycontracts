@@ -234,8 +234,8 @@ class Engine(object):
         logger.info(f"Performing Increase Allowance From {sender.key.acc_address} to {spender} for {amount} $FURY")
         response = self.sign_and_execute_contract(sender, FURY_CONTRACT_ADDRESS, {
             "increase_allowance": {
-                "spender": "club_staking_address",
-                "amount": "100000"
+                "spender": spender,
+                "amount": amount
             }
         })
         logger.info(f"Increase Allowance Response Hash :{response.txhash}")

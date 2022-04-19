@@ -2,7 +2,7 @@ import logging
 
 from terra_sdk.client.lcd import Wallet
 
-from load_testing.core.constants import CLUB_STAKING_CONTRACT_PATH, CLUB_STAKING_INIT
+from load_testing.core.constants import CLUB_STAKING_CONTRACT_PATH, CLUB_STAKING_INIT, FURY_CONTRACT_ADDRESS
 from load_testing.core.engine import Engine
 
 """
@@ -81,6 +81,53 @@ class StakingTestEngine(Engine):
         )
         logger.info(f"Staking On a Club TX Hash {response.txhash}")
 
+    def query_stakes(self, club_name, users):
+        logger.info(f"Initiate Query For Club Stakes for {len(users)} Users on Club {club_name}")
+        batches = self.divide_to_batches(users, 2)
+        for batch in batches:
+            response = self.query_contract(self.club_staking_address, {
+                'club_staking_details': {
+                    'club_name': club_name,
+                    'user_list': batch
+                }
+            })
+            logger.info(f"Response Of Stakes: \n{response}")
+
+    def increase_reward(self, amount):
+        logger.info(f"Executing Increase Reward Amount to {amount}")
+        irs_request = {
+            "increase_reward_amount": {
+                "reward_from": self.admin_wallet.key.acc_address
+            }
+        }
+        encoded = self.base64_encode_dict(irs_request)
+        via_msg = {
+            "send": {
+                "contract": self.club_staking_address,
+                "amount": str(amount),
+                "msg": encoded
+            }
+        }
+        response = self.execute(self.admin_wallet, FURY_CONTRACT_ADDRESS, via_msg)
+        logger.info(f"Increase Reward Amount Response {response.txhash}")
+
+    def distribute_reward_per_batch(self, club_name, users):
+        logger.info("Executing Reward Distribute in Batches")
+        batches = list(self.divide_to_batches(users, 2))
+        logger.info(f"Batch-Sized to {len(batches)} Batches")
+        for batch in batches:
+            is_first = batch == batches[0]
+            is_last = batch == batches[-1]
+            response = self.execute(self.admin_wallet, self.club_staking_address, {
+                "calculate_and_distribute_rewards": {
+                    "staker_list": batch,
+                    "club_name": club_name,
+                    "is_first_batch": is_first,
+                    "is_final_batch": is_last
+                }
+            })
+            logger.info(f"Calculate and distribute reward response hash {response.txhash}")
+
     def run_test_1(self, number_of_users):
         self.setup_clubs()
         logger.info(f"Loading {number_of_users} Users for Test")
@@ -89,3 +136,9 @@ class StakingTestEngine(Engine):
             self.fund_wallet(wallet)
             for owner in self.club_owners:
                 self.stake_to_club(wallet, self.get_club_name(owner))
+        for owner in self.club_owners:
+            self.query_stakes(self.get_club_name(owner), wallets_for_test)
+        for owner in self.club_owners:
+            self.distribute_reward_per_batch(self.get_club_name(owner), wallets_for_test)
+        for owner in self.club_owners:
+            self.query_stakes(self.get_club_name(owner), wallets_for_test)
