@@ -2,6 +2,7 @@ import base64
 import datetime
 import json
 import logging
+from pprint import pprint
 from time import sleep
 from typing import Optional
 
@@ -232,12 +233,13 @@ class Engine(object):
 
     def increase_allowance(self, sender: Wallet, spender: str, amount: str):
         logger.info(f"Performing Increase Allowance From {sender.key.acc_address} to {spender} for {amount} $FURY")
-        response = self.sign_and_execute_contract(sender, FURY_CONTRACT_ADDRESS, {
+        msg = {
             "increase_allowance": {
                 "spender": spender,
                 "amount": amount
             }
-        })
+        }
+        response = self.sign_and_execute_contract(sender, FURY_CONTRACT_ADDRESS, [msg])
         logger.info(f"Increase Allowance Response Hash :{response.txhash}")
 
     @staticmethod

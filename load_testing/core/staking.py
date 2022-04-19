@@ -1,9 +1,8 @@
 import logging
 
+from core.constants import CLUB_STAKING_CONTRACT_PATH, CLUB_STAKING_INIT, FURY_CONTRACT_ADDRESS
+from core.engine import Engine
 from terra_sdk.client.lcd import Wallet
-
-from load_testing.core.constants import CLUB_STAKING_CONTRACT_PATH, CLUB_STAKING_INIT, FURY_CONTRACT_ADDRESS
-from load_testing.core.engine import Engine
 
 """
 Notes
@@ -35,9 +34,11 @@ class StakingTestEngine(Engine):
     def buy_club(self, wallet: Wallet):
         self.increase_allowance(wallet, self.club_staking_address, "100000")
         buy_a_club_request = {
-            'buyer': wallet.key.acc_address,
-            'club_name': self.get_club_name(wallet),
-            'auto_stake': self.auto_stake
+            "buy_a_club": {
+                'buyer': wallet.key.acc_address,
+                'club_name': self.get_club_name(wallet),
+                'auto_stake': self.auto_stake
+            }
         }
         logger.info("Getting Platform Fees for the Purchase")
         platform_fees = self.query_contract(self.club_staking_address, {
@@ -47,7 +48,8 @@ class StakingTestEngine(Engine):
         })
         logger.info(f"Platform Fee For The Purchase {platform_fees}")
         logger.info(f"Buying Club {self.get_club_name(wallet)} With {wallet.key.acc_address}")
-        response = self.sign_and_execute_contract(wallet, self.club_staking_address, {"uusd": str(platform_fees)})
+        response = self.execute(wallet, self.club_staking_address, buy_a_club_request,
+                                {"uusd": str(platform_fees)})
         logger.info(f"Buy a club response: {response.txhash}")
 
     def setup_clubs(self):
@@ -73,7 +75,7 @@ class StakingTestEngine(Engine):
         })
         logger.info(f"Response Of Platform Fees {platform_fees}")
         logger.info("Executing Stake On a Club")
-        response = self.sign_and_execute_contract(
+        response = self.execute(
             wallet,
             self.club_staking_address,
             stake_on_a_club_request,
@@ -85,10 +87,11 @@ class StakingTestEngine(Engine):
         logger.info(f"Initiate Query For Club Stakes for {len(users)} Users on Club {club_name}")
         batches = self.divide_to_batches(users, 2)
         for batch in batches:
+            b = [b.key.acc_address for b in batch]
             response = self.query_contract(self.club_staking_address, {
                 'club_staking_details': {
                     'club_name': club_name,
-                    'user_list': batch
+                    'user_list': b
                 }
             })
             logger.info(f"Response Of Stakes: \n{response}")
@@ -118,9 +121,10 @@ class StakingTestEngine(Engine):
         for batch in batches:
             is_first = batch == batches[0]
             is_last = batch == batches[-1]
+            b = [b.key.acc_address for b in batch]
             response = self.execute(self.admin_wallet, self.club_staking_address, {
                 "calculate_and_distribute_rewards": {
-                    "staker_list": batch,
+                    "staker_list": b,
                     "club_name": club_name,
                     "is_first_batch": is_first,
                     "is_final_batch": is_last
