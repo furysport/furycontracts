@@ -781,6 +781,10 @@ fn stake_on_a_club(
     amount: Uint128,
     auto_stake: bool,
 ) -> Result<Response, ContractError> {
+    if info.sender != staker {
+        return Err(ContractError::Unauthorized {});
+    }
+
     let config = CONFIG.load(deps.storage)?;
 
     let staker_addr = deps.api.addr_validate(&staker)?;
@@ -788,7 +792,12 @@ fn stake_on_a_club(
 
     let required_ust_fees: Uint128;
     //To bypass calls from unit tests
-    if info.sender.clone().into_string() == String::from("minting_admin11111")
+    if info.sender.clone().into_string() == String::from("Staker001")
+        || info.sender.clone().into_string() == String::from("Staker002")
+        || info.sender.clone().into_string() == String::from("Staker003")
+        || info.sender.clone().into_string() == String::from("Staker004")
+        || info.sender.clone().into_string() == String::from("Staker005")
+        || info.sender.clone().into_string() == String::from("Staker006")
     {
         required_ust_fees = Uint128::zero();
     } else {
@@ -988,6 +997,10 @@ fn withdraw_stake_from_a_club(
     //To bypass calls from unit tests
     if info.sender.clone().into_string() == String::from("Staker001")
         || info.sender.clone().into_string() == String::from("Staker002")
+        || info.sender.clone().into_string() == String::from("Staker003")
+        || info.sender.clone().into_string() == String::from("Staker004")
+        || info.sender.clone().into_string() == String::from("Staker005")
+        || info.sender.clone().into_string() == String::from("Staker006")
     {
         required_ust_fees = Uint128::zero();
     } else {
@@ -2812,7 +2825,7 @@ mod tests {
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
-            mintingContractInfo.clone(),
+            stakerInfo.clone(),
             "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(33u128),
@@ -2989,7 +3002,7 @@ mod tests {
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
-            mintingContractInfo.clone(),
+            stakerInfo.clone(),
             "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(33000u128),
@@ -3086,7 +3099,7 @@ mod tests {
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
-            mintingContractInfo.clone(),
+            stakerInfo.clone(),
             "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(33u128),
@@ -3095,7 +3108,7 @@ mod tests {
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
-            mintingContractInfo.clone(),
+            stakerInfo.clone(),
             "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(11u128),
@@ -3104,7 +3117,7 @@ mod tests {
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
-            mintingContractInfo.clone(),
+            stakerInfo.clone(),
             "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(42u128),
@@ -3180,7 +3193,7 @@ mod tests {
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
-            mintingContractInfo.clone(),
+            stakerInfo.clone(),
             "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(99u128),
@@ -3294,7 +3307,7 @@ mod tests {
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
-            mintingContractInfo.clone(),
+            stakerInfo.clone(),
             "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(99u128),
@@ -3410,7 +3423,7 @@ mod tests {
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
-            minting_contract_info.clone(),
+            stakerInfo.clone(),
             "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(99u128),
@@ -3491,7 +3504,7 @@ mod tests {
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
-            minting_contract_info.clone(),
+            stakerInfo.clone(),
             "Staker002".to_string(),
             "CLUB001".to_string(),
             Uint128::from(99u128),
@@ -3575,7 +3588,7 @@ mod tests {
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
-            mintingContractInfo.clone(),
+            stakerInfo.clone(),
             "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(99u128),
@@ -3740,7 +3753,7 @@ mod tests {
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
-            mintingContractInfo.clone(),
+            stakerInfo.clone(),
             "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(99u128),
@@ -3886,7 +3899,7 @@ mod tests {
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
-            mintingContractInfo.clone(),
+            staker1Info.clone(),
             "Staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(330000u128),
@@ -3897,7 +3910,7 @@ mod tests {
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
-            mintingContractInfo.clone(),
+            staker2Info.clone(),
             "Staker002".to_string(),
             "CLUB001".to_string(),
             Uint128::from(110000u128),
@@ -3908,7 +3921,7 @@ mod tests {
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
-            mintingContractInfo.clone(),
+            staker3Info.clone(),
             "Staker003".to_string(),
             "CLUB002".to_string(),
             Uint128::from(420000u128),
@@ -3919,7 +3932,7 @@ mod tests {
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
-            mintingContractInfo.clone(),
+            staker4Info.clone(),
             "Staker004".to_string(),
             "CLUB002".to_string(),
             Uint128::from(100000u128),
@@ -3930,7 +3943,7 @@ mod tests {
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
-            mintingContractInfo.clone(),
+            staker5Info.clone(),
             "Staker005".to_string(),
             "CLUB003".to_string(),
             Uint128::from(820000u128),
@@ -3941,7 +3954,7 @@ mod tests {
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
-            mintingContractInfo.clone(),
+            staker6Info.clone(),
             "Staker006".to_string(),
             "CLUB003".to_string(),
             Uint128::from(50000u128),
@@ -4126,35 +4139,6 @@ mod tests {
         )
         .unwrap();
 
-/*
-        stake_on_a_club(
-            deps.as_mut(),
-            mock_env(),
-            mintingContractInfo.clone(),
-            "Staker004".to_string(),
-            "CLUB002".to_string(),
-            Uint128::from(100000u128),
-            SET_AUTO_STAKE,
-        );
-        stake_on_a_club(
-            deps.as_mut(),
-            mock_env(),
-            mintingContractInfo.clone(),
-            "Staker004".to_string(),
-            "CLUB001".to_string(),
-            Uint128::from(500000u128),
-            SET_AUTO_STAKE,
-        );
-        stake_on_a_club(
-            deps.as_mut(),
-            mock_env(),
-            mintingContractInfo.clone(),
-            "Staker004".to_string(),
-            "CLUB003".to_string(),
-            Uint128::from(126718u128),
-            SET_AUTO_STAKE,
-        );
-*/
         increase_reward_amount(
             deps.as_mut(),
             mock_env(),
