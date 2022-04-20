@@ -342,6 +342,10 @@ fn buy_a_club(
     price: Uint128,
     auto_stake: bool,
 ) -> Result<Response, ContractError> {
+    if info.sender != buyer {
+        return Err(ContractError::Unauthorized {});
+    }
+
     println!("seller_opt = {:?}", seller_opt);
     let seller;
     match seller_opt.clone() {
@@ -1142,6 +1146,7 @@ fn withdraw_stake_from_a_club(
 
             // // PRE-MATURITY Withdrawal directly from Basic Stake , not even into Bonding - commented out to bypass 
             if withdrawal_amount > unbonded_amount {
+                println!("Not Sufficient Matured Unstaked Bonds");
                 // // Deduct 10% and burn it
                 //     burn_amount = (withdrawal_amount - unbonded_amount)
                 //         .checked_mul(Uint128::from(10u128))
@@ -3277,7 +3282,7 @@ mod tests {
         buy_a_club(
             deps.as_mut(),
             mock_env(),
-            mintingContractInfo.clone(),
+            owner1Info.clone(),
             "Owner001".to_string(),
             Some(String::default()),
             "CLUB001".to_string(),
@@ -3338,7 +3343,7 @@ mod tests {
         let query_stakes = query_all_stakes(&mut deps.storage, user_address_list.clone());
         match query_stakes {
             Ok(all_stakes) => {
-                assert_eq!(all_stakes.len(), 0);
+                assert_eq!(all_stakes.len(), 2);
             }
             Err(e) => {
                 println!("error parsing header: {:?}", e);
