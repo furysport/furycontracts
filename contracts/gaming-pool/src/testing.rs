@@ -528,7 +528,7 @@ mod tests {
 
         let rewardInfo = mock_info("rewardInfo", &[]);
         // Adding multile team to pool_1 for Game001
-        let ownerXInfo = mock_info("cwtoken11111", &[coin(1000, "stake")]);
+        let ownerXInfo = mock_info("Gamer001", &[coin(1000, "stake")]);
         // Adding same team twice in same pool
         game_pool_bid_submit(
             deps.as_mut(),
@@ -752,7 +752,7 @@ mod tests {
             }
         }
         let rewardInfo = mock_info("rewardInfo", &[]);
-        let ownerXInfo = mock_info("cwtoken11111", &[coin(1000, "stake")]);
+        let ownerXInfo = mock_info("Gamer002", &[coin(1000, "stake")]);
         // Adding same team twice in same pool
         game_pool_bid_submit(
             deps.as_mut(),
@@ -880,7 +880,7 @@ mod tests {
             }
         }
         let rewardInfo = mock_info("rewardInfo", &[]);
-        let ownerXInfo = mock_info("cwtoken11111", &[coin(1000, "stake")]);
+        let ownerXInfo = mock_info("Gamer002", &[coin(1000, "stake")]);
         // Adding same team twice in same pool
         game_pool_bid_submit(
             deps.as_mut(),
@@ -1205,7 +1205,7 @@ mod tests {
             }
         }
         let rewardInfo = mock_info("rewardInfo", &[]);
-        let ownerXInfo = mock_info("cwtoken11111", &[coin(1000, "stake")]);
+        let ownerXInfo = mock_info("Gamer002", &[coin(1000, "stake")]);
         // Adding same team twice in same pool
         game_pool_bid_submit(
             deps.as_mut(),
@@ -1428,7 +1428,7 @@ mod tests {
             rewardInfo.clone(),
             instantiate_msg,
         );
-        let ownerXInfo = mock_info("cwtoken11111", &[coin(1000, "stake")]);
+        let ownerXInfo = mock_info("Gamer002", &[coin(1000, "stake")]);
         // Adding same team twice in same pool
         game_pool_bid_submit(
             deps.as_mut(),
@@ -1686,7 +1686,7 @@ mod tests {
             }
         }
         let rewardInfo = mock_info("rewardInfo", &[]);
-        let ownerXInfo = mock_info("cwtoken11111", &[coin(1000, "stake")]);
+        let ownerXInfo = mock_info("Gamer002", &[coin(1000, "stake")]);
         // Adding same team twice in same pool
         game_pool_bid_submit(
             deps.as_mut(),
@@ -1975,7 +1975,7 @@ mod tests {
             astro_proxy_address: "ASTROPORT".to_string(),
         };
         let rewardInfo = mock_info("rewardInfo", &[]);
-        let ownerXInfo = mock_info("cwtoken11111", &[coin(1000, "stake")]);
+        let ownerXInfo = mock_info("Gamer002", &[coin(1000, "stake")]);
         // Adding same team twice in same pool
         game_pool_bid_submit(
             deps.as_mut(),
@@ -2166,7 +2166,7 @@ mod tests {
         }
         let rewardInfo = mock_info("rewardInfo", &[]);
 
-        let ownerXInfo = mock_info("cwtoken11111", &[coin(1000, "stake")]);
+        let ownerXInfo = mock_info("Gamer002", &[coin(1000, "stake")]);
         // Adding same team twice in same pool
         game_pool_bid_submit(
             deps.as_mut(),
@@ -2444,7 +2444,7 @@ mod tests {
         }
 
         let rewardInfo = mock_info("rewardInfo", &[]);
-        let ownerXInfo = mock_info("cwtoken11111", &[coin(1000, "stake")]);
+        let ownerXInfo = mock_info("Gamer002", &[coin(1000, "stake")]);
         // Adding same team twice in same pool
         game_pool_bid_submit(
             deps.as_mut(),
@@ -2609,7 +2609,7 @@ mod tests {
             astro_proxy_address: "ASTROPORT".to_string(),
         };
         let rewardInfo = mock_info("rewardInfo", &[]);
-        let ownerXInfo = mock_info("cwtoken11111", &[coin(1000, "stake")]);
+        let ownerXInfo = mock_info("Gamer002", &[coin(1000, "stake")]);
         // Adding same team twice in same pool
         game_pool_bid_submit(
             deps.as_mut(),

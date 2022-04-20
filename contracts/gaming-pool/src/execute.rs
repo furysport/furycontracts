@@ -403,6 +403,13 @@ pub fn game_pool_bid_submit(
     testing: bool,
     max_spread: Option<Decimal>,
 ) -> Result<Response, ContractError> {
+    //Check if gamer is same as invoker
+    if gamer != info.sender {
+        return Err(ContractError::Unauthorized {
+            invoker: info.sender.to_string(),
+        });
+    }
+
     let config = CONFIG.load(deps.storage)?;
     // Calculate
     let platform_fee = config.platform_fee; //  Should be in %
