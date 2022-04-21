@@ -1,8 +1,9 @@
 import logging
+import math
 import sys
 from pprint import pprint
 
-import self as self
+#import self as self
 
 from core.constants import PROXY_CONTRACT_ADDRESS, LIQUIDITY_PROVIDER
 from core.engine import Engine
@@ -29,23 +30,48 @@ logging.basicConfig(
 # Swap Test
 
 # engine = Engine(debug).seed_liquidity(LIQUIDITY_PROVIDER)
+engine = Engine(debug)
 
-engine = GamingTestEngine(debug)
+# engine = GamingTestEngine(debug)
 # engine.seed_liquidity(LIQUIDITY_PROVIDER)
 # engine.load_ust(engine.minting_wallet.key.acc_address, "10000000000")
 # pprint(engine.get_max_spread(50000000))
-swap = {
-    "swap": {
-        "to": engine.gaming_contract_address,
+simulate = {
+    "simulation": {
         "offer_asset": {
             "info": {
                 "native_token": {
                     "denom": "uusd"
                 }
             },
-            "amount": "100000000",
+            "amount": "10000000"
+        }
+    }
+}
+
+resp = engine.query_contract(PROXY_CONTRACT_ADDRESS, simulate)
+
+pprint(resp)
+max_spread = int(resp.get('spread_amount')) / int(resp.get('return_amount'))
+pprint(max_spread)
+max_spread *= 100
+pprint(max_spread)
+max_spread = math.ceil(max_spread)
+pprint(max_spread)
+max_spread /= 100
+pprint(max_spread)
+swap = {
+    "swap": {
+        "to": engine.admin_wallet.key.acc_address,
+        "offer_asset": {
+            "info": {
+                "native_token": {
+                    "denom": "uusd"
+                }
+            },
+            "amount": "10000000"
         },
-        "max_spread": "0.05"
+        "max_spread": str(max_spread)
     }
 }
 response = engine.execute(engine.terra.wallets["test6"], PROXY_CONTRACT_ADDRESS, swap, {
