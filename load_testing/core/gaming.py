@@ -19,7 +19,7 @@ class GamingTestEngine(Engine):
             str(self.contract_id),
             GAMING_INIT
         )
-        self.pool_fee = "100000"
+        self.pool_fee = "10000"
         logger.info(f"Gaming Contract Address {self.gaming_contract_address}")
 
     def setup(self) -> bool:
@@ -67,6 +67,8 @@ class GamingTestEngine(Engine):
             }
         })
         logger.info(f"Response Of Increase Allowance {response.txhash}")
+        spread = self.simulate_swap_ust(funds_to_send)
+        logger.info(f"Max Spread: {spread}")
         logger.info("Submitting Bid")
         response = self.execute(wallet, self.gaming_contract_address, {
             'game_pool_bid_submit_command': {
@@ -75,14 +77,13 @@ class GamingTestEngine(Engine):
                 'pool_id': pool_id,
                 'team_id': team_id,
                 'amount': str(funds_to_send),
-                "max_spread": "0.05"
+                "max_spread": str(spread)
             }
         }, {"uusd": "1100000"})
         logger.info(f"Response Of Bid Submit {response.txhash}")
 
     def lock_game_and_swap_balance(self, balance_to_swap: int):
         logger.info("Executing Lock Game")
-
         response = self.sign_and_execute_contract(self.admin_wallet, self.gaming_contract_address, [{
             "lock_game": {}
         }])
@@ -94,7 +95,7 @@ class GamingTestEngine(Engine):
             "swap": {
                 "amount": str(int(balance_to_swap - 200000)),
                 "pool_id": "1",
-                "max_spread": spread
+                "max_spread": str(spread)
             }
         }])
         logger.info(f"Swap Response {response.txhash}")
@@ -107,7 +108,7 @@ class GamingTestEngine(Engine):
         """
         logger.info(f"Executing Reward Distribution for {len(users)} Users")
         if len(users) > 10:
-            batches = self.divide_to_batches(users, 2)
+            batches = self.divide_to_batches(users, 50)
         else:
             batches = [users]
         ust_for_rake = self.query_contract(self.gaming_contract_address, {
@@ -160,8 +161,8 @@ class GamingTestEngine(Engine):
         logger.info(f"Running Test Setup with {number_of_users} Users Placing Bid")
         self.setup()
         wallets_for_test = self.generate_wallets(number_of_users)
+        self.fund_wallets(wallets_for_test)
         for wallet in wallets_for_test:
-            self.fund_wallet(wallet)
             self.perform_bidsubmit(wallet)
         if number_of_users > 5:
             logger.info("Seeding the liquidity provider")
@@ -171,3 +172,17 @@ class GamingTestEngine(Engine):
         self.reward_distribution_for_users(wallets_for_test)
         for wallet in wallets_for_test:
             self.claim_reward(wallet)
+
+    #
+    # def run_test_1_optimized(self, number_of_users):
+    #     logger.info(f"Running Test Setup with {number_of_users} Users Placing Bid")
+    #     self.setup()
+    #     wallets_for_test = self.generate_wallets(number_of_users)
+    #     self.fund_wallets(wallets_for_test)
+    #     # We break them into batches of 500 and then each thread will run manage the bidsubmit for that queue
+    #     batches = self.divide_to_batches(wallets_for_test, 500)
+    #     threads = []
+    #     for batch in batches:
+    #         threads.append(
+    #
+    #         )

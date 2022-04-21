@@ -1,7 +1,6 @@
 import logging
 import sys
 
-from core.engine import Engine
 # import self as self
 from core.gaming import GamingTestEngine
 
@@ -11,7 +10,7 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers={
-        logging.FileHandler("staking.log"),
+        logging.FileHandler("gaming.log"),
         logging.StreamHandler(sys.stdout)
     }
 )
