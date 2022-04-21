@@ -187,6 +187,7 @@ async function instantiateClubStaking(deploymentDetails) {
             platform_fees: "100",
             transaction_fees: "30",
             control_fees: "50",
+            max_bonding_limit_per_user: 100,
         }
         console.log(JSON.stringify(clubStakingInitMessage, null, 2));
         let result = await instantiateContract(mint_wallet, deploymentDetails.clubStakingId, clubStakingInitMessage);
@@ -621,13 +622,39 @@ async function distributeRewards(deploymentDetails) {
     //ADD DELAY small to check failure of quick withdraw - 30sec
     // await new Promise(resolve => setTimeout(resolve, 30000));
 
-    let cadrRequest = {
+    let cadrRequestClubA = {
         calculate_and_distribute_rewards: {
+            staker_list: 
+			[
+				ajay_wallet.key.accAddress,
+				nitin_wallet.key.accAddress,
+				sameer_wallet.key.accAddress,
+			],
+			club_name: "ClubA",
+			is_first_batch: true,
+			is_final_batch: false,
         }
     };
 
-	let cadrResponse = await executeContract(mint_wallet, deploymentDetails.clubStakingAddress, cadrRequest);
-	console.log("distribute reward transaction hash = " + cadrResponse['txhash']);
+	let cadrResponseClubA = await executeContract(mint_wallet, deploymentDetails.clubStakingAddress, cadrRequestClubA);
+	console.log("distribute reward Club A transaction hash = " + cadrResponseClubA['txhash']);
+
+    let cadrRequestClubB = {
+        calculate_and_distribute_rewards: {
+            staker_list: 
+			[
+				ajay_wallet.key.accAddress,
+				nitin_wallet.key.accAddress,
+				sameer_wallet.key.accAddress,
+			],
+			club_name: "ClubB",
+			is_first_batch: false,
+			is_final_batch: true,
+        }
+    };
+
+	let cadrResponseClubB = await executeContract(mint_wallet, deploymentDetails.clubStakingAddress, cadrRequestClubB);
+	console.log("distribute reward Club B transaction hash = " + cadrResponseClubB['txhash']);
 }
 
 async function queryBalances(deploymentDetails, accAddress, print) {

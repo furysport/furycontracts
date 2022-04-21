@@ -403,6 +403,13 @@ pub fn game_pool_bid_submit(
     testing: bool,
     max_spread: Option<Decimal>,
 ) -> Result<Response, ContractError> {
+    //Check if gamer is same as invoker
+    if gamer != info.sender {
+        return Err(ContractError::Unauthorized {
+            invoker: info.sender.to_string(),
+        });
+    }
+
     let config = CONFIG.load(deps.storage)?;
     // Calculate
     let platform_fee = config.platform_fee; //  Should be in %
@@ -506,7 +513,7 @@ pub fn game_pool_bid_submit(
     }
     let mut user_team_count = 0;
     // Here we load the details based on the user placing the bid
-    let ptd = POOL_TEAM_DETAILS.may_load(deps.storage, (&pool_id.clone(), info.sender.as_ref()))?;
+    let ptd = POOL_TEAM_DETAILS.may_load(deps.storage, (&pool_id.clone(), &gamer))?;
     match ptd {
         Some(std) => {
             let all_teams = std;
