@@ -108,7 +108,7 @@ class GamingTestEngine(Engine):
         """
         logger.info(f"Executing Reward Distribution for {len(users)} Users")
         if len(users) > 10:
-            batches = self.divide_to_batches(users, 50)
+            batches = self.divide_to_batches(users, 2)
         else:
             batches = [users]
         ust_for_rake = self.query_contract(self.gaming_contract_address, {
