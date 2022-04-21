@@ -80,7 +80,7 @@ class GamingTestEngine(Engine):
         }, {"uusd": "1100000"})
         logger.info(f"Response Of Bid Submit {response.txhash}")
 
-    def lock_game_and_swap_balance(self, balance_to_swap):
+    def lock_game_and_swap_balance(self, balance_to_swap: int):
         logger.info("Executing Lock Game")
 
         response = self.sign_and_execute_contract(self.admin_wallet, self.gaming_contract_address, [{
@@ -88,13 +88,13 @@ class GamingTestEngine(Engine):
         }])
         logger.info(f"Response Of Lockgame {response.txhash}")
         logger.info(f"Performing Swap for the balance {balance_to_swap} $UST to $FURY")
-        spread = str(0.02 * int(balance_to_swap - 200000))
+        spread = self.simulate_swap_ust(balance_to_swap)
         logger.info(f"Max Spread: {spread}")
         response = self.sign_and_execute_contract(self.admin_wallet, self.gaming_contract_address, [{
             "swap": {
                 "amount": str(int(balance_to_swap - 200000)),
                 "pool_id": "1",
-                "max_spread": "0.05"
+                "max_spread": spread
             }
         }])
         logger.info(f"Swap Response {response.txhash}")

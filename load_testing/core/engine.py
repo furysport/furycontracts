@@ -2,6 +2,7 @@ import base64
 import datetime
 import json
 import logging
+import math
 from time import sleep
 from typing import Optional
 
@@ -299,3 +300,23 @@ class Engine(object):
     @staticmethod
     def base64_encode_dict(dict_: dict):
         return base64.urlsafe_b64encode(json.dumps(dict_).encode()).decode()
+
+    def simulate_swap_ust(self, amount: int):
+        simulate = {
+            "simulation": {
+                "offer_asset": {
+                    "info": {
+                        "native_token": {
+                            "denom": "uusd"
+                        }
+                    },
+                    "amount": str(amount)
+                }
+            }
+        }
+        response = self.query_contract(PROXY_CONTRACT_ADDRESS, simulate)
+        max_spread = int(response.get('spread_amount')) / int(response.get('return_amount'))
+        max_spread *= 100
+        max_spread = math.ceil(max_spread)
+        max_spread /= 100
+        return max_spread
