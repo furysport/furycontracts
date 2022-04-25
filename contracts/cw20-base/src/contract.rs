@@ -1398,7 +1398,7 @@ mod tests {
     }
 
     #[test]
-    fn test_whitelist_executions() {   //TODO: needs to be reviewed 
+    fn test_whitelist_executions() { 
         use cw20::{Expiration};
 
         let mut deps = mock_dependencies(&[]);
