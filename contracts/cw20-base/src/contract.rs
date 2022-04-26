@@ -1,14 +1,14 @@
+use cosmwasm_std::{
+    Binary, Deps, DepsMut, Env, MessageInfo, Order, Response, StdError, StdResult, Timestamp, to_binary, Uint128,
+};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{
-    to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError, StdResult, Uint128, Timestamp, Order,
-};
 
-use cw2::set_contract_version;
 use cw20::{
     BalanceResponse, Cw20Coin, Cw20ExecuteMsg, Cw20ReceiveMsg, DownloadLogoResponse, EmbeddedLogo,
     Logo, LogoInfo, MarketingInfoResponse, MinterResponse, TokenInfoResponse,
 };
+use cw2::set_contract_version;
 
 use crate::allowances::{
     execute_burn_from, execute_decrease_allowance, execute_increase_allowance, execute_send_from,
@@ -16,10 +16,9 @@ use crate::allowances::{
 };
 use crate::enumerable::{query_all_accounts, query_all_allowances};
 use crate::error::ContractError;
-use crate::msg::{InstantiateMsg, QueryMsg, MigrateMsg};
-use crate::state::{MinterData, TokenInfo, BALANCES, LOGO, MARKETING_INFO, TOKEN_INFO,
-    RESTRICTED_TIMESTAMP, RESTRICTED_WALLET_LIST, RESTRICTED_CONTRACT_LIST};
-
+use crate::msg::{InstantiateMsg, MigrateMsg, QueryMsg};
+use crate::state::{BALANCES, LOGO, MARKETING_INFO, MinterData, RESTRICTED_CONTRACT_LIST, RESTRICTED_TIMESTAMP,
+                   RESTRICTED_WALLET_LIST, TOKEN_INFO, TokenInfo};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:cw20-base";
@@ -466,7 +465,7 @@ pub fn execute_send(
                 amount,
                 msg,
             }
-            .into_cosmos_msg(contract)?,
+                .into_cosmos_msg(contract)?,
         );
     Ok(res)
 }
@@ -583,11 +582,16 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::RestrictedWalletList {} => to_binary(&query_restricted_wallet_list(deps)?),
         QueryMsg::RestrictedContractList {} => to_binary(&query_restricted_contract_list(deps)?),
         QueryMsg::RestrictedListTimestamp {} => to_binary(&query_restricted_list_timestamp(deps)?),
+        QueryMsg::WhitelistRestriction {
+            wallet_address,
+            contract_address,
+            contract_check_needed,
+        } => to_binary(&query_white_list_restrictions(deps, _env, wallet_address, contract_address, contract_check_needed)?),
     }
 }
 
 pub fn query_restricted_list_timestamp(
-    deps: Deps, 
+    deps: Deps,
 ) -> StdResult<Timestamp> {
     let rts = RESTRICTED_TIMESTAMP.may_load(deps.storage)?;
     match rts {
@@ -601,7 +605,7 @@ pub fn query_restricted_list_timestamp(
 }
 
 pub fn query_restricted_wallet_list(
-    deps: Deps, 
+    deps: Deps,
 ) -> StdResult<Vec<String>> {
     let all_wallets: Vec<String> = RESTRICTED_WALLET_LIST
         .keys(deps.storage, None, None, Order::Ascending)
@@ -611,7 +615,7 @@ pub fn query_restricted_wallet_list(
 }
 
 pub fn query_restricted_contract_list(
-    deps: Deps, 
+    deps: Deps,
 ) -> StdResult<Vec<String>> {
     let all_contracts: Vec<String> = RESTRICTED_CONTRACT_LIST
         .keys(deps.storage, None, None, Order::Ascending)
@@ -621,11 +625,11 @@ pub fn query_restricted_contract_list(
 }
 
 pub fn query_white_list_restrictions(
-    deps: Deps, 
-    env: Env, 
+    deps: Deps,
+    env: Env,
     wallet_address: String,
     contract_address: String,
-    contract_check_needed: bool
+    contract_check_needed: bool,
 ) -> StdResult<bool> {
     let mut restricted = false;
     let rts = RESTRICTED_TIMESTAMP.may_load(deps.storage)?;
@@ -720,7 +724,7 @@ pub fn query_download_logo(deps: Deps) -> StdResult<DownloadLogoResponse> {
             data: logo,
         }),
         Logo::Embedded(EmbeddedLogo::Png(logo)) => Ok(DownloadLogoResponse {
-            mime_type: "image/png".to_owned(), 
+            mime_type: "image/png".to_owned(),
             data: logo,
         }),
         Logo::Url(_) => Err(StdError::not_found("logo")),
@@ -734,11 +738,12 @@ pub fn migrate(_deps: DepsMut, _env: Env, _msg: MigrateMsg) -> StdResult<Respons
 
 #[cfg(test)]
 mod tests {
+    use cosmwasm_std::{Addr, coins, CosmosMsg, from_binary, StdError, SubMsg, WasmMsg};
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
-    use cosmwasm_std::{coins, from_binary, Addr, CosmosMsg, StdError, SubMsg, WasmMsg};
+
+    use crate::msg::InstantiateMarketingInfo;
 
     use super::*;
-    use crate::msg::InstantiateMarketingInfo;
 
     fn get_balance<T: Into<String>>(deps: Deps, address: T) -> Uint128 {
         query_balance(deps, address.into()).unwrap().balance
@@ -802,7 +807,7 @@ mod tests {
             }
         );
         assert_eq!(get_balance(deps.as_ref(), addr), amount);
-        assert_eq!(query_minter(deps.as_ref()).unwrap(), mint,);
+        assert_eq!(query_minter(deps.as_ref()).unwrap(), mint, );
         meta
     }
 
@@ -1141,7 +1146,7 @@ mod tests {
             env.clone(),
             QueryMsg::Balance { address: addr1 },
         )
-        .unwrap();
+            .unwrap();
         let loaded: BalanceResponse = from_binary(&data).unwrap();
         assert_eq!(loaded.balance, amount1);
 
@@ -1153,7 +1158,7 @@ mod tests {
                 address: String::from("addr0002"),
             },
         )
-        .unwrap();
+            .unwrap();
         let loaded: BalanceResponse = from_binary(&data).unwrap();
         assert_eq!(loaded.balance, Uint128::zero());
     }
@@ -1319,8 +1324,8 @@ mod tests {
             amount: transfer,
             msg: send_msg,
         }
-        .into_binary()
-        .unwrap();
+            .into_binary()
+            .unwrap();
         // and this is how it must be wrapped for the vm to process it
         assert_eq!(
             res.messages[0],
@@ -1373,11 +1378,11 @@ mod tests {
         let mut contract_whitelist = Vec::new();
         contract_whitelist.push("Alphacontract".to_string());
         contract_whitelist.push("Betacontract".to_string());
-        set_whitelist_expiration_timestamp(deps.as_mut(), env.clone(), info.clone(), env.clone().block.time.plus_seconds(10*86400));
+        set_whitelist_expiration_timestamp(deps.as_mut(), env.clone(), info.clone(), env.clone().block.time.plus_seconds(10 * 86400));
         restricted_wallet_list_update(deps.as_mut(), env.clone(), info.clone(), wallet_whitelist, remove_list.clone());
         restricted_contract_list_update(deps.as_mut(), env.clone(), info.clone(), contract_whitelist, remove_list.clone());
         let timestamp = query_restricted_list_timestamp(deps.as_ref()).unwrap();
-        assert_eq!(timestamp, env.clone().block.time.plus_seconds(10*86400));
+        assert_eq!(timestamp, env.clone().block.time.plus_seconds(10 * 86400));
         let res2 = query_restricted_wallet_list(deps.as_ref()).unwrap();
         println!("wallet list = {:?}", res2);
         assert_eq!(res2.len(), 2);
@@ -1398,7 +1403,7 @@ mod tests {
     }
 
     #[test]
-    fn test_whitelist_executions() { 
+    fn test_whitelist_executions() {
         use cw20::{Expiration};
 
         let mut deps = mock_dependencies(&[]);
@@ -1431,7 +1436,7 @@ mod tests {
         let mut contract_whitelist = Vec::new();
         contract_whitelist.push("Alphacontract".to_string());
         contract_whitelist.push("Betacontract".to_string());
-        set_whitelist_expiration_timestamp(deps.as_mut(), env.clone(), info.clone(), env.clone().block.time.plus_seconds(10*86400));
+        set_whitelist_expiration_timestamp(deps.as_mut(), env.clone(), info.clone(), env.clone().block.time.plus_seconds(10 * 86400));
         restricted_wallet_list_update(deps.as_mut(), env.clone(), info.clone(), wallet_whitelist, remove_list.clone());
         restricted_contract_list_update(deps.as_mut(), env.clone(), info.clone(), contract_whitelist, remove_list.clone());
 
@@ -1486,21 +1491,21 @@ mod tests {
         println!("");
         println!("allowance wallet = {:?} contract = {:?}", restricted_wallet.clone(), restricted_contract.clone());
         let res4 = execute_increase_allowance(deps.as_mut(), env.clone(), info1.clone(), restricted_contract.clone(), amount2,
-                Some(Expiration::Never{}));
+                                              Some(Expiration::Never {}));
         println!("res4 = {:?}", res4);
         assert_ne!(res4, Err(StdError::generic_err("Whitelist Restricted").into()));
 
         println!("");
         println!("allowance wallet = {:?} contract = {:?}", restricted_wallet.clone(), unrestricted_contract.clone());
         let res5 = execute_increase_allowance(deps.as_mut(), env.clone(), info1.clone(), unrestricted_contract.clone(), amount2,
-                Some(Expiration::Never{}));
+                                              Some(Expiration::Never {}));
         println!("res5 = {:?}", res5);
         assert_eq!(res5, Err(StdError::generic_err("Whitelist Restricted").into()));
 
         println!("");
         println!("allowance wallet = {:?} contract = {:?}", addr2.clone(), restricted_contract.clone());
         let res6 = execute_increase_allowance(deps.as_mut(), env.clone(), info2.clone(), restricted_contract.clone(), amount2,
-                Some(Expiration::Never{}));
+                                              Some(Expiration::Never {}));
         println!("res6 = {:?}", res6);
         assert_ne!(res6, Err(StdError::generic_err("Whitelist Restricted").into()));
     }
@@ -1538,7 +1543,7 @@ mod tests {
         let mut contract_whitelist = Vec::new();
         contract_whitelist.push("Alphacontract".to_string());
         contract_whitelist.push("Betacontract".to_string());
-        set_whitelist_expiration_timestamp(deps.as_mut(), env.clone(), info2.clone(), env.clone().block.time.plus_seconds(10*86400));
+        set_whitelist_expiration_timestamp(deps.as_mut(), env.clone(), info2.clone(), env.clone().block.time.plus_seconds(10 * 86400));
         restricted_wallet_list_update(deps.as_mut(), env.clone(), info2.clone(), wallet_whitelist, remove_list.clone());
         restricted_contract_list_update(deps.as_mut(), env.clone(), info2.clone(), contract_whitelist, remove_list.clone());
         let err = query_restricted_list_timestamp(deps.as_ref());
@@ -1583,7 +1588,7 @@ mod tests {
                     marketing: Some("creator".to_owned()),
                 },
             )
-            .unwrap_err();
+                .unwrap_err();
 
             assert_eq!(err, ContractError::Unauthorized {});
 
@@ -1637,7 +1642,7 @@ mod tests {
                     marketing: None,
                 },
             )
-            .unwrap();
+                .unwrap();
 
             assert_eq!(res.messages, vec![]);
 
@@ -1690,7 +1695,7 @@ mod tests {
                     marketing: None,
                 },
             )
-            .unwrap();
+                .unwrap();
 
             assert_eq!(res.messages, vec![]);
 
@@ -1743,7 +1748,7 @@ mod tests {
                     marketing: None,
                 },
             )
-            .unwrap();
+                .unwrap();
 
             assert_eq!(res.messages, vec![]);
 
@@ -1796,7 +1801,7 @@ mod tests {
                     marketing: None,
                 },
             )
-            .unwrap();
+                .unwrap();
 
             assert_eq!(res.messages, vec![]);
 
@@ -1849,7 +1854,7 @@ mod tests {
                     marketing: Some("marketing".to_owned()),
                 },
             )
-            .unwrap();
+                .unwrap();
 
             assert_eq!(res.messages, vec![]);
 
@@ -1902,7 +1907,7 @@ mod tests {
                     marketing: Some("m".to_owned()),
                 },
             )
-            .unwrap_err();
+                .unwrap_err();
 
             assert!(
                 matches!(err, ContractError::Std(_)),
@@ -1959,7 +1964,7 @@ mod tests {
                     marketing: Some("".to_owned()),
                 },
             )
-            .unwrap();
+                .unwrap();
 
             assert_eq!(res.messages, vec![]);
 
@@ -2008,7 +2013,7 @@ mod tests {
                 info,
                 Cw20ExecuteMsg::UploadLogo(Logo::Url("new_url".to_owned())),
             )
-            .unwrap();
+                .unwrap();
 
             assert_eq!(res.messages, vec![]);
 
@@ -2057,7 +2062,7 @@ mod tests {
                 info,
                 Cw20ExecuteMsg::UploadLogo(Logo::Embedded(EmbeddedLogo::Png(PNG_HEADER.into()))),
             )
-            .unwrap();
+                .unwrap();
 
             assert_eq!(res.messages, vec![]);
 
@@ -2108,7 +2113,7 @@ mod tests {
                 info,
                 Cw20ExecuteMsg::UploadLogo(Logo::Embedded(EmbeddedLogo::Svg(img.into()))),
             )
-            .unwrap();
+                .unwrap();
 
             assert_eq!(res.messages, vec![]);
 
@@ -2159,7 +2164,7 @@ mod tests {
                 info,
                 Cw20ExecuteMsg::UploadLogo(Logo::Embedded(EmbeddedLogo::Png(img.into()))),
             )
-            .unwrap_err();
+                .unwrap_err();
 
             assert_eq!(err, ContractError::LogoTooBig {});
 
@@ -2207,8 +2212,8 @@ mod tests {
                 std::str::from_utf8(&[b'x'; 6000]).unwrap(),
                 "</svg>",
             ]
-            .concat()
-            .into_bytes();
+                .concat()
+                .into_bytes();
 
             let err = execute(
                 deps.as_mut(),
@@ -2216,7 +2221,7 @@ mod tests {
                 info,
                 Cw20ExecuteMsg::UploadLogo(Logo::Embedded(EmbeddedLogo::Svg(img.into()))),
             )
-            .unwrap_err();
+                .unwrap_err();
 
             assert_eq!(err, ContractError::LogoTooBig {});
 
@@ -2266,7 +2271,7 @@ mod tests {
                 info,
                 Cw20ExecuteMsg::UploadLogo(Logo::Embedded(EmbeddedLogo::Png(img.into()))),
             )
-            .unwrap_err();
+                .unwrap_err();
 
             assert_eq!(err, ContractError::InvalidPngHeader {});
 
@@ -2317,7 +2322,7 @@ mod tests {
                 info,
                 Cw20ExecuteMsg::UploadLogo(Logo::Embedded(EmbeddedLogo::Svg(img.into()))),
             )
-            .unwrap_err();
+                .unwrap_err();
 
             assert_eq!(err, ContractError::InvalidXmlPreamble {});
 

@@ -71,4 +71,7 @@ pub enum ContractError {
     #[error("Swap Info Not Found for Pool ")]
     SwapInfoNotFound {},
 
+    #[error("User Is Restricted..!")]
+    UserIsRestricted {},
+
 }

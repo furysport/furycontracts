@@ -1,8 +1,8 @@
 use cosmwasm_std::{StdError, StdResult, Uint128};
-use cw20::{Cw20Coin, Logo, MinterResponse};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+use cw20::{Cw20Coin, Logo, MinterResponse};
 pub use cw20::Cw20ExecuteMsg as ExecuteMsg;
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug, Clone, PartialEq)]
@@ -112,16 +112,21 @@ pub enum QueryMsg {
     DownloadLogo {},
     /// Checks whether the given address is in the Restricted Wallet List,
     /// Return type: boolean
-    IsRestrictedWallet{address: String},
+    IsRestrictedWallet { address: String },
     /// Checks whether the given address is in the Restricted Contract List,
     /// Return type: boolean
-    IsRestrictedContract{address: String},
+    IsRestrictedContract { address: String },
     /// Returns the list of wallet addresses in the Restricted Wallet List
-    RestrictedWalletList{},
+    RestrictedWalletList {},
     /// Returns the list of contract addresses in the Restricted Contract List
-    RestrictedContractList{},
+    RestrictedContractList {},
     /// Returns the Timestamp, when the Restrictions shall expire
-    RestrictedListTimestamp{},
+    RestrictedListTimestamp {},
+    WhitelistRestriction {
+        wallet_address: String,
+        contract_address: String,
+        contract_check_needed: bool,
+    },
 }
 
 /// We currently take no arguments for migrations

@@ -5,6 +5,7 @@ use std::str::FromStr;
 use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Reply, Response, StdResult, to_binary, Uint128};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
+use schemars::_serde_json::ser::State;
 
 use cw20::Cw20QueryMsg;
 use cw2::set_contract_version;
@@ -108,6 +109,8 @@ pub fn execute(
     info: MessageInfo,
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
+    // Query Cw20 Check list
+    check_and_confirm_whitelist_status(&deps, &info, &env)?;
     match msg {
         ExecuteMsg::SetPlatformFeeWallets { wallet_percentages } => {
             set_platform_fee_wallets(deps, info, wallet_percentages)
@@ -157,6 +160,28 @@ pub fn execute(
         } => swap(deps, env, info, amount, pool_id, max_spread),
     }
 }
+
+pub fn check_and_confirm_whitelist_status(
+    deps: &DepsMut,
+    info: &MessageInfo,
+    env: &Env,
+) -> Result<Response, ContractError> {
+    let query = cw20_base::msg::QueryMsg::WhitelistRestriction {
+        wallet_address: info.sender.to_string(),
+        contract_address: env.contract.address.to_string(),
+        contract_check_needed: true,
+    };
+    let state = CONFIG.load(deps.storage)?;
+    let response_is_restricted: bool = deps.querier.query_wasm_smart(
+        state.minting_contract_address,
+        &query,
+    )?;
+    if response_is_restricted {
+        return Err(ContractError::UserIsRestricted {})
+    }
+    return Ok(Response::default())
+}
+
 
 // This is the safe way of contract migration
 // We can add expose specific state properties to
