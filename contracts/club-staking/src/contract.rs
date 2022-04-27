@@ -1760,6 +1760,10 @@ fn distribute_reward_to_club_stakers(
 fn get_winning_clubs_details(
     storage: &mut dyn Storage,
 ) -> StdResult<(u64, Uint128, Uint128, Vec<String>)> {
+    let mut max_incremental_stake_value = 0i128 - MAX_UFURY_COUNT;
+    let mut max_total_stake_value = Uint128::zero();
+
+    let mut total_number_of_clubs = 0u64;
     let mut total_stake_across_all_clubs = Uint128::zero();
     let mut total_stake_in_winning_club = Uint128::zero();
     let mut winners: Vec<String> = Vec::new();
@@ -1779,32 +1783,64 @@ fn get_winning_clubs_details(
         let previous_amount_u128: u128 = previous_amount.into();
         let previous_amount_i128 = previous_amount_u128 as i128;
         let difference_amount = staked_amount_i128 - previous_amount_i128;
+
+        if difference_amount > max_incremental_stake_value {
+            // found a new max_incremental_stake
+            total_stake_in_winning_club = stake_in_club;
+            max_incremental_stake_value = difference_amount;
+            max_total_stake_value = stake_in_club;
+
+            // pop all pre-existing winners
+            let winner_len = winners.len();
+            let mut i = 0;
+            while i < winner_len {
+                winners.swap_remove(0);
+                i += 1;
+            }
+
+            // now add this stake to the winner list
+            winners.push(club.clone());
+        } else if difference_amount == max_incremental_stake_value {
+            if stake_in_club >= max_total_stake_value {
+                total_stake_in_winning_club = stake_in_club;
+                max_incremental_stake_value = difference_amount;
+                max_total_stake_value = stake_in_club;
+                if stake_in_club > max_total_stake_value {
+                    // found a new max_total_stake
+
+                    // pop all pre-existing winners
+                    let winner_len = winners.len();
+                    let mut i = 0;
+                    while i < winner_len {
+                        winners.swap_remove(0);
+                        i += 1;
+                    }
+
+                    // now add this stake to the winner list
+                    winners.push(club.clone());
+                } else if stake_in_club == max_total_stake_value {
+                    // more than one winners have same total and incremental stake
+
+                    // add this stake to the winner list
+                    winners.push(club.clone());
+                }
+                // else skip this club
+            }
+        }
+        // else skip this club
+
+        total_number_of_clubs += 1;
         all_stakes.push((club.clone(), difference_amount, stake_in_club));
         CLUB_STAKING_SNAPSHOT.save(storage, club.clone(), &stake_in_club)?;
     }
-    all_stakes.sort_by(|a, b| (b.1.cmp(&a.1)));
     println!("all_stakes = {:?}", all_stakes);
 
-    let total_number_of_clubs = all_stakes.len();
-    if total_number_of_clubs > 0 {
-        let mut i = 1;
-        winners.push(all_stakes[0].0.clone());
-        total_stake_in_winning_club = all_stakes[0].2;
-        while i < total_number_of_clubs {
-            if all_stakes[i].1 < all_stakes[0].1 ||
-                all_stakes[i].2 < all_stakes[0].2 {
-                break;
-            }
-            winners.push(all_stakes[i].0.clone());
-            i += 1;
-        }
-    }
     println!("total_clubs = {:?}, total_stake = {:?}, winning_stake = {:?}, winners = {:?}",
-             total_number_of_clubs as u64,
+             total_number_of_clubs,
              total_stake_across_all_clubs,
              total_stake_in_winning_club,
              winners);
-    Ok((total_number_of_clubs as u64,
+    Ok((total_number_of_clubs,
         total_stake_across_all_clubs,
         total_stake_in_winning_club,
         winners))
@@ -4138,6 +4174,36 @@ mod tests {
             instantiate_msg,
         )
         .unwrap();
+
+        /*
+        stake_on_a_club(
+            deps.as_mut(),
+            mock_env(),
+            staker4Info.clone(),
+            "Staker004".to_string(),
+            "CLUB002".to_string(),
+            Uint128::from(100000u128),
+            SET_AUTO_STAKE,
+        );
+        stake_on_a_club(
+            deps.as_mut(),
+            mock_env(),
+            staker4Info.clone(),
+            "Staker004".to_string(),
+            "CLUB001".to_string(),
+            Uint128::from(500000u128),
+            SET_AUTO_STAKE,
+        );
+        stake_on_a_club(
+            deps.as_mut(),
+            mock_env(),
+            staker4Info.clone(),
+            "Staker004".to_string(),
+            "CLUB003".to_string(),
+            Uint128::from(126718u128),
+            SET_AUTO_STAKE,
+        );
+        */
 
         increase_reward_amount(
             deps.as_mut(),
