@@ -743,7 +743,6 @@ pub fn claim_reward(
     // Do the transfer of reward to the actual gamer_addr from the contract
     let config = CONFIG.load(deps.storage)?;
     let mut messages = Vec::new();
-    // TODO Review
     let fee_details = query_platform_fees(user_reward, config.platform_fee, config.transaction_fee)?;
     // We only take the first coin object since we only expect UST here
     if info.funds.len() != 0 {
@@ -754,6 +753,13 @@ pub fn claim_reward(
     } else {
         return Err(ContractError::InsufficientFeesUst {});
     }
+
+
+    let r = CosmosMsg::Bank(BankMsg::Send {
+        to_address: config.platform_fees_collector_wallet.to_string(),
+        amount: info.funds,
+    });
+    messages.push(r);
 
 
     let transfer_msg = Cw20ExecuteMsg::Transfer {
@@ -1035,9 +1041,6 @@ pub fn game_pool_reward_distribute(
                     && team.team_id == winner.team_id
                     && team.game_id == winner.game_id
                 {
-                    if winner.reward_amount.is_zero() && winner.refund_amount.is_zero() {
-                        return Err(ContractError::ErrorProcessingBatch {});
-                    }
                     if winner.reward_amount.is_zero() {
                         updated_team.refund_amount = winner.refund_amount;
                     } else {
@@ -1146,13 +1149,12 @@ pub fn swap(
     // This is the total funds we have in the pool as UST
     let total_collection_in_pool = pool_type_details.pool_fee.checked_mul(Uint128::from(pool_details.current_teams_count)).unwrap_or_default();
     //  We need the amount to be less else there is no funds left for rake
+    let funds_for_rake;
     if amount >= total_collection_in_pool {
-        return Err(ContractError::InvalidSwap {
-            total_collection_in_pool,
-            amount_to_swap: amount,
-        });
+        funds_for_rake = Uint128::zero();
+    } else {
+        funds_for_rake = total_collection_in_pool - amount;
     }
-    let funds_for_rake = total_collection_in_pool - amount;
     if info.sender != config.admin_address {
         return Err(ContractError::Unauthorized {
             invoker: info.sender.to_string(),
