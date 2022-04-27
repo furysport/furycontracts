@@ -124,6 +124,9 @@ pub enum QueryMsg {
     SwapInfo {
         pool_id: String
     },
+    GetTotalFees {
+        amount: Uint128
+    },
 }
 
 

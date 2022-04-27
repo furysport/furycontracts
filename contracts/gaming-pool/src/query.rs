@@ -2,7 +2,8 @@ use cosmwasm_std::{Deps, Order, StdError, StdResult, Storage, Uint128};
 
 use crate::contract::{DUMMY_WALLET, INITIAL_TEAM_POINTS, INITIAL_TEAM_RANK,
                       UNCLAIMED_REFUND, UNCLAIMED_REWARD};
-use crate::state::{CONFIG, GAME_DETAILS, GAME_RESULT_DUMMY, GameDetails, GameResult, POOL_DETAILS, POOL_TEAM_DETAILS, POOL_TYPE_DETAILS, PoolDetails, PoolTeamDetails, PoolTypeDetails, SWAP_BALANCE_INFO, SwapBalanceDetails};
+use crate::execute::query_platform_fees;
+use crate::state::{CONFIG, FeeDetails, GAME_DETAILS, GAME_RESULT_DUMMY, GameDetails, GameResult, POOL_DETAILS, POOL_TEAM_DETAILS, POOL_TYPE_DETAILS, PoolDetails, PoolTeamDetails, PoolTypeDetails, SWAP_BALANCE_INFO, SwapBalanceDetails};
 
 pub fn query_pool_type_details(
     storage: &dyn Storage,
@@ -13,6 +14,15 @@ pub fn query_pool_type_details(
         Some(ptd) => return Ok(ptd),
         None => return Err(StdError::generic_err("No pool type details found")),
     };
+}
+
+pub fn query_total_fees(
+    deps: Deps,
+    amount: Uint128,
+) -> StdResult<FeeDetails> {
+    let config = CONFIG.load(deps.storage)?;
+    let result = query_platform_fees(amount, config.platform_fee, config.transaction_fee)?;
+    return Ok(result);
 }
 
 pub fn query_all_pool_type_details(storage: &dyn Storage) -> StdResult<Vec<PoolTypeDetails>> {

@@ -16,7 +16,7 @@ use crate::execute::{cancel_game, claim_refund, claim_reward, create_pool, execu
                      save_team_details, set_platform_fee_wallets,
                      set_pool_type_params, swap};
 use crate::msg::{BalanceResponse, ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
-use crate::query::{get_team_count_for_user_in_pool_type, query_all_pool_type_details, query_all_pools_in_game, query_all_teams, query_game_details, query_game_result, query_pool_collection, query_pool_details, query_pool_team_details, query_pool_type_details, query_refund, query_reward, query_swap_data_for_pool, query_team_details};
+use crate::query::{get_team_count_for_user_in_pool_type, query_all_pool_type_details, query_all_pools_in_game, query_all_teams, query_game_details, query_game_result, query_pool_collection, query_pool_details, query_pool_team_details, query_pool_type_details, query_refund, query_reward, query_swap_data_for_pool, query_team_details, query_total_fees};
 use crate::state::{Config, CONFIG, GAME_DETAILS, GAME_RESULT_DUMMY, GameDetails, GameResult, SWAP_BALANCE_INFO};
 
 // This is a comment
@@ -233,6 +233,12 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
             deps.storage,
             pool_id,
         )?),
+        QueryMsg::GetTotalFees {
+            amount
+        } => to_binary(&query_total_fees(
+            deps,
+            amount,
+        )?)
     }
 }
 
