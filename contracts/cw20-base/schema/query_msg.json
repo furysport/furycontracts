@@ -244,6 +244,34 @@
         }
       },
       "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "whitelist_restriction"
+      ],
+      "properties": {
+        "whitelist_restriction": {
+          "type": "object",
+          "required": [
+            "contract_address",
+            "contract_check_needed",
+            "wallet_address"
+          ],
+          "properties": {
+            "contract_address": {
+              "type": "string"
+            },
+            "contract_check_needed": {
+              "type": "boolean"
+            },
+            "wallet_address": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "additionalProperties": false
     }
   ]
 }

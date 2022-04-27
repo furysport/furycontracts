@@ -158,11 +158,10 @@ export async function queryCodeInfo(code_id) {
 export async function get_server_epoch_seconds() {
     const blockInfo = await terraClient.tendermint.blockInfo()
     const time = blockInfo['block']['header']['time']
-    let dateObject = new Date(time);
-    let epoch = dateObject.getTime();
-    return Math.round(epoch / 1000)
-}
 
+    let dateObject = new Date(time);
+    return dateObject.getTime()
+}
 export async function queryBankUusd(address) {
     let response = await terraClient.bank.balance(address)
     let value;

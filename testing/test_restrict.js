@@ -1,5 +1,12 @@
 import {GamingContractPath, mint_wallet, treasury_wallet, walletTest1,} from './constants.js';
-import {executeContract, instantiateContract, migrateContract, queryContract, storeCode} from "./utils.js";
+import {
+    executeContract,
+    get_server_epoch_seconds,
+    instantiateContract,
+    migrateContract,
+    queryContract,
+    storeCode
+} from "./utils.js";
 
 import {promisify} from 'util';
 
@@ -19,8 +26,8 @@ const assert = chai.assert;
 // Init and Vars
 const sleep_time = 500
 let gaming_contract_address = ""
-let proxy_contract_address = "terra19zpyd046u4swqpksr3n44cej4j8pg6ah2y6dcg"
-let fury_contract_address = "terra18vd8fpwxzck93qlwghaj6arh4p7c5n896xzem5"
+let proxy_contract_address = "terra1tdf02xst4jjnd8dcuh70pvvzk2ufgqlrnr7jz8"
+let fury_contract_address = "terra1nxnwrrtrfva6fk0xzz349uxl7jcdzsnydx3huz"
 const gamer = treasury_wallet.key.accAddress
 // const gamer_extra_1 = walletTest3.key.accAddress
 // const gamer_extra_2 = walletTest4.key.accAddress
@@ -320,15 +327,9 @@ async function test_game_pool_reward_distribute(time) {
 
 const setup_restriction = async function (time) {
     console.log("Setting Up Restriction")
-    console.log("Setting Up Expiration 1651357120")
-    let response = await executeContract(mint_wallet, fury_contract_address, {
-        set_white_list_expiration_time_stamp: {
-            timestamp: 1651357120
-        }
-    })
-    console.log(`Response Hash ${response.txhash}`)
+
     console.log("Adding Wallet1 to be restricted")
-    response = await executeContract(mint_wallet, fury_contract_address, {
+    let response = await executeContract(mint_wallet, fury_contract_address, {
         restricted_wallet_list_update: {
             "add_list": [walletTest1.key.accAddress],
             "remove_list": [],
@@ -336,6 +337,7 @@ const setup_restriction = async function (time) {
         }
     })
     console.log(`Response Hash ${response.txhash}`)
+
     console.log("Adding Gmaing Contract to be restricted")
     response = await executeContract(mint_wallet, fury_contract_address, {
         restricted_contract_list_update: {
@@ -345,10 +347,18 @@ const setup_restriction = async function (time) {
         }
     })
     console.log(`Response Hash ${response.txhash}`)
+    console.log("Setting Up Expiration 1651357120")
+    let r = await get_server_epoch_seconds()
+     response = await executeContract(mint_wallet, fury_contract_address, {
+        set_white_list_expiration_timestamp: {
+            timestamp: "1867451658467647709"
+        }
+    })
+    console.log(`Response Hash ${response.txhash}`)
 
 
 }
-
+// console.log(r)
 await test_create_and_query_game(sleep_time)
 await test_create_and_query_pool(sleep_time)
 await set_pool_headers_for_H2H_pool_type(sleep_time)
