@@ -1768,7 +1768,6 @@ fn get_winning_clubs_details(
     let mut total_stake_in_winning_club = Uint128::zero();
     let mut winners: Vec<String> = Vec::new();
 
-    let mut all_stakes = Vec::new();
     let all_clubs: Vec<String> = CLUB_OWNERSHIP_DETAILS
         .keys(storage, None, None, Order::Ascending)
         .map(|k| String::from_utf8(k).unwrap())
@@ -1830,10 +1829,8 @@ fn get_winning_clubs_details(
         // else skip this club
 
         total_number_of_clubs += 1;
-        all_stakes.push((club.clone(), difference_amount, stake_in_club));
         CLUB_STAKING_SNAPSHOT.save(storage, club.clone(), &stake_in_club)?;
     }
-    println!("all_stakes = {:?}", all_stakes);
 
     println!("total_clubs = {:?}, total_stake = {:?}, winning_stake = {:?}, winners = {:?}",
              total_number_of_clubs,
