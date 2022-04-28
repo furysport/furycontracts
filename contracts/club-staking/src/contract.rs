@@ -3,7 +3,7 @@ use cosmwasm_std::{
     Reply, Response, StdError, StdResult, Storage, SubMsg, to_binary, Uint128, WasmMsg,
 };
 #[cfg(not(feature = "library"))]
-use cosmwasm_std::entry_point;
+use cosmwasm_std::{entry_point, Timestamp};
 
 use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg};
 use cw2::set_contract_version;
@@ -1547,7 +1547,10 @@ fn calculate_and_distribute_rewards(
         env.block.time, next_reward_time, config.reward_periodicity, is_first_batch, is_final_batch
     );
 
+    let saved_next_reward_timestamp = next_reward_time;
+
     if env.block.time < next_reward_time {
+        println!("Time for Reward not yet arrived");
         return Err(ContractError::Std(StdError::GenericErr {
             msg: String::from("Time for Reward not yet arrived"),
         }));
@@ -1566,7 +1569,7 @@ fn calculate_and_distribute_rewards(
             .add_attribute("next_timestamp", next_reward_time.to_string())
         );
     }
-    distribute_reward_to_club_stakers(deps, env, config.reward_periodicity,
+    distribute_reward_to_club_stakers(deps, env, config.reward_periodicity, saved_next_reward_timestamp,
         staker_list.clone(), club_name.clone(), total_reward, is_first_batch, is_final_batch)
 }
 
@@ -1574,6 +1577,7 @@ fn distribute_reward_to_club_stakers(
     deps: DepsMut,
     env: Env,
     reward_periodicity: u64,
+    saved_next_reward_timestamp: Timestamp,
     staker_list: Vec<String>,
     club_name: String,
     total_reward: Uint128,
@@ -1680,7 +1684,13 @@ fn distribute_reward_to_club_stakers(
                     if updated_stake.staking_start_timestamp > env.block.time {
                         continue;
                     }
-                    updated_stake.staking_start_timestamp = updated_stake.staking_start_timestamp.plus_seconds(reward_periodicity);
+                    if saved_next_reward_timestamp < env.block.time {
+                        updated_stake.staking_start_timestamp = saved_next_reward_timestamp.plus_seconds(reward_periodicity);
+                        println!("setting timestamp for stake = {:?}", updated_stake.staking_start_timestamp);
+                    } else {
+                        updated_stake.staking_start_timestamp = saved_next_reward_timestamp;
+                        println!("setting timestamp for stake = {:?}", updated_stake.staking_start_timestamp);
+                    }
 
                     let auto_stake = updated_stake.auto_stake;
 
@@ -3872,7 +3882,8 @@ mod tests {
             minting_contract_address: "minting_admin11111".to_string(),
             astro_proxy_address: "astro_proxy_address1111".to_string(),
             club_fee_collector_wallet: "club_fee_collector_wallet11111".to_string(),
-            club_reward_next_timestamp: now.minus_seconds(8 * 60 * 60),
+            //club_reward_next_timestamp: now.minus_seconds(8 * 60 * 60),
+            club_reward_next_timestamp: now.minus_seconds(1),
             reward_periodicity: 5 * 60 * 60u64,
             club_price: Uint128::from(1000000u128),
             bonding_duration: 5 * 60u64,
@@ -4145,7 +4156,6 @@ mod tests {
                         msg: String::from("Time for Reward not yet arrived")
                     }))
                 );
-        */
 
         // test by preponing club_reward_next_timestamp
         let instantiate_msg = InstantiateMsg {
@@ -4172,7 +4182,6 @@ mod tests {
         )
         .unwrap();
 
-        /*
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
