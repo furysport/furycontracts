@@ -1,32 +1,34 @@
-import fs from "fs";
-import chalk from "chalk";
-import { isTxError } from "@terra-money/terra.js/dist/client/lcd/api/TxAPI.js";
-import {
+const fs = require("fs");
+const chalk = require("chalk");
+const {
+  isTxError,
+} = require("@terra-money/terra.js/dist/client/lcd/api/TxAPI.js");
+const {
   MsgExecuteContract,
   MsgInstantiateContract,
   MsgStoreCode,
-} from "@terra-money/terra.js/dist/core/wasm/msgs/index.js";
-import { terraClient } from "./constants.js";
+} = require("@terra-money/terra.js/dist/core/wasm/msgs/index.js");
+const { terraClient } = require("./constants.js");
 
-import { readFileSync, writeFileSync } from "fs";
-import path from "path";
+const { readFileSync, writeFileSync } = require("fs");
+const path = require("path");
 
-export const ARTIFACTS_PATH = "artifacts";
+const ARTIFACTS_PATH = "artifacts";
 
 var gas_used = 0;
 
-export function getGasUsed() {
+function getGasUsed() {
   return gas_used;
 }
 
-export function writeArtifact(data, name = "artifact") {
+function writeArtifact(data, name = "artifact") {
   writeFileSync(
     path.join(ARTIFACTS_PATH, `${name}.json`),
     JSON.stringify(data, null, 2)
   );
 }
 
-export function readArtifact(name = "artifact") {
+function readArtifact(name = "artifact") {
   try {
     const data = readFileSync(
       path.join(ARTIFACTS_PATH, `${name}.json`),
@@ -38,7 +40,7 @@ export function readArtifact(name = "artifact") {
   }
 }
 
-export function readDistantArtifact(distantPath, name = "artifact") {
+function readDistantArtifact(distantPath, name = "artifact") {
   try {
     console.log(
       `trying path : ${path.join(distantPath, ARTIFACTS_PATH, `${name}.json`)}`
@@ -56,7 +58,7 @@ export function readDistantArtifact(distantPath, name = "artifact") {
 /**
  * @notice Upload contract code to LocalTerra. Return code ID.
  */
-export async function storeCode(deployerWallet, filepath) {
+async function storeCode(deployerWallet, filepath) {
   const code = fs.readFileSync(filepath).toString("base64");
   const result = await sendTransaction(deployerWallet, [
     new MsgStoreCode(deployerWallet.key.accAddress, code),
@@ -67,7 +69,7 @@ export async function storeCode(deployerWallet, filepath) {
 /**
  * @notice Execute a contract
  */
-export async function executeContract(
+async function executeContract(
   senderWallet,
   contractAddress,
   msg,
@@ -103,7 +105,7 @@ export async function executeContract(
 /**
  * @notice Send a transaction. Return result if successful, throw error if failed.
  */
-export async function sendTransaction(senderWallet, msgs, verbose = false) {
+async function sendTransaction(senderWallet, msgs, verbose = false) {
   // todo estimate fee
   // console.log(msgs)
   // // https://fcd.terra.dev/v1/txs/gas_prices
@@ -152,7 +154,7 @@ export async function sendTransaction(senderWallet, msgs, verbose = false) {
 /**
  * @notice Instantiate a contract from an existing code ID. Return contract address.
  */
-export async function instantiateContract(deployer, codeId, instantiateMsg) {
+async function instantiateContract(deployer, codeId, instantiateMsg) {
   return await sendTransaction(deployer, [
     new MsgInstantiateContract(
       deployer.key.accAddress,
@@ -163,16 +165,16 @@ export async function instantiateContract(deployer, codeId, instantiateMsg) {
   ]);
 }
 
-export async function queryContract(contractAddress, query) {
+async function queryContract(contractAddress, query) {
   return await terraClient.wasm.contractQuery(contractAddress, query);
 }
 
-export async function queryContractInfo(contractAddress) {
+async function queryContractInfo(contractAddress) {
   const d = await terraClient.wasm.contractInfo(contractAddress);
   return d;
 }
 
-export async function get_server_epoch_seconds() {
+async function get_server_epoch_seconds() {
   const blockInfo = await terraClient.tendermint.blockInfo();
   const time = blockInfo["block"]["header"]["time"];
   let dateObject = new Date(time);
@@ -180,7 +182,7 @@ export async function get_server_epoch_seconds() {
   return Math.round(epoch / 1000);
 }
 
-export async function queryBankUusd(address) {
+async function queryBankUusd(address) {
   let response = await terraClient.bank.balance(address);
   let value;
   try {
@@ -192,9 +194,26 @@ export async function queryBankUusd(address) {
   }
 }
 
-export async function queryTokenBalance(token_address, address) {
+async function queryTokenBalance(token_address, address) {
   let response = await queryContract(token_address, {
     balance: { address: address },
   });
   return Number(response.balance);
 }
+
+module.exports = {
+  ARTIFACTS_PATH,
+  getGasUsed,
+  writeArtifact,
+  readArtifact,
+  readDistantArtifact,
+  storeCode,
+  executeContract,
+  sendTransaction,
+  instantiateContract,
+  queryContract,
+  queryContractInfo,
+  get_server_epoch_seconds,
+  queryBankUusd,
+  queryTokenBalance,
+};

@@ -2,3 +2,4 @@
 **/*.rs.bk
 *.iml
 .idea
+/testing/node_modules
