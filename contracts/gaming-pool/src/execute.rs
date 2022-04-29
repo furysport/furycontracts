@@ -402,7 +402,7 @@ pub fn game_pool_bid_submit(
         }
         false => {
             let fee_details = query_platform_fees(
-                ptd.unwrap().pool_fee,
+                pool_type_details.pool_fee,
                 platform_fee,
                 config.transaction_fee,
             )?;
@@ -412,22 +412,23 @@ pub fn game_pool_bid_submit(
     }
 
     if !testing {
+        if info.funds.clone().len() != 1 {
+            return Err(ContractError::InvalidNumberOfCoinsSent {});
+        }
         let mut asset: Asset = Asset {
             info: AssetInfo::NativeToken { denom: info.funds[0].denom.clone() },
             amount: info.funds[0].amount,
         };
-        if info.funds.clone().len() != 1 {
-            return Err(ContractError::InvalidNumberOfCoinsSent {});
-        }
         let fund = info.funds.clone();
-
         if fund[0].denom == "uusd" {
-            if fund[0].amount < required_platform_fee_ust.add(transaction_fee) {
+            if fund[0].amount >= required_platform_fee_ust.add(transaction_fee) {
                 asset = Asset {
                     info: AssetInfo::NativeToken { denom: fund[0].denom.clone() },
                     amount: fund[0].amount,
                 };
                 println!("Asset {}", asset);
+            } else {
+                return Err(ContractError::InsufficientFeesUst {});
             }
         } else {
             return Err(ContractError::InsufficientFeesUst {});
@@ -445,8 +446,6 @@ pub fn game_pool_bid_submit(
             },
         )?;
     }
-
-
     let max_teams_for_pool = pool_type_details.max_teams_for_pool;
     let max_teams_for_gamer = pool_type_details.max_teams_for_gamer;
     let amount_required = pool_fee
@@ -557,8 +556,7 @@ pub fn game_pool_bid_submit(
         max_spread: max_spread,
         to: Option::from(env.contract.address.to_string()),
     };
-    // let tax_in_fury = fury_asset_info.deduct_tax(&deps.querier)?;
-    let platform_fees = deps.querier.query_wasm_smart(
+    let platform_fees_for_swap = deps.querier.query_wasm_smart(
         config.clone().astro_proxy_address,
         &QueryMsgSimulation::QueryPlatformFees {
             msg: to_binary(&swap_message)?
@@ -569,7 +567,7 @@ pub fn game_pool_bid_submit(
         msg: to_binary(&swap_message).unwrap(),
         funds: vec![Coin {
             denom: "uusd".to_string(),
-            amount: platform_fees,
+            amount: platform_fees_for_swap,
         }],
     }));
     return Ok(Response::new()
@@ -658,8 +656,8 @@ pub fn claim_reward(
             continue;
         }
         let mut pool_team_details;
-        match POOL_TEAM_DETAILS.load(deps.storage, (&*pool_id.clone(), info.sender.as_ref())) {
-            Ok(some) => { pool_team_details = some }
+        match POOL_TEAM_DETAILS.load(deps.storage, (&*pool_id.clone(), &gamer.clone())) {
+            Ok(some) => { pool_team_details = some; }
             Err(_) => {
                 continue;
             }
@@ -676,7 +674,7 @@ pub fn claim_reward(
             }
         }
         if !updated_details.is_empty() {
-            POOL_TEAM_DETAILS.save(deps.storage, (&*pool_id, info.sender.as_ref()), &updated_details)?
+            POOL_TEAM_DETAILS.save(deps.storage, (&*pool_id, &gamer.clone()), &updated_details)?
         }
     }
 
@@ -689,17 +687,23 @@ pub fn claim_reward(
     // Do the transfer of reward to the actual gamer_addr from the contract
     let config = CONFIG.load(deps.storage)?;
     let mut messages = Vec::new();
-    let fee_details = query_platform_fees(user_reward, config.platform_fee, config.transaction_fee)?;
+    let user_reward_in_ust = deps.querier.query_wasm_smart(
+        config.clone().astro_proxy_address,
+        &ProxyQueryMsgs::get_ust_equivalent_to_fury {
+            fury_count: user_reward,
+        },
+    )?;
+    let fee_details = query_platform_fees(user_reward_in_ust, config.platform_fee, config.transaction_fee)?;
     // We only take the first coin object since we only expect UST here
+    let funds_sent;
     if info.funds.len() != 0 {
-        let funds_sent = info.funds[0].clone();
+        funds_sent = info.funds[0].clone();
         if (funds_sent.denom != "uusd") || (funds_sent.amount < fee_details.platform_fee.add(fee_details.transaction_fee)) {
             return Err(ContractError::InsufficientFeesUst {});
         }
     } else {
         return Err(ContractError::InsufficientFeesUst {});
     }
-
 
     let r = CosmosMsg::Bank(BankMsg::Send {
         to_address: config.platform_fees_collector_wallet.to_string(),
@@ -770,7 +774,7 @@ pub fn claim_refund(
         }
         let pool_type = POOL_TYPE_DETAILS.load(deps.storage, pool_details.pool_type)?;
         let refund_amount = pool_type.pool_fee;
-        let pool_team_details = POOL_TEAM_DETAILS.load(deps.storage, (pool_id.as_ref(), info.sender.as_ref()))?.clone();
+        let pool_team_details = POOL_TEAM_DETAILS.load(deps.storage, (pool_id.as_ref(), &gamer.clone()))?.clone();
         let mut updated_details = Vec::new();
         for team_details in pool_team_details {
             if !team_details.claimed_refund {
@@ -784,7 +788,7 @@ pub fn claim_refund(
             }
         }
         if !updated_details.is_empty() {
-            POOL_TEAM_DETAILS.save(deps.storage, (pool_id.as_ref(), info.sender.as_ref()), &updated_details)?
+            POOL_TEAM_DETAILS.save(deps.storage, (pool_id.as_ref(), &gamer.clone()), &updated_details)?
         }
     }
 
@@ -987,11 +991,7 @@ pub fn game_pool_reward_distribute(
                     && team.team_id == winner.team_id
                     && team.game_id == winner.game_id
                 {
-                    if winner.reward_amount.is_zero() {
-                        updated_team.refund_amount = winner.refund_amount;
-                    } else {
-                        updated_team.reward_amount = winner.reward_amount;
-                    }
+                    updated_team.reward_amount = winner.reward_amount;
                     updated_team.team_rank = winner.team_rank;
                     updated_team.team_points = winner.team_points;
                     reward_given_so_far += winner.reward_amount;
@@ -1090,6 +1090,11 @@ pub fn swap(
     max_spread: Option<Decimal>,
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
+    if info.sender != config.admin_address {
+        return Err(ContractError::Unauthorized {
+            invoker: info.sender.to_string(),
+        });
+    }
     let pool_details = query_pool_details(deps.storage, pool_id.clone())?;
     let pool_type_details = POOL_TYPE_DETAILS.load(deps.storage, pool_details.pool_type.clone())?;
     // This is the total funds we have in the pool as UST
@@ -1100,11 +1105,6 @@ pub fn swap(
         funds_for_rake = Uint128::zero();
     } else {
         funds_for_rake = total_collection_in_pool - amount;
-    }
-    if info.sender != config.admin_address {
-        return Err(ContractError::Unauthorized {
-            invoker: info.sender.to_string(),
-        });
     }
     let current_fury_balance: BalanceResponse = deps.querier.query_wasm_smart(
         config.clone().minting_contract_address,
@@ -1183,5 +1183,5 @@ pub fn execute_sweep(
     });
     Ok(Response::new()
         .add_message(r)
-        .add_attribute("action", "exeucte_sweep"))
+        .add_attribute("action", "execute_sweep"))
 }

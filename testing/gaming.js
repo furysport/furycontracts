@@ -1,10 +1,5 @@
-import {
-    GamingContractPath,
-    mint_wallet,
-    treasury_wallet,
-    walletTest1,
-} from './constants.js';
-import {executeContract, instantiateContract, queryContract, storeCode, migrateContract} from "./utils.js";
+import {GamingContractPath, mint_wallet, treasury_wallet, walletTest1,} from './constants.js';
+import {executeContract, instantiateContract, migrateContract, queryContract, storeCode} from "./utils.js";
 
 import {promisify} from 'util';
 
@@ -24,8 +19,8 @@ const assert = chai.assert;
 // Init and Vars
 const sleep_time = 500
 let gaming_contract_address = ""
-let proxy_contract_address = "terra19zpyd046u4swqpksr3n44cej4j8pg6ah2y6dcg"
-let fury_contract_address = "terra18vd8fpwxzck93qlwghaj6arh4p7c5n896xzem5"
+let proxy_contract_address = "terra1qm3qlunr5nsass9jpgdezyg0z4d53zre6u6klw"
+let fury_contract_address = "terra1ghh27xkmvh9lfapmq6v7pjt6xv3q6njlz0x26l"
 const gamer = treasury_wallet.key.accAddress
 // const gamer_extra_1 = walletTest3.key.accAddress
 // const gamer_extra_2 = walletTest4.key.accAddress
@@ -178,7 +173,8 @@ let test_game_pool_bid_submit_when_pool_team_in_range = async function (time) {
                 pool_type: "H2H",
                 pool_id: "1",
                 team_id: "Team001",
-                amount: `${funds_to_send_in_fury}`
+                amount: `${funds_to_send_in_fury}`,
+                max_spread: "0.05"
             }
         }, {'uusd': 1300000})
         console.log(response);
@@ -249,6 +245,7 @@ const reward_distribution_for_locked_game_for_H2H = async function (time) {
         "game_pool_reward_distribute": {
             "game_id": "Gamer001",
             "pool_id": "1",
+            "is_final_batch": true,
             "game_winners":
                 [
                     {
@@ -327,10 +324,10 @@ await test_create_and_query_game(sleep_time)
 await test_create_and_query_pool(sleep_time)
 // await test_get_team_count_for_user_in_pool_type(sleep_time)
 await set_pool_headers_for_H2H_pool_type(sleep_time)
-//await test_game_pool_bid_submit_when_pool_team_in_range(sleep_time)
-//await test_game_lock_once_pool_is_closed(sleep_time)
-//await reward_distribution_for_locked_game_for_H2H(sleep_time)
-//await claim(sleep_time)
+await test_game_pool_bid_submit_when_pool_team_in_range(sleep_time)
+await test_game_lock_once_pool_is_closed(sleep_time)
+await reward_distribution_for_locked_game_for_H2H(sleep_time)
+await claim(sleep_time)
 // // Claim
 // await test_migrate(sleep_time)
 // await test_create_and_query_game(sleep_time)

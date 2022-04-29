@@ -41,7 +41,6 @@ pub struct InstantiateMsg {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
-    Receive(Cw20ReceiveMsg),
     /// to Buy a Club , when some club is available for purchase by generic public
     BuyAClub {
         buyer: String,
@@ -101,6 +100,11 @@ pub enum ExecuteMsg {
         staker: String,
         club_name: String,
     },
+    IncreaseRewardAmount {
+        reward_from: String,
+        amount: Uint128,
+    },
+
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

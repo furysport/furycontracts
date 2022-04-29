@@ -14,7 +14,7 @@ logging.basicConfig(
         logging.StreamHandler(sys.stdout)
     }
 )
-GamingTestEngine(debug).run_test_1(2000)
+GamingTestEngine(debug).run_test_1(50)
 # StakingTestEngine(debug).run_test_1(5000)
 #
 # with ThreadPoolExecutor(max_workers=10) as executor:

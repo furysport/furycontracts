@@ -99,7 +99,6 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
-        ExecuteMsg::Receive(msg) => received_message(deps, env, info, msg),
         ExecuteMsg::StakeOnAClub {
             staker,
             club_name,
@@ -165,6 +164,12 @@ pub fn execute(
         }
         ExecuteMsg::ClaimStakerRewards { staker, club_name } => {
             claim_staker_rewards(deps, info, staker, club_name)
+        }
+        ExecuteMsg::IncreaseRewardAmount {
+            reward_from,
+            amount,
+        } => {
+            increase_reward_amount(deps, env, info, reward_from, amount)
         }
     }
 }
@@ -1405,8 +1410,8 @@ fn increase_reward_amount(
     amount: Uint128,
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
-    // For SECURITY receive_message must come via minting contract
-    if info.sender != config.minting_contract_address {
+    // For SECURITY This message MUST only come from the Admin
+    if info.sender != config.admin_address {
         return Err(ContractError::Unauthorized {});
     }
     let existing_reward = REWARD.may_load(deps.storage)?.unwrap_or_default();
@@ -1570,7 +1575,7 @@ fn calculate_and_distribute_rewards(
         );
     }
     distribute_reward_to_club_stakers(deps, env, config.reward_periodicity, saved_next_reward_timestamp,
-        staker_list.clone(), club_name.clone(), total_reward, is_first_batch, is_final_batch)
+                                      staker_list.clone(), club_name.clone(), total_reward, is_first_batch, is_final_batch)
 }
 
 fn distribute_reward_to_club_stakers(
@@ -1945,7 +1950,10 @@ pub fn query_platform_fees(deps: Deps, msg: Binary) -> StdResult<Uint128> {
     let platform_fees_percentage: Uint128;
     let fury_amount_provided;
     match from_binary(&msg) {
-        Ok(ExecuteMsg::Receive(_)) => {
+        Ok(ExecuteMsg::IncreaseRewardAmount {
+               reward_from: _,
+               amount: _,
+           }) => {
             return Ok(Uint128::zero());
         }
         Ok(ExecuteMsg::BuyAClub {
@@ -2028,7 +2036,7 @@ pub fn query_platform_fees(deps: Deps, msg: Binary) -> StdResult<Uint128> {
 pub fn query_club_staking_details(
     storage: &dyn Storage,
     club_name: String,
-    user_list: Vec<String>
+    user_list: Vec<String>,
 ) -> StdResult<Vec<ClubStakingDetails>> {
     let mut all_stakes = Vec::new();
     for user in user_list {
@@ -3055,7 +3063,7 @@ mod tests {
         increase_reward_amount(
             deps.as_mut(),
             mock_env(),
-            mintingContractInfo.clone(),
+            adminInfo.clone(),
             "reward_from abc".to_string(),
             Uint128::from(1000000u128),
         );
@@ -4030,7 +4038,7 @@ mod tests {
         increase_reward_amount(
             deps.as_mut(),
             mock_env(),
-            mintingContractInfo.clone(),
+            adminInfo.clone(),
             "reward_from abc".to_string(),
             Uint128::from(1000000u128),
         );
