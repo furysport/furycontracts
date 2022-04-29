@@ -168,35 +168,8 @@ pub fn cancel_game(deps: DepsMut, _env: Env, info: MessageInfo) -> Result<Respon
                 }));
             }
         };
-        let refund_amount = pool_type.pool_fee;
         pool.pool_refund_status = true; // We skip the iteration and update the status
         POOL_DETAILS.save(deps.storage, pool_id.clone(), &pool)?;
-        // Get the existing teams for this pool
-        // let mut teams = Vec::new();
-        // let all_teams = POOL_TEAM_DETAILS.may_load(deps.storage, pool_id.clone())?;
-        // match all_teams {
-        //     Some(some_teams) => {
-        //         let teams = some_teams;
-        //         let mut updated_teams: Vec<PoolTeamDetails> = Vec::new();
-        //         for team in teams {
-        //             // No transfer to be done to the gamers. Just update their refund amounts.
-        //             // They have to come and collect their refund
-        //             // In case of refund due to lock_game min_team_count not met for the pool_type
-        //             let mut updated_team = team.clone();
-        //             if updated_team.refund_amount == Uint128::zero() {
-        //                 updated_team.refund_amount = refund_amount;
-        //                 updated_team.claimed_refund = UNCLAIMED_REFUND;
-        //                 println!(
-        //                     "refund for {:?} is {:?}",
-        //                     team.team_id, updated_team.refund_amount
-        //                 );
-        //             }
-        //             updated_teams.push(updated_team);
-        //         }
-        //         POOL_TEAM_DETAILS.save(deps.storage, pool_id.clone(), &updated_teams)?;
-        //     }
-        //     None => {}
-        // }
     }
     return Ok(Response::new()
         .add_attribute("game_id", game_id.clone())
@@ -273,33 +246,8 @@ pub fn lock_game(deps: DepsMut, _env: Env, info: MessageInfo) -> Result<Response
         if pool.current_teams_count >= pool_type.min_teams_for_pool {
             continue;
         }
-        // let refund_amount = pool_type.pool_fee; //  Commented since we dont use this value anymore
         pool.pool_refund_status = true; // We skip the iteration and update the status
         POOL_DETAILS.save(deps.storage, pool_id.clone(), &pool)?;
-        // COMMENTED CODE
-        // Get the existing teams for this pool
-        // let mut teams = Vec::new();
-        // let all_teams = POOL_TEAM_DETAILS.may_load(deps.storage, pool_id.clone())?;
-        // match all_teams {
-        //     Some(some_teams) => {
-        //         let teams = some_teams;
-        //         let mut updated_teams: Vec<PoolTeamDetails> = Vec::new();
-        //         for team in teams {
-        //             // No transfer to be done to the gamers. Just update their refund amounts.
-        //             // They have to come and collect their refund
-        //             let mut updated_team = team.clone();
-        //             updated_team.refund_amount = refund_amount;
-        //             updated_team.claimed_refund = UNCLAIMED_REFUND;
-        //             println!(
-        //                 "refund for {:?} is {:?}",
-        //                 team.team_id, updated_team.refund_amount
-        //             );
-        //             updated_teams.push(updated_team);
-        //         }
-        //         POOL_TEAM_DETAILS.save(deps.storage, pool_id.clone(), &updated_teams)?;
-        //     }
-        //     None => {}
-        // }
     }
     return Ok(Response::new()
         .add_attribute("game_id", game_id.clone())
@@ -498,9 +446,7 @@ pub fn game_pool_bid_submit(
         )?;
     }
 
-    // let platform_fee = pool_fee
-    //     .checked_mul(platform_fee)?;
-    // let transaction_fee = pool_fee.checked_mul(config.transaction_fee)?;
+
     let max_teams_for_pool = pool_type_details.max_teams_for_pool;
     let max_teams_for_gamer = pool_type_details.max_teams_for_gamer;
     let amount_required = pool_fee

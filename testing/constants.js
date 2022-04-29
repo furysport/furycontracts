@@ -5,7 +5,7 @@ export const ClubStakingContractPath = "../artifacts/club_staking.wasm"
 export const GamingContractPath = "../artifacts/gaming_pool.wasm"
 
 const contracts_folder_path = "../artifacts/"
-export const debug = true //  Turn This False to Change to TestNet
+export const debug = false //  Turn This False to Change to TestNet
 // Sleep Time
 export const sleep_time = (debug) ? 0 : 31000; // Sleep Time For All Test Processes
 
