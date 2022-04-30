@@ -4230,16 +4230,20 @@ mod tests {
         let queryReward = query_reward_amount(&mut deps.storage);
         println!("reward amount is {:?}", queryReward);
         let club_name1 = "CLUB001".to_string();
-        calculate_and_distribute_rewards(deps.as_mut(), mock_env(), adminInfo.clone(), user_address_list.clone(), club_name1, true, false);
+        let res1 = calculate_and_distribute_rewards(deps.as_mut(), mock_env(), adminInfo.clone(), user_address_list.clone(), 
+            club_name1, true, false).unwrap_err();
+		assert_eq!(res1, (ContractError::Std(StdError::GenericErr {msg: String::from("Time for Reward not yet arrived")})));
         println!("");
         println!("");
         let club_name2 = "CLUB002".to_string();
-        calculate_and_distribute_rewards(deps.as_mut(), mock_env(), adminInfo.clone(), user_address_list.clone(), club_name2, false, false);
+        let res2 = calculate_and_distribute_rewards(deps.as_mut(), mock_env(), adminInfo.clone(), user_address_list.clone(), 
+            club_name2, false, false).unwrap_err();
+		assert_eq!(res2, (ContractError::Std(StdError::GenericErr {msg: String::from("Time for Reward not yet arrived")})));
         println!("");
         println!("");
         let club_name3 = "CLUB003".to_string();
-        calculate_and_distribute_rewards(deps.as_mut(), mock_env(), adminInfo.clone(), user_address_list.clone(), club_name3, false, true);
-        println!("");
-        println!("");
+        let res3 = calculate_and_distribute_rewards(deps.as_mut(), mock_env(), adminInfo.clone(), user_address_list.clone(), 
+            club_name3, false, true).unwrap_err();
+		assert_eq!(res3, (ContractError::Std(StdError::GenericErr {msg: String::from("Time for Reward not yet arrived")})));
     }
 }
