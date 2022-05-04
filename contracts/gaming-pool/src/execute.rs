@@ -1022,28 +1022,32 @@ pub fn game_pool_reward_distribute(
     let rsp;
     // Transfer rake_amount to all the rake wallets. Can also be only one rake wallet
     if is_final_batch {
-        for wallet in pool_type_details.rake_list {
-            let wallet_address = wallet.wallet_address;
-            let rake_amount = ust_for_rake;
-            let proportionate_amount = rake_amount
-                .checked_mul(Uint128::from(wallet.percentage))
-                .unwrap_or_default()
-                .checked_div(Uint128::from(100u128))
-                .unwrap_or_default();
-            // Transfer proportionate_amount to the corresponding rake wallet
-            let transfer_detail = WalletTransferDetails {
-                wallet_address: wallet_address.clone(),
-                amount: proportionate_amount,
-            };
-            wallet_transfer_details.push(transfer_detail);
+        // Only when we are on the final batch and UST for rake is not zero we perform this
+        if !ust_for_rake.is_zero() {
+            for wallet in pool_type_details.rake_list {
+                let wallet_address = wallet.wallet_address;
+                let rake_amount = ust_for_rake;
+                let proportionate_amount = rake_amount
+                    .checked_mul(Uint128::from(wallet.percentage))
+                    .unwrap_or_default()
+                    .checked_div(Uint128::from(100u128))
+                    .unwrap_or_default();
+                // Transfer proportionate_amount to the corresponding rake wallet
+                let transfer_detail = WalletTransferDetails {
+                    wallet_address: wallet_address.clone(),
+                    amount: proportionate_amount,
+                };
+                wallet_transfer_details.push(transfer_detail);
+            }
+            rsp = _transfer_to_multiple_wallets(
+                wallet_transfer_details,
+                "rake_and_platform_fee".to_string(),
+                deps,
+                testing,
+            )?;
+        } else {
+            rsp = Response::new();
         }
-        rsp = _transfer_to_multiple_wallets(
-            wallet_transfer_details,
-            "rake_and_platform_fee".to_string(),
-            deps,
-            testing,
-        )?;
-        // rsp = Response::new();
     } else {
         rsp = Response::new();
     }

@@ -11,11 +11,11 @@ export const sleep_time = (debug) ? 0 : 31000; // Sleep Time For All Test Proces
 
 // Terra Clients
 export const terraTestnetClient = new LCDClient({
-    URL: "https://lcd.terra.dev",
-    chainID: "columbus-5"
+    URL: 'https://bombay-lcd.terra.dev',
+    chainID: 'bombay-12',
 });
 
-terraTestnetClient.chainID = "columbus-5";
+terraTestnetClient.chainID = "bombay-12";
 export const localTerraClient = new LocalTerra();
 localTerraClient.chainID = "localterra";
 console.log(`Debug ${debug}`)
