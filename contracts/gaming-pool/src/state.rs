@@ -144,14 +144,8 @@ pub struct PoolTeamDetails {
 #[serde(rename_all = "snake_case")]
 pub struct GameResult {
     pub gamer_address: String,
-    pub game_id: String,
     pub team_id: String,
     pub reward_amount: Uint128,
-    // FURY
-    pub refund_amount: Uint128,
-    //  UST
-    pub team_rank: u64,
-    pub team_points: u64,
 }
 
 /// This is used for transferring tokens to multiple wallets

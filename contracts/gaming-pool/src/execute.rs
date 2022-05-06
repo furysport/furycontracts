@@ -774,21 +774,28 @@ pub fn claim_refund(
         }
         let pool_type = POOL_TYPE_DETAILS.load(deps.storage, pool_details.pool_type)?;
         let refund_amount = pool_type.pool_fee;
-        let pool_team_details = POOL_TEAM_DETAILS.load(deps.storage, (pool_id.as_ref(), &gamer.clone()))?.clone();
-        let mut updated_details = Vec::new();
-        for team_details in pool_team_details {
-            if !team_details.claimed_refund {
-                let mut updated_team = team_details.clone();
-                updated_team.refund_amount = refund_amount;
-                total_refund_amount += refund_amount;
-                updated_team.claimed_refund = true;
-                updated_details.push(updated_team);
-            } else {
-                return Err(ContractError::RefundAlreadyClaimed {});
+        let pool_team_details = POOL_TEAM_DETAILS.load(deps.storage, (pool_id.as_ref(), &gamer.clone()));
+        match pool_team_details {
+            Ok(some) => {
+                let mut updated_details = Vec::new();
+                for team_details in some {
+                    if !team_details.claimed_refund {
+                        let mut updated_team = team_details.clone();
+                        updated_team.refund_amount = refund_amount;
+                        total_refund_amount += refund_amount;
+                        updated_team.claimed_refund = true;
+                        updated_details.push(updated_team);
+                    } else {
+                        return Err(ContractError::RefundAlreadyClaimed {});
+                    }
+                }
+                if !updated_details.is_empty() {
+                    POOL_TEAM_DETAILS.save(deps.storage, (pool_id.as_ref(), &gamer.clone()), &updated_details)?
+                }
             }
-        }
-        if !updated_details.is_empty() {
-            POOL_TEAM_DETAILS.save(deps.storage, (pool_id.as_ref(), &gamer.clone()), &updated_details)?
+            Err(_) => {
+                continue
+            }
         }
     }
 
@@ -857,6 +864,7 @@ pub fn game_pool_reward_distribute(
     deps: DepsMut,
     _env: Env,
     info: MessageInfo,
+    game_id: String,
     pool_id: String,
     game_winners: Vec<GameResult>,
     is_final_batch: bool,
@@ -989,11 +997,9 @@ pub fn game_pool_reward_distribute(
             for winner in winners {
                 if team.gamer_address == winner.gamer_address
                     && team.team_id == winner.team_id
-                    && team.game_id == winner.game_id
+                    && team.game_id == game_id.clone()
                 {
                     updated_team.reward_amount = winner.reward_amount;
-                    updated_team.team_rank = winner.team_rank;
-                    updated_team.team_points = winner.team_points;
                     reward_given_so_far += winner.reward_amount;
                     println!(
                         "reward for {:?} is {:?}",

@@ -82,12 +82,8 @@ pub fn instantiate(
         &main_address,
         &GameResult {
             gamer_address: DUMMY_WALLET.to_string(),
-            game_id: msg.game_id.clone(),
             team_id: DUMMY_TEAM_ID.to_string(),
-            team_rank: INITIAL_TEAM_RANK,
-            team_points: INITIAL_TEAM_POINTS,
             reward_amount: Uint128::from(INITIAL_REWARD_AMOUNT),
-            refund_amount: Uint128::from(INITIAL_REFUND_AMOUNT),
         },
     )?;
 
@@ -110,7 +106,7 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     // Query Cw20 Check list
-    check_and_confirm_whitelist_status(&deps, &info, &env)?;
+    // check_and_confirm_whitelist_status(&deps, &info, &env)?;
     match msg {
         ExecuteMsg::SetPlatformFeeWallets { wallet_percentages } => {
             set_platform_fee_wallets(deps, info, wallet_percentages)
@@ -143,7 +139,8 @@ pub fn execute(
             game_winners,
             is_final_batch,
             ust_for_rake,
-        } => game_pool_reward_distribute(deps, env, info, pool_id, game_winners, is_final_batch, false, ust_for_rake),
+            game_id,
+        } => game_pool_reward_distribute(deps, env, info, game_id, pool_id, game_winners, is_final_batch, false, ust_for_rake),
         ExecuteMsg::GamePoolBidSubmitCommand {
             gamer,
             pool_type,

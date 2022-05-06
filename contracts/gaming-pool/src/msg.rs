@@ -62,6 +62,8 @@ pub enum ExecuteMsg {
         game_winners: Vec<GameResult>,
         is_final_batch: bool,
         ust_for_rake: Uint128,
+        game_id: String,
+
     },
     GamePoolBidSubmitCommand {
         gamer: String,

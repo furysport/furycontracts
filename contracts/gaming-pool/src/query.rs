@@ -177,12 +177,8 @@ pub fn query_game_result(
         }
     }
     game_result.gamer_address = gamer.clone();
-    game_result.game_id = game_id.clone();
     game_result.team_id = team_id.clone();
-    game_result.team_rank = team_rank;
-    game_result.team_points = team_points;
     game_result.reward_amount = reward_amount;
-    game_result.refund_amount = refund_amount;
     return Ok(game_result);
 }
 
