@@ -101,14 +101,25 @@ pub fn query_reward(storage: &dyn Storage, gamer: String) -> StdResult<Uint128> 
 }
 
 pub fn query_refund(storage: &dyn Storage, gamer: String) -> StdResult<Uint128> {
-    let mut user_reward = Uint128::zero();
+    let mut user_refund = Uint128::zero();
     // Get all pools
     let all_pools: Vec<String> = POOL_DETAILS
         .keys(storage, None, None, Order::Ascending)
         .map(|k| String::from_utf8(k).unwrap())
         .collect();
     for pool_id in all_pools {
-        // Get the existing teams for this pool
+        let mut pool_details: PoolDetails = Default::default();
+        let pd = POOL_DETAILS.load(storage, pool_id.clone());
+        match pd {
+            Ok(some) => { pool_details = some; }
+            Err(_) => {
+                continue;
+            }
+        }
+        if !pool_details.pool_refund_status {
+            continue;
+        }
+        let ptd = POOL_TYPE_DETAILS.load(storage, pool_details.pool_type)?;
         let mut teams = Vec::new();
         let all_teams = POOL_TEAM_DETAILS.may_load(storage, (&*pool_id.clone(), gamer.as_ref()))?;
         match all_teams {
@@ -119,11 +130,11 @@ pub fn query_refund(storage: &dyn Storage, gamer: String) -> StdResult<Uint128> 
         }
         for team in teams {
             if gamer == team.gamer_address && team.claimed_refund == UNCLAIMED_REFUND {
-                user_reward += team.refund_amount;
+                user_refund += ptd.pool_fee;
             }
         }
     }
-    return Ok(user_reward);
+    return Ok(user_refund);
 }
 
 pub fn query_game_result(
