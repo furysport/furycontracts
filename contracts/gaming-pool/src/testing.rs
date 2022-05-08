@@ -274,7 +274,7 @@ mod tests {
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
         let queryRes = query_pool_details(&mut deps.storage, "1".to_string());
         match queryRes {
@@ -376,7 +376,7 @@ mod tests {
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -388,7 +388,7 @@ mod tests {
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
         let queryRes = query_pool_details(&mut deps.storage, "2".to_string());
         match queryRes {
@@ -540,7 +540,7 @@ mod tests {
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -552,7 +552,7 @@ mod tests {
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -564,7 +564,7 @@ mod tests {
             "Team002".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -576,7 +576,7 @@ mod tests {
             "Team003".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
 
         let query_pool_details_1 = query_pool_details(&mut deps.storage, pool_id_1.to_string());
@@ -601,7 +601,7 @@ mod tests {
             "Team003".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -613,7 +613,7 @@ mod tests {
             "Team004".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -625,7 +625,7 @@ mod tests {
             "Team005".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
 
         let query_pool_details_2 = query_pool_details(&mut deps.storage, pool_id_2.to_string());
@@ -650,7 +650,7 @@ mod tests {
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -662,7 +662,7 @@ mod tests {
             "Team004".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
         let query_pool_details_3 = query_pool_details(&mut deps.storage, pool_id_3.to_string());
         match query_pool_details_3 {
@@ -764,7 +764,7 @@ mod tests {
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -776,7 +776,7 @@ mod tests {
             "Team002".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -788,7 +788,7 @@ mod tests {
             "Team003".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
 
         let query_pool_details_1 = query_pool_details(&mut deps.storage, pool_id_1.to_string());
@@ -892,7 +892,7 @@ mod tests {
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -904,7 +904,7 @@ mod tests {
             "Team002".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -916,7 +916,7 @@ mod tests {
             "Team003".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
 
         let query_pool_details_1 = query_pool_details(&mut deps.storage, pool_id_1.to_string());
@@ -933,30 +933,18 @@ mod tests {
 
         let game_result_1 = GameResult {
             gamer_address: "Gamer002".to_string(),
-            game_id: "Game001".to_string(),
             team_id: "Team001".to_string(),
-            team_rank: 1u64,
-            team_points: 100u64,
             reward_amount: Uint128::from(100u128),
-            refund_amount: Uint128::from(INITIAL_REFUND_AMOUNT),
         };
         let game_result_2 = GameResult {
             gamer_address: "Gamer002".to_string(),
-            game_id: "Game001".to_string(),
             team_id: "Team002".to_string(),
-            team_rank: 2u64,
-            team_points: 200u64,
             reward_amount: Uint128::from(200u128),
-            refund_amount: Uint128::from(INITIAL_REFUND_AMOUNT),
         };
         let game_result_3 = GameResult {
             gamer_address: "Gamer002".to_string(),
-            game_id: "Game001".to_string(),
             team_id: "Team003".to_string(),
-            team_rank: 2u64,
-            team_points: 300u64,
             reward_amount: Uint128::from(300u128),
-            refund_amount: Uint128::from(INITIAL_REFUND_AMOUNT),
         };
         let mut game_results: Vec<GameResult> = Vec::new();
         game_results.push(game_result_1);
@@ -983,6 +971,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
+            "GAME0001".to_string(),
             pool_id_1.to_string(),
             game_results,
             true,
@@ -1103,7 +1092,7 @@ mod tests {
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
 
         let cancelInfo = mock_info("cancelInfo", &[]);
@@ -1217,7 +1206,7 @@ mod tests {
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -1229,7 +1218,7 @@ mod tests {
             "Team002".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -1241,7 +1230,7 @@ mod tests {
             "Team003".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
 
         let query_pool_details_1 = query_pool_details(&mut deps.storage, pool_id_1.to_string());
@@ -1258,30 +1247,18 @@ mod tests {
 
         let game_result_1 = GameResult {
             gamer_address: "Gamer002".to_string(),
-            game_id: "Game001".to_string(),
             team_id: "Team001".to_string(),
-            team_rank: 1u64,
-            team_points: 100u64,
             reward_amount: Uint128::from(100u128),
-            refund_amount: Uint128::from(INITIAL_REFUND_AMOUNT),
         };
         let game_result_2 = GameResult {
             gamer_address: "Gamer002".to_string(),
-            game_id: "Game001".to_string(),
             team_id: "Team002".to_string(),
-            team_rank: 2u64,
-            team_points: 200u64,
             reward_amount: Uint128::from(200u128),
-            refund_amount: Uint128::from(INITIAL_REFUND_AMOUNT),
         };
         let game_result_3 = GameResult {
             gamer_address: "Gamer002".to_string(),
-            game_id: "Game001".to_string(),
             team_id: "Team003".to_string(),
-            team_rank: 2u64,
-            team_points: 300u64,
             reward_amount: Uint128::from(300u128),
-            refund_amount: Uint128::from(INITIAL_REFUND_AMOUNT),
         };
         let mut game_results: Vec<GameResult> = Vec::new();
         game_results.push(game_result_1);
@@ -1440,7 +1417,7 @@ mod tests {
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -1452,7 +1429,7 @@ mod tests {
             "Team002".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -1464,7 +1441,7 @@ mod tests {
             "Team003".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
 
         let query_pool_details_1 = query_pool_details(&mut deps.storage, pool_id_1.to_string());
@@ -1481,30 +1458,18 @@ mod tests {
 
         let game_result_1 = GameResult {
             gamer_address: "Gamer002".to_string(),
-            game_id: "Game001".to_string(),
             team_id: "Team001".to_string(),
-            team_rank: 1u64,
-            team_points: 100u64,
             reward_amount: Uint128::from(500u128),
-            refund_amount: Uint128::from(INITIAL_REFUND_AMOUNT),
         };
         let game_result_2 = GameResult {
             gamer_address: "Gamer002".to_string(),
-            game_id: "Game001".to_string(),
             team_id: "Team002".to_string(),
-            team_rank: 2u64,
-            team_points: 200u64,
             reward_amount: Uint128::from(200u128),
-            refund_amount: Uint128::from(INITIAL_REFUND_AMOUNT),
         };
         let game_result_3 = GameResult {
             gamer_address: "Gamer002".to_string(),
-            game_id: "Game001".to_string(),
             team_id: "Team003".to_string(),
-            team_rank: 2u64,
-            team_points: 300u64,
             reward_amount: Uint128::from(300u128),
-            refund_amount: Uint128::from(INITIAL_REFUND_AMOUNT),
         };
         let mut game_results: Vec<GameResult> = Vec::new();
         game_results.push(game_result_1);
@@ -1531,7 +1496,10 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
+                        "GAME0001".to_string(),
+
             pool_id_1.to_string(),
+
             game_results,
             true,
             true,
@@ -1698,7 +1666,7 @@ mod tests {
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -1710,7 +1678,7 @@ mod tests {
             "Team002".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -1722,7 +1690,7 @@ mod tests {
             "Team003".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
 
         let query_pool_details_1 = query_pool_details(&mut deps.storage, pool_id_1.to_string());
@@ -1739,30 +1707,18 @@ mod tests {
 
         let game_result_1 = GameResult {
             gamer_address: "Gamer002".to_string(),
-            game_id: "Game001".to_string(),
             team_id: "Team001".to_string(),
-            team_rank: 1u64,
-            team_points: 100u64,
             reward_amount: Uint128::from(100u128),
-            refund_amount: Uint128::from(INITIAL_REFUND_AMOUNT),
         };
         let game_result_2 = GameResult {
             gamer_address: "Gamer002".to_string(),
-            game_id: "Game001".to_string(),
             team_id: "Team002".to_string(),
-            team_rank: 2u64,
-            team_points: 200u64,
             reward_amount: Uint128::from(200u128),
-            refund_amount: Uint128::from(INITIAL_REFUND_AMOUNT),
         };
         let game_result_3 = GameResult {
             gamer_address: "Gamer002".to_string(),
-            game_id: "Game001".to_string(),
             team_id: "Team003".to_string(),
-            team_rank: 2u64,
-            team_points: 300u64,
             reward_amount: Uint128::from(300u128),
-            refund_amount: Uint128::from(INITIAL_REFUND_AMOUNT),
         };
         let mut game_results: Vec<GameResult> = Vec::new();
         game_results.push(game_result_1);
@@ -1789,6 +1745,8 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
+                        "GAME0001".to_string(),
+
             pool_id_1.to_string(),
             game_results,
             true,
@@ -1987,7 +1945,7 @@ mod tests {
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -1999,7 +1957,7 @@ mod tests {
             "Team002".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -2011,7 +1969,7 @@ mod tests {
             "Team003".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
 
         let query_pool_details_1 = query_pool_details(&mut deps.storage, pool_id_1.to_string());
@@ -2028,30 +1986,18 @@ mod tests {
 
         let game_result_1 = GameResult {
             gamer_address: "Gamer002".to_string(),
-            game_id: "Game001".to_string(),
             team_id: "Team001".to_string(),
-            team_rank: 1u64,
-            team_points: 100u64,
             reward_amount: Uint128::from(100u128),
-            refund_amount: Uint128::from(INITIAL_REFUND_AMOUNT),
         };
         let game_result_2 = GameResult {
             gamer_address: "Gamer002".to_string(),
-            game_id: "Game001".to_string(),
             team_id: "Team002".to_string(),
-            team_rank: 2u64,
-            team_points: 200u64,
             reward_amount: Uint128::from(200u128),
-            refund_amount: Uint128::from(INITIAL_REFUND_AMOUNT),
         };
         let game_result_3 = GameResult {
             gamer_address: "Gamer002".to_string(),
-            game_id: "Game001".to_string(),
             team_id: "Team003".to_string(),
-            team_rank: 2u64,
-            team_points: 300u64,
             reward_amount: Uint128::from(300u128),
-            refund_amount: Uint128::from(INITIAL_REFUND_AMOUNT),
         };
         let mut game_results: Vec<GameResult> = Vec::new();
         game_results.push(game_result_1);
@@ -2178,7 +2124,7 @@ mod tests {
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -2190,7 +2136,7 @@ mod tests {
             "Team002".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -2202,7 +2148,7 @@ mod tests {
             "Team003".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
 
         let query_pool_details_1 = query_pool_details(&mut deps.storage, pool_id_1.to_string());
@@ -2219,30 +2165,18 @@ mod tests {
 
         let game_result_1 = GameResult {
             gamer_address: "Gamer002".to_string(),
-            game_id: "Game001".to_string(),
             team_id: "Team001".to_string(),
-            team_rank: 1u64,
-            team_points: 100u64,
             reward_amount: Uint128::from(100u128),
-            refund_amount: Uint128::from(INITIAL_REFUND_AMOUNT),
         };
         let game_result_2 = GameResult {
             gamer_address: "Gamer002".to_string(),
-            game_id: "Game001".to_string(),
             team_id: "Team002".to_string(),
-            team_rank: 2u64,
-            team_points: 200u64,
             reward_amount: Uint128::from(200u128),
-            refund_amount: Uint128::from(INITIAL_REFUND_AMOUNT),
         };
         let game_result_3 = GameResult {
             gamer_address: "Gamer002".to_string(),
-            game_id: "Game001".to_string(),
             team_id: "Team003".to_string(),
-            team_rank: 2u64,
-            team_points: 300u64,
             reward_amount: Uint128::from(300u128),
-            refund_amount: Uint128::from(INITIAL_REFUND_AMOUNT),
         };
         let mut game_results: Vec<GameResult> = Vec::new();
         game_results.push(game_result_1);
@@ -2269,6 +2203,8 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
+                        "GAME0001".to_string(),
+
             pool_id_1.to_string(),
             game_results,
             true, true,
@@ -2388,30 +2324,18 @@ mod tests {
 
         let game_result_1 = GameResult {
             gamer_address: "Gamer002".to_string(),
-            game_id: "Game001".to_string(),
             team_id: "Team001".to_string(),
-            team_rank: 1u64,
-            team_points: 100u64,
             reward_amount: Uint128::from(100u128),
-            refund_amount: Uint128::from(INITIAL_REFUND_AMOUNT),
         };
         let game_result_2 = GameResult {
             gamer_address: "Gamer002".to_string(),
-            game_id: "Game001".to_string(),
             team_id: "Team002".to_string(),
-            team_rank: 2u64,
-            team_points: 200u64,
             reward_amount: Uint128::from(200u128),
-            refund_amount: Uint128::from(INITIAL_REFUND_AMOUNT),
         };
         let game_result_3 = GameResult {
             gamer_address: "Gamer002".to_string(),
-            game_id: "Game001".to_string(),
             team_id: "Team003".to_string(),
-            team_rank: 2u64,
-            team_points: 300u64,
             reward_amount: Uint128::from(300u128),
-            refund_amount: Uint128::from(INITIAL_REFUND_AMOUNT),
         };
         let mut game_results: Vec<GameResult> = Vec::new();
         game_results.push(game_result_1);
@@ -2422,6 +2346,8 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
+                        "GAME0001".to_string(),
+
             pool_id_1.to_string(),
             game_results.clone(),
             true,
@@ -2456,7 +2382,7 @@ mod tests {
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -2468,7 +2394,7 @@ mod tests {
             "Team002".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -2480,7 +2406,7 @@ mod tests {
             "Team003".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
 
         let query_pool_details_1 = query_pool_details(&mut deps.storage, pool_id_1.to_string());
@@ -2499,6 +2425,8 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
+                        "GAME0001".to_string(),
+
             pool_id_1.to_string(),
             game_results,
             true,
@@ -2621,7 +2549,7 @@ mod tests {
             "Team001".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -2633,7 +2561,7 @@ mod tests {
             "Team002".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
         game_pool_bid_submit(
             deps.as_mut(),
@@ -2645,7 +2573,7 @@ mod tests {
             "Team003".to_string(),
             Uint128::from(144262u128) + platform_fee,
             true,
-            None
+            None,
         );
 
         let query_pool_details_1 = query_pool_details(&mut deps.storage, pool_id_1.to_string());
@@ -2662,30 +2590,18 @@ mod tests {
 
         let game_result_1 = GameResult {
             gamer_address: "Gamer002".to_string(),
-            game_id: "Game001".to_string(),
             team_id: "Team001".to_string(),
-            team_rank: 1u64,
-            team_points: 100u64,
             reward_amount: Uint128::from(100u128),
-            refund_amount: Uint128::from(INITIAL_REFUND_AMOUNT),
         };
         let game_result_2 = GameResult {
             gamer_address: "Gamer002".to_string(),
-            game_id: "Game001".to_string(),
             team_id: "Team002".to_string(),
-            team_rank: 2u64,
-            team_points: 200u64,
             reward_amount: Uint128::from(200u128),
-            refund_amount: Uint128::from(INITIAL_REFUND_AMOUNT),
         };
         let game_result_3 = GameResult {
             gamer_address: "Gamer002".to_string(),
-            game_id: "Game001".to_string(),
             team_id: "Team003".to_string(),
-            team_rank: 2u64,
-            team_points: 300u64,
             reward_amount: Uint128::from(300u128),
-            refund_amount: Uint128::from(INITIAL_REFUND_AMOUNT),
         };
         let mut game_results: Vec<GameResult> = Vec::new();
         game_results.push(game_result_1);
@@ -2712,6 +2628,8 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
+                        "GAME0001".to_string(),
+
             pool_id_1.to_string(),
             game_results.clone(),
             true,
@@ -2748,6 +2666,8 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
+                        "GAME0001".to_string(),
+
             pool_id_1.to_string(),
             game_results,
             true,
