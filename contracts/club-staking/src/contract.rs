@@ -1930,12 +1930,12 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         }
         QueryMsg::AllBonds { user_address_list } => to_binary(&query_all_bonds(deps.storage, user_address_list)?),
         QueryMsg::ClubBondingDetailsForUser {
-            user_address,
             club_name,
+            user_address,
         } => to_binary(&query_club_bonding_details_for_user(
             deps.storage,
-            user_address,
             club_name,
+            user_address,
         )?),
         QueryMsg::RewardAmount {} => to_binary(&query_reward_amount(deps.storage)?),
         QueryMsg::QueryStakerRewards {
