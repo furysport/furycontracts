@@ -49,3 +49,8 @@ Thumbs.db
 *.flv
 *.mov
 *.wmv
+artifacts/checksums.txt
+*-lock.json
+*.lock
+.vs/VSWorkspaceState.json
+*checksums*.*
