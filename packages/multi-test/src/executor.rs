@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::parse_contract_addr;
 use cosmwasm_std::{
-    to_binary, Addr, Attribute, BankMsg, Binary, Coin, CosmosMsg, Event, SubMsgExecutionResponse,
+    to_binary, Addr, Attribute, BankMsg, Binary, Coin, CosmosMsg, Event, SubMsgResponse,
     WasmMsg,
 };
 use schemars::JsonSchema;
@@ -50,10 +50,10 @@ impl AppResponse {
     }
 }
 
-/// They have the same shape, SubMsgExecutionResponse is what is returned in reply.
+/// They have the same shape, SubMsgResponse is what is returned in reply.
 /// This is just to make some test cases easier.
-impl From<SubMsgExecutionResponse> for AppResponse {
-    fn from(reply: SubMsgExecutionResponse) -> Self {
+impl From<SubMsgResponse> for AppResponse {
+    fn from(reply: SubMsgResponse) -> Self {
         AppResponse {
             data: reply.data,
             events: reply.events,

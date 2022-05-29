@@ -2,7 +2,7 @@ use schemars::JsonSchema;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use cosmwasm_std::{
-    to_binary, Addr, CosmosMsg, Querier, QuerierWrapper, StdResult, WasmMsg, WasmQuery,
+    to_binary, Addr, CosmosMsg, CustomQuery, Querier, QuerierWrapper, StdResult, WasmMsg, WasmQuery,
 };
 
 use crate::{
@@ -32,7 +32,7 @@ impl Cw721Contract {
         .into())
     }
 
-    pub fn query<Q: Querier, T: DeserializeOwned>(
+    pub fn query<Q: Querier, T: DeserializeOwned, CQ: CustomQuery>(
         &self,
         querier: &Q,
         req: Cw721QueryMsg,
@@ -42,12 +42,12 @@ impl Cw721Contract {
             msg: to_binary(&req)?,
         }
         .into();
-        QuerierWrapper::new(querier).query(&query)
+        QuerierWrapper::<CQ>::new(querier).query(&query)
     }
 
     /*** queries ***/
 
-    pub fn owner_of<Q: Querier, T: Into<String>>(
+    pub fn owner_of<Q: Querier, T: Into<String>, CQ: CustomQuery>(
         &self,
         querier: &Q,
         token_id: T,
@@ -57,10 +57,10 @@ impl Cw721Contract {
             token_id: token_id.into(),
             include_expired: Some(include_expired),
         };
-        self.query(querier, req)
+        self.query::<_, _, CQ>(querier, req)
     }
 
-    pub fn approved_for_all<Q: Querier, T: Into<String>>(
+    pub fn approved_for_all<Q: Querier, T: Into<String>, CQ: CustomQuery>(
         &self,
         querier: &Q,
         owner: T,
@@ -74,24 +74,24 @@ impl Cw721Contract {
             start_after,
             limit,
         };
-        let res: ApprovedForAllResponse = self.query(querier, req)?;
+        let res: ApprovedForAllResponse = self.query::<_, _, CQ>(querier, req)?;
         Ok(res.operators)
     }
 
-    pub fn num_tokens<Q: Querier>(&self, querier: &Q) -> StdResult<u64> {
+    pub fn num_tokens<Q: Querier, CQ: CustomQuery>(&self, querier: &Q) -> StdResult<u64> {
         let req = Cw721QueryMsg::NumTokens {};
-        let res: NumTokensResponse = self.query(querier, req)?;
+        let res: NumTokensResponse = self.query::<_, _, CQ>(querier, req)?;
         Ok(res.count)
     }
 
     /// With metadata extension
-    pub fn contract_info<Q: Querier>(&self, querier: &Q) -> StdResult<ContractInfoResponse> {
+    pub fn contract_info<Q: Querier, CQ: CustomQuery>(&self, querier: &Q) -> StdResult<ContractInfoResponse> {
         let req = Cw721QueryMsg::ContractInfo {};
-        self.query(querier, req)
+        self.query::<_, _, CQ>(querier, req)
     }
 
     /// With metadata extension
-    pub fn nft_info<Q: Querier, T: Into<String>, U: DeserializeOwned>(
+    pub fn nft_info<Q: Querier, T: Into<String>, U: DeserializeOwned, CQ: CustomQuery>(
         &self,
         querier: &Q,
         token_id: T,
@@ -99,11 +99,11 @@ impl Cw721Contract {
         let req = Cw721QueryMsg::NftInfo {
             token_id: token_id.into(),
         };
-        self.query(querier, req)
+        self.query::<_, _, CQ>(querier, req)
     }
 
     /// With metadata extension
-    pub fn all_nft_info<Q: Querier, T: Into<String>, U: DeserializeOwned>(
+    pub fn all_nft_info<Q: Querier, T: Into<String>, U: DeserializeOwned, CQ: CustomQuery>(
         &self,
         querier: &Q,
         token_id: T,
@@ -113,11 +113,11 @@ impl Cw721Contract {
             token_id: token_id.into(),
             include_expired: Some(include_expired),
         };
-        self.query(querier, req)
+        self.query::<_, _, CQ>(querier, req)
     }
 
     /// With enumerable extension
-    pub fn tokens<Q: Querier, T: Into<String>>(
+    pub fn tokens<Q: Querier, T: Into<String>, CQ: CustomQuery>(
         &self,
         querier: &Q,
         owner: T,
@@ -129,27 +129,27 @@ impl Cw721Contract {
             start_after,
             limit,
         };
-        self.query(querier, req)
+        self.query::<_, _, CQ>(querier, req)
     }
 
     /// With enumerable extension
-    pub fn all_tokens<Q: Querier>(
+    pub fn all_tokens<Q: Querier, CQ: CustomQuery>(
         &self,
         querier: &Q,
         start_after: Option<String>,
         limit: Option<u32>,
     ) -> StdResult<TokensResponse> {
         let req = Cw721QueryMsg::AllTokens { start_after, limit };
-        self.query(querier, req)
+        self.query::<_, _, CQ>(querier, req)
     }
 
     /// returns true if the contract supports the metadata extension
-    pub fn has_metadata<Q: Querier>(&self, querier: &Q) -> bool {
-        self.contract_info(querier).is_ok()
+    pub fn has_metadata<Q: Querier, CQ: CustomQuery>(&self, querier: &Q) -> bool {
+        self.contract_info::<_, CQ>(querier).is_ok()
     }
 
     /// returns true if the contract supports the enumerable extension
-    pub fn has_enumerable<Q: Querier>(&self, querier: &Q) -> bool {
-        self.tokens(querier, self.addr(), None, Some(1)).is_ok()
+    pub fn has_enumerable<Q: Querier, CQ: CustomQuery>(&self, querier: &Q) -> bool {
+        self.tokens::<_, _, CQ>(querier, self.addr(), None, Some(1)).is_ok()
     }
 }

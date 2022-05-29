@@ -1,7 +1,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use cosmwasm_std::{Querier, QuerierWrapper, QueryRequest, StdResult, Storage, WasmQuery};
+use cosmwasm_std::{Querier, QuerierWrapper, QueryRequest, StdResult, Storage, WasmQuery, Empty};
 use cw_storage_plus::Item;
 
 pub const CONTRACT: Item<ContractVersion> = Item::new("contract_info");
@@ -46,7 +46,7 @@ pub fn query_contract_info<Q: Querier, T: Into<String>>(
     querier: &Q,
     contract_addr: T,
 ) -> StdResult<ContractVersion> {
-    let req = QueryRequest::Wasm(WasmQuery::Raw {
+    let req: QueryRequest<Empty> = QueryRequest::Wasm(WasmQuery::Raw {
         contract_addr: contract_addr.into(),
         key: CONTRACT.as_slice().into(),
     });

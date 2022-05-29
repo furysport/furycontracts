@@ -3,7 +3,7 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::marker::PhantomData;
 
-use cosmwasm_std::{Order, Pair, StdResult, Storage};
+use cosmwasm_std::{Order, Record, StdResult, Storage};
 use std::ops::Deref;
 
 use crate::helpers::nested_namespaces_with_key;
@@ -42,7 +42,7 @@ impl Bound {
     }
 }
 
-type DeserializeFn<T> = fn(&dyn Storage, &[u8], Pair) -> StdResult<Pair<T>>;
+type DeserializeFn<T> = fn(&dyn Storage, &[u8], Record) -> StdResult<Record<T>>;
 
 #[derive(Clone)]
 pub struct Prefix<T>
@@ -100,7 +100,7 @@ where
         min: Option<Bound>,
         max: Option<Bound>,
         order: Order,
-    ) -> Box<dyn Iterator<Item = StdResult<Pair<T>>> + 'a>
+    ) -> Box<dyn Iterator<Item = StdResult<Record<T>>> + 'a>
     where
         T: 'a,
     {
@@ -130,7 +130,7 @@ pub fn range_with_prefix<'a>(
     start: Option<Bound>,
     end: Option<Bound>,
     order: Order,
-) -> Box<dyn Iterator<Item = Pair> + 'a> {
+) -> Box<dyn Iterator<Item = Record> + 'a> {
     let start = calc_start_bound(namespace, start);
     let end = calc_end_bound(namespace, end);
 
