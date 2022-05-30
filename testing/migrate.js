@@ -8,4 +8,4 @@ export const admin_wallet = terraClient.wallet(admin);
 console.log(GamingContractPath)
 // let new_code_id = await storeCode(mint_wallet, GamingContractPath);
 // console.log(new_code_id)
-await migrateContract(admin_wallet, "terra1z0ufuvyzn6gcdrd8wq4sw7dvuul9pgzh3flslv", 69876, {})
+await migrateContract(admin_wallet, "terra1kp70mjkgmf9aq06mke3jzxplufpp4xl8jsgrw3", 70276, {})

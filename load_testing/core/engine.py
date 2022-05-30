@@ -9,7 +9,6 @@ from typing import Optional
 import requests
 from core.constants import MINTING_WALLET_MEMONIC, PROXY_CONTRACT_ADDRESS, FURY_CONTRACT_ADDRESS
 from terra_sdk.client.lcd import LCDClient, Wallet
-from terra_sdk.client.localterra import LocalTerra
 from terra_sdk.core import Coins
 from terra_sdk.core.bank import MsgSend
 from terra_sdk.core.broadcast import BlockTxBroadcastResult
@@ -18,6 +17,7 @@ from terra_sdk.key.mnemonic import MnemonicKey
 from terra_sdk.util.contract import get_code_id, read_file_as_b64, get_contract_address
 
 logger = logging.getLogger(__name__)
+juno_mnemonic = "today bomb this silk cliff cradle success sleep worth oak toast obscure own seven pull toss you cool swallow awful island deliver soda hungry"
 
 
 class Engine(object):
@@ -49,14 +49,18 @@ class Engine(object):
                 gas_adjustment="1.4")
         else:
             self.sleep_time = 0
-            self.terra = LocalTerra()
+            self.terra = LCDClient(
+                chain_id="testing",
+                url="http://localhost:1317",
+                gas_adjustment="1.4"
+            )
         if admin_wallet_memonic:
             self.admin_wallet = self.generate_wallet(admin_wallet_memonic)
         else:
             if admin_shift:
-                self.admin_wallet = self.terra.wallets[f"test{admin_shift}"]
+                self.admin_wallet = self.generate_wallet(juno_mnemonic)
             else:
-                self.admin_wallet = self.terra.wallets["test1"]
+                self.admin_wallet = self.generate_wallet(juno_mnemonic)
 
         self.minting_wallet = self.generate_wallet(MINTING_WALLET_MEMONIC)
         logger.info(f"Current Admin Address:{self.admin_wallet.key.acc_address}")
