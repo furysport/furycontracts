@@ -3,15 +3,18 @@
   "version": "1.0.0",
   "description": "For testing astroport liquidity and POL",
   "main": "index.js",
+   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "node -r dotenv/config index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Nitin Khobragade",
   "license": "ISC",
   "dependencies": {
+    "@cosmostation/cosmosjs": "^0.11.2",
     "chai": "^4.3.6",
-    "dotenv": "^16.0.0"
+    "dotenv": "^16.0.0",
+    "protobufjs": "^6.10.2"
   },
   "devDependencies": {
     "@terra-money/terra.js": "^2.0.16",
