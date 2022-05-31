@@ -73,6 +73,8 @@ pub fn instantiate(
         transaction_fees: msg.transaction_fees,
         swap_fees: msg.swap_fees,
         max_bonding_limit_per_user: msg.max_bonding_limit_per_user,
+        usdc_ibc_symbol: msg.usdc_ibc_symbol,
+
     };
     if let Some(pool_pair_addr) = msg.pool_pair_address {
         cfg.pool_pair_address = pool_pair_addr;
@@ -157,8 +159,9 @@ pub fn execute(
                 })?,
             )?;
             let mut fees = Uint128::zero();
+            let uusd = get_symbol(&deps)?;
             for fund in info.funds.clone() {
-                if fund.denom == "uusd" {
+                if fund.denom == uusd {
                     fees = fees.checked_add(fund.amount).unwrap();
                 }
             }
@@ -179,12 +182,14 @@ pub fn execute(
                 });
             }
             let mut info_to_send = info.clone();
-            let mut platform_fee_funds = Coin::new(0, format!("uusd"));
+            let uusd = get_symbol(&deps)?;
+
+            let mut platform_fee_funds = Coin::new(0, format!("{}", uusd.to_string()));
             if !fees.is_zero() {
                 //Received the platform fees, remove it from funds
-                let mut coin_to_set_in_funds = Coin::new(0, format!("uusd"));
+                let mut coin_to_set_in_funds = Coin::new(0, format!("{}", uusd.to_string()));
                 for coin in info.funds.clone() {
-                    if coin.denom == "uusd" {
+                    if coin.denom == uusd {
                         coin_to_set_in_funds = Coin {
                             amount: coin.amount - required_ust_fees,
                             denom: coin.denom.clone(),
@@ -517,11 +522,12 @@ pub fn forward_swap_to_astro(
         funds: vec![],
     }));
     // resp = resp.add_submessage(send);
+    let uusd = get_symbol(&deps)?;
     resp = resp.add_message(CosmosMsg::Wasm(exec));
     //Add bank message to transfer platform fees to platform fee collector wallet
     let pf_asset = Asset {
         info: AssetInfo::NativeToken {
-            denom: String::from("uusd"),
+            denom: String::from(uusd),
         },
         amount: platform_fees.amount,
     };
@@ -558,8 +564,9 @@ pub fn provide_native_liquidity(
         })?,
     )?;
     let mut fees = Uint128::zero();
+    let uusd = get_symbol(&deps)?;
     for fund in info.funds.clone() {
-        if fund.denom == "uusd" {
+        if fund.denom == uusd {
             fees = fees.checked_add(fund.amount).unwrap();
         }
     }
@@ -576,8 +583,10 @@ pub fn provide_native_liquidity(
     }
     // Platform fees received is good, now proceed
     //transfer it to platform_fees_collector_wallet
-    let mut funds_to_send = vec![Coin::new(funds_to_pass.u128(), String::from("uusd"))];
-    let platform_fees = Coin::new(required_ust_fees.u128(), format!("uusd"));
+    let uusd = get_symbol(&deps)?;
+
+    let mut funds_to_send = vec![Coin::new(funds_to_pass.u128(), String::from(uusd.to_string()))];
+    let platform_fees = Coin::new(required_ust_fees.u128(), format!("{}", uusd));
 
     if let AssetInfo::NativeToken { denom, .. } = &asset.info {
         funds_to_send = vec![Coin {
@@ -590,7 +599,7 @@ pub fn provide_native_liquidity(
     let assets = [
         Asset {
             info: AssetInfo::NativeToken {
-                denom: "uusd".to_string(),
+                denom: uusd.to_string(),
             },
             amount: asset.amount,
         },
@@ -693,19 +702,19 @@ pub fn transfer_custom_assets_from_funds_owner_to_proxy(
             fury_equiv_for_ust = fury_amount_provided;
         }
         fury_pre_discount = Uint128::from(2u128) * fury_equiv_for_ust;
-        discounted_rate -= config.pair_discount_rate;
+        discounted_rate += config.pair_discount_rate;
         funds_owner = config.pair_fury_reward_wallet.to_string();
         bonding_period = config.pair_bonding_period_in_sec;
     } else {
         fury_pre_discount = fury_equiv_for_ust;
-        discounted_rate -= config.native_discount_rate;
+        discounted_rate += config.native_discount_rate;
         funds_owner = config.native_investment_reward_wallet.to_string();
         bonding_period = config.native_bonding_period_in_sec;
     }
     let total_fury_amount = fury_pre_discount
-        .checked_mul(Uint128::from(10000u128))
+        .checked_mul(Uint128::from(discounted_rate))
         .unwrap_or_default()
-        .checked_div(Uint128::from(discounted_rate))
+        .checked_div(Uint128::from(10000u128))
         .unwrap_or_default();
 
     // Get the existing bonded_rewards_details for this user
@@ -808,7 +817,7 @@ pub fn transfer_custom_assets_from_funds_owner_to_proxy(
         Some(pf) => {
             let pf_asset = Asset {
                 info: AssetInfo::NativeToken {
-                    denom: String::from("uusd"),
+                    denom: String::from(get_symbol(&deps)?),
                 },
                 amount: pf.amount,
             };
@@ -897,7 +906,7 @@ pub fn provide_liquidity(
         if platform_fees.amount > Uint128::zero() {
             let pf_asset = Asset {
                 info: AssetInfo::NativeToken {
-                    denom: String::from("uusd"),
+                    denom: String::from(get_symbol(&deps)?),
                 },
                 amount: platform_fees.amount,
             };
@@ -960,7 +969,7 @@ fn claim_investment_reward(
     )?;
     let mut fees = Uint128::zero();
     for fund in info.funds.clone() {
-        if fund.denom == "uusd" {
+        if fund.denom == get_symbol(&deps)? {
             fees = fees.checked_add(fund.amount).unwrap();
         }
     }
@@ -1074,7 +1083,7 @@ fn claim_investment_reward(
     for fund in info.funds {
         let pf_asset = Asset {
             info: AssetInfo::NativeToken {
-                denom: String::from("uusd"),
+                denom: String::from(get_symbol(&deps)?),
             },
             amount: fund.amount,
         };
@@ -1142,7 +1151,7 @@ pub fn swap(
     )?;
     let mut fees = Uint128::zero();
     for fund in info.funds.clone() {
-        if fund.denom == "uusd" {
+        if fund.denom == get_symbol(&deps)? {
             fees = fees.checked_add(fund.amount).unwrap();
         }
     }
@@ -1167,7 +1176,7 @@ pub fn swap(
     }
     //Remove platform fees from funds and transfer it to platform_fees_collector_wallet
     let mut funds_to_send = vec![];
-    let platform_fees = Coin::new(required_ust_fees.u128(), String::from("uusd"));
+    let platform_fees = Coin::new(required_ust_fees.u128(), String::from(get_symbol(&deps)?));
     if offer_asset.is_native_token() {
         if let AssetInfo::NativeToken { denom, .. } = &offer_asset.info {
             funds_to_send = vec![Coin {
@@ -1221,7 +1230,7 @@ pub fn swap(
     let data_msg = format!("Swapping {:?}", swap_msg).into_bytes();
 
     //Add bank message to transfer platform fees to platform fee collector wallet
-    let pf_asset = Asset { info: AssetInfo::NativeToken { denom: String::from("uusd") }, amount: platform_fees.amount };
+    let pf_asset = Asset { info: AssetInfo::NativeToken { denom: String::from(get_symbol(&deps)?) }, amount: platform_fees.amount };
     // let taxed_platform_fees = pf_asset.deduct_tax(&deps.querier)?;
 
     resp = resp.add_message(CosmosMsg::Bank(BankMsg::Send {
@@ -1243,6 +1252,13 @@ pub fn set_swap_opening_date(
     config.swap_opening_date = swap_opening_date;
     CONFIG.save(deps.storage, &config)?;
     Ok(Response::default())
+}
+
+pub fn get_symbol(
+    deps: &DepsMut,
+) -> Result<String, ContractError> {
+    let config = CONFIG.load(deps.storage)?;
+    return Ok(config.usdc_ibc_symbol)
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -1352,6 +1368,7 @@ pub fn reply(deps: DepsMut, env: Env, msg: Reply) -> Result<Response, ContractEr
         }
     }
 }
+
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
@@ -1560,7 +1577,7 @@ pub fn query_platform_fees(deps: Deps, msg: Binary) -> StdResult<Uint128> {
         .checked_div(Uint128::from(HUNDRED_PERCENT))?;
     let pf_asset = Asset {
         info: AssetInfo::NativeToken {
-            denom: String::from("uusd"),
+            denom: String::from(config.usdc_ibc_symbol),
         },
         amount: platform_fee,
     };

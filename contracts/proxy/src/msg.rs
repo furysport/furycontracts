@@ -1,8 +1,9 @@
-use terraswap::asset::Asset;
 use cosmwasm_std::{Binary, Decimal, Timestamp, Uint128, Uint64};
 use cw20::Cw20ReceiveMsg;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+
+use terraswap::asset::Asset;
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug, Clone, PartialEq)]
 pub struct InstantiateMsg {
@@ -46,6 +47,8 @@ pub struct InstantiateMsg {
     pub swap_fees: Uint128,
     /// Maximum number of simultaneous outstanding Bonds of discounted Reward Fury Tokens permitted per user
     pub max_bonding_limit_per_user: u64,
+    pub usdc_ibc_symbol: String,
+
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

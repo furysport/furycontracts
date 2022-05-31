@@ -9,7 +9,7 @@ pub struct Config {
     pub admin_address: Addr,
     /// contract address of Fury token
     pub custom_token_address: Addr,
-    
+
     /// discount_rate when fury and UST are both provided
     pub pair_discount_rate: u16,
     /// bonding period when fury and UST are both provided in seconds
@@ -28,7 +28,7 @@ pub struct Config {
     /// Fury tokens for native(UST only) investment will be fetched from this wallet
     pub native_investment_reward_wallet: Addr,
     /// The native(UST only) investment will be stored into this wallet
-    pub native_investment_receive_wallet: Addr,    
+    pub native_investment_receive_wallet: Addr,
 
     /// This address has the authority to pump in liquidity
     /// The LP tokens for this address will be returned to this address
@@ -36,7 +36,7 @@ pub struct Config {
 
     ///Time in nano seconds since EPOC when the swapping will be enabled
     pub swap_opening_date: Timestamp,
-    
+
     /// Pool pair address from liquidity provider (astroport)
     pub pool_pair_address: String,
     /// LP token contract address
@@ -50,7 +50,9 @@ pub struct Config {
     ///Specified in percentage multiplied by 100, i.e. 100% = 10000 and 0.01% = 1
     pub swap_fees: Uint128,
     pub max_bonding_limit_per_user: u64,
+    pub usdc_ibc_symbol: String,
 }
+
 // put the length bytes at the first for compatibility with legacy singleton store
 pub const CONFIG: Item<Config> = Item::new("\u{0}\u{6}config");
 
@@ -105,10 +107,11 @@ pub struct SubMessageDetails {
 
     pub funds: Vec<Coin>,
 
-	pub user_address: String,
+    pub user_address: String,
 
-	pub is_fury_provided: bool,
+    pub is_fury_provided: bool,
 }
+
 /// Map of request and list of their bonds. the key is request id and the
 /// Value jsonified request
 pub const SUB_MESSAGE_DETAILS: Map<String, SubMessageDetails> = Map::new("pending_request_details");
@@ -126,8 +129,9 @@ pub struct BondedRewardsDetails {
 
     pub bonding_period: u64,
 
-    pub bonding_start_timestamp : Timestamp,
+    pub bonding_start_timestamp: Timestamp,
 }
+
 /// Map of users and list of their bonded rewards. the key is user name and the
 /// BondedRewardDetails will contain information about the users and rewards
 pub const BONDED_REWARDS_DETAILS: Map<String, Vec<BondedRewardsDetails>> =
