@@ -1,4 +1,9 @@
-use cosmwasm_std::{Addr, BankMsg, Binary, Coin, ContractResult, CosmosMsg, Decimal, Deps, DepsMut, entry_point, Env, from_binary, MessageInfo, Reply, ReplyOn, Response, StdError, StdResult, Storage, SubMsg, SubMsgResult, Timestamp, to_binary, Uint128, Uint64, WasmMsg};
+use cosmwasm_std::{Addr, BankMsg, Binary, Coin,
+                   ContractResult, CosmosMsg, Decimal, Deps,
+                   DepsMut, entry_point, Env, from_binary,
+                   MessageInfo, Reply, ReplyOn, Response,
+                   StdError, StdResult, Storage, SubMsg, SubMsgResult,
+                   Timestamp, to_binary, Uint128, Uint64, WasmMsg};
 use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg};
 
 use terraswap::asset::{Asset, AssetInfo, PairInfo};
@@ -13,7 +18,8 @@ use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, ProxyCw20HookMsg, QueryMsg};
 use crate::state::{
     BONDED_REWARDS_DETAILS, BondedRewardsDetails, Config, CONFIG, CONTRACT,
-    ContractVersion, SUB_MESSAGE_DETAILS, SUB_REQ_ID, SubMessageDetails, SubMessageNextAction, SubMessageType,
+    ContractVersion, SUB_MESSAGE_DETAILS, SUB_REQ_ID,
+    SubMessageDetails, SubMessageNextAction, SubMessageType,
 };
 
 /// Contract name that is used for migration.
@@ -428,9 +434,9 @@ pub fn forward_provide_liquidity_to_astro(
         let c = Coin {
             denom: fund.denom,
             amount: fund
-                .amount
-                // .checked_sub(asset.compute_tax(&deps.querier)?)
-                // .unwrap(),
+                .amount,
+            // .checked_sub(asset.compute_tax(&deps.querier)?)
+            // .unwrap(),
         };
         funds_to_pass.push(c);
     }
@@ -631,7 +637,7 @@ pub fn transfer_native_assets_to_native_investment_receive_wallet(
             denom: fund.denom,
             amount: fund
                 .amount
-               ,
+            ,
         };
         funds_to_pass.push(c);
     }
