@@ -1,23 +1,24 @@
-use crate::error::ContractError;
-use crate::msg::{ExecuteMsg, InstantiateMsg, ProxyCw20HookMsg, QueryMsg};
-use crate::state::{
-    BondedRewardsDetails, Config, ContractVersion, SubMessageDetails, SubMessageNextAction,
-    SubMessageType, BONDED_REWARDS_DETAILS, CONFIG, CONTRACT, SUB_MESSAGE_DETAILS, SUB_REQ_ID,
+use cosmwasm_std::{
+    Addr, BankMsg, Binary, Coin, ContractResult, CosmosMsg, Decimal, Deps, DepsMut,
+    entry_point, Env, from_binary, MessageInfo, Reply, ReplyOn, Response, StdError, StdResult, Storage,
+    SubMsg, Timestamp, to_binary, Uint128, Uint64, WasmMsg,
 };
+use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg};
+
 use terraswap::asset::{Asset, AssetInfo, PairInfo};
-use terraswap::pair::ExecuteMsg as PairExecuteMsg;
-use terraswap::pair::QueryMsg::{Pair, Pool, ReverseSimulation, Simulation};
 use terraswap::pair::{
     Cw20HookMsg, PoolResponse, ReverseSimulationResponse,
     SimulationResponse,
 };
+use terraswap::pair::ExecuteMsg as PairExecuteMsg;
+use terraswap::pair::QueryMsg::{Pair, Pool, ReverseSimulation, Simulation};
 
-use cosmwasm_std::{
-    entry_point, from_binary, to_binary, Addr, BankMsg, Binary, Coin, ContractResult, CosmosMsg,
-    Decimal, Deps, DepsMut, Env, MessageInfo, Reply, ReplyOn, Response, StdError, StdResult,
-    Storage, SubMsg, Timestamp, Uint128, Uint64, WasmMsg,
+use crate::error::ContractError;
+use crate::msg::{ExecuteMsg, InstantiateMsg, ProxyCw20HookMsg, QueryMsg};
+use crate::state::{
+    BONDED_REWARDS_DETAILS, BondedRewardsDetails, Config, CONFIG, CONTRACT,
+    ContractVersion, SUB_MESSAGE_DETAILS, SUB_REQ_ID, SubMessageDetails, SubMessageNextAction, SubMessageType,
 };
-use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg};
 
 /// Contract name that is used for migration.
 const CONTRACT_NAME: &str = "terraswap-proxy";
@@ -159,16 +160,16 @@ pub fn execute(
                     fees = fees.checked_add(fund.amount).unwrap();
                 }
             }
-            let mut native_tax = Uint128::zero();
+            // let mut native_tax = Uint128::zero();
             for asset in assets.clone() {
                 if asset.is_native_token() {
                     fees = fees.checked_sub(asset.amount).unwrap();
-                    native_tax = native_tax
-                        .checked_add(asset.compute_tax(&deps.querier)?)
-                        .unwrap();
+                    // native_tax = native_tax
+                    //     .checked_add(asset.compute_tax(&deps.querier)?)
+                    //     .unwrap();
                 }
             }
-            fees = fees.checked_sub(native_tax).unwrap();
+            // fees = fees.checked_sub(native_tax).unwrap();
             if fees < required_ust_fees {
                 return Err(ContractError::InsufficientFees {
                     required: required_ust_fees,
@@ -432,8 +433,8 @@ pub fn forward_provide_liquidity_to_astro(
             denom: fund.denom,
             amount: fund
                 .amount
-                .checked_sub(asset.compute_tax(&deps.querier)?)
-                .unwrap(),
+                // .checked_sub(asset.compute_tax(&deps.querier)?)
+                // .unwrap(),
         };
         funds_to_pass.push(c);
     }
@@ -522,10 +523,10 @@ pub fn forward_swap_to_astro(
         },
         amount: platform_fees.amount,
     };
-    let taxed_platform_fees = pf_asset.deduct_tax(&deps.querier)?;
+    // let taxed_platform_fees = pf_asset.deduct_tax(&deps.querier)?;
     resp = resp.add_message(CosmosMsg::Bank(BankMsg::Send {
         to_address: config.platform_fees_collector_wallet.into_string(),
-        amount: vec![taxed_platform_fees],
+        amount: vec![],
     }));
     Ok(resp.add_attribute("action", "Forwarding swap message to pool pair address"))
 }
@@ -560,11 +561,11 @@ pub fn provide_native_liquidity(
             fees = fees.checked_add(fund.amount).unwrap();
         }
     }
-    let native_tax = asset.compute_tax(&deps.querier)?;
+    // let native_tax = asset.compute_tax(&deps.querier)?;
     //Remove platform fees from funds
     let funds_to_pass = fees.checked_sub(required_ust_fees).unwrap();
     fees = fees.checked_sub(asset.amount).unwrap();
-    fees = fees.checked_sub(native_tax).unwrap();
+    // fees = fees.checked_sub(native_tax).unwrap();
     if fees < required_ust_fees {
         return Err(ContractError::InsufficientFees {
             required: required_ust_fees,
@@ -634,8 +635,7 @@ pub fn transfer_native_assets_to_native_investment_receive_wallet(
             denom: fund.denom,
             amount: fund
                 .amount
-                .checked_sub(asset.compute_tax(&deps.querier)?)
-                .unwrap(),
+               ,
         };
         funds_to_pass.push(c);
     }
@@ -810,10 +810,10 @@ pub fn transfer_custom_assets_from_funds_owner_to_proxy(
                 },
                 amount: pf.amount,
             };
-            let taxed_platform_fees = pf_asset.deduct_tax(&deps.querier)?;
+            // let taxed_platform_fees = pf_asset.deduct_tax(&deps.querier)?;
             resp = resp.add_message(CosmosMsg::Bank(BankMsg::Send {
                 to_address: config.platform_fees_collector_wallet.into_string(),
-                amount: vec![taxed_platform_fees],
+                amount: vec![],
             }));
         }
         None => {}
@@ -899,10 +899,10 @@ pub fn provide_liquidity(
                 },
                 amount: platform_fees.amount,
             };
-            let taxed_platform_fees = pf_asset.deduct_tax(&deps.querier)?;
+            // let taxed_platform_fees = pf_asset.deduct_tax(&deps.querier)?;
             resp = resp.add_message(CosmosMsg::Bank(BankMsg::Send {
                 to_address: config.platform_fees_collector_wallet.into_string(),
-                amount: vec![taxed_platform_fees],
+                amount: vec![],
             }));
         }
     }
@@ -1076,8 +1076,8 @@ fn claim_investment_reward(
             },
             amount: fund.amount,
         };
-        let taxed_platform_fees = pf_asset.deduct_tax(&deps.querier)?;
-        funds_to_send.push(taxed_platform_fees);
+        // let taxed_platform_fees = pf_asset.deduct_tax(&deps.querier)?;
+        // funds_to_send.push(taxed_platform_fees);
     }
     rsp = rsp.add_message(CosmosMsg::Bank(BankMsg::Send {
         to_address: config.platform_fees_collector_wallet.into_string(),
@@ -1091,10 +1091,10 @@ fn claim_investment_reward(
         contract_addr: config.custom_token_address.to_string(),
         msg: to_binary(&transfer_msg).unwrap(),
         funds: vec![
-        // Coin {
-        //     denom: token_info.name.to_string(),
-        //     amount: price,
-        // },
+            // Coin {
+            //     denom: token_info.name.to_string(),
+            //     amount: price,
+            // },
         ],
     };
     let send: SubMsg = SubMsg::new(exec);
@@ -1147,8 +1147,8 @@ pub fn swap(
     if offer_asset.is_native_token() {
         fees = fees.checked_sub(offer_asset.amount).unwrap();
     }
-    let native_tax = offer_asset.compute_tax(&deps.querier)?;
-    fees = fees.checked_sub(native_tax).unwrap();
+    // let native_tax = offer_asset.compute_tax(&deps.querier)?;
+    // fees = fees.checked_sub(native_tax).unwrap();
     if fees < required_ust_fees {
         return Err(ContractError::InsufficientFees {
             required: required_ust_fees,
@@ -1219,12 +1219,12 @@ pub fn swap(
     let data_msg = format!("Swapping {:?}", swap_msg).into_bytes();
 
     //Add bank message to transfer platform fees to platform fee collector wallet
-    let pf_asset = Asset{info:AssetInfo::NativeToken{denom: String::from("uusd")}, amount: platform_fees.amount};
-    let taxed_platform_fees = pf_asset.deduct_tax(&deps.querier)?;
+    let pf_asset = Asset { info: AssetInfo::NativeToken { denom: String::from("uusd") }, amount: platform_fees.amount };
+    // let taxed_platform_fees = pf_asset.deduct_tax(&deps.querier)?;
 
     resp = resp.add_message(CosmosMsg::Bank(BankMsg::Send {
         to_address: config.platform_fees_collector_wallet.into_string(),
-        amount: vec![taxed_platform_fees],
+        amount: vec![],
     }));
 
     Ok(resp
@@ -1274,55 +1274,55 @@ pub fn reply(deps: DepsMut, env: Env, msg: Reply) -> Result<Response, ContractEr
                                 } => {
                                     let auto_stake = Some(true);
                                     if smd.next_action
-                                    == SubMessageNextAction::TransferCustomAssetsFromFundsOwner
-                                {
-                                    return transfer_custom_assets_from_funds_owner_to_proxy(
-                                        deps,
-                                        env,
-                                        assets,
-                                        slippage_tolerance,
-                                        auto_stake,
-                                        receiver,
-                                        smd.funds,
-                                        smd.user_address,
-                                        smd.is_fury_provided,
-                                        None,
-                                    );
-                                } else if smd.next_action == SubMessageNextAction::TransferToNativeInvestmentReceiveWallet{
-                                    return transfer_native_assets_to_native_investment_receive_wallet(
-                                        deps,
-                                        receiver,
-                                        smd.funds,
-                                    );
-                                } else if smd.next_action == SubMessageNextAction::IncreaseAllowance
-                                {
-                                    return incr_allow_for_provide_liquidity(
-                                        deps,
-                                        env,
-                                        assets,
-                                        slippage_tolerance,
-                                        auto_stake,
-                                        receiver,
-                                        smd.funds,
-                                        smd.user_address,
-                                        smd.is_fury_provided,
-                                    );
-                                } else if smd.next_action == SubMessageNextAction::ProvideLiquidity
-                                {
-                                    return forward_provide_liquidity_to_astro(
-                                        deps,
-                                        env,
-                                        assets,
-                                        slippage_tolerance,
-                                        auto_stake,
-                                        receiver,
-                                        smd.funds,
-                                    );
-                                }
+                                        == SubMessageNextAction::TransferCustomAssetsFromFundsOwner
+                                    {
+                                        return transfer_custom_assets_from_funds_owner_to_proxy(
+                                            deps,
+                                            env,
+                                            assets,
+                                            slippage_tolerance,
+                                            auto_stake,
+                                            receiver,
+                                            smd.funds,
+                                            smd.user_address,
+                                            smd.is_fury_provided,
+                                            None,
+                                        );
+                                    } else if smd.next_action == SubMessageNextAction::TransferToNativeInvestmentReceiveWallet {
+                                        return transfer_native_assets_to_native_investment_receive_wallet(
+                                            deps,
+                                            receiver,
+                                            smd.funds,
+                                        );
+                                    } else if smd.next_action == SubMessageNextAction::IncreaseAllowance
+                                    {
+                                        return incr_allow_for_provide_liquidity(
+                                            deps,
+                                            env,
+                                            assets,
+                                            slippage_tolerance,
+                                            auto_stake,
+                                            receiver,
+                                            smd.funds,
+                                            smd.user_address,
+                                            smd.is_fury_provided,
+                                        );
+                                    } else if smd.next_action == SubMessageNextAction::ProvideLiquidity
+                                    {
+                                        return forward_provide_liquidity_to_astro(
+                                            deps,
+                                            env,
+                                            assets,
+                                            slippage_tolerance,
+                                            auto_stake,
+                                            receiver,
+                                            smd.funds,
+                                        );
+                                    }
                                 }
                                 _ => {
                                     return Err(ContractError::Std(StdError::generic_err(
-                                        format!("Should never reach here!!!",),
+                                        format!("Should never reach here!!!", ),
                                     )));
                                 }
                             }
@@ -1484,20 +1484,20 @@ pub fn query_platform_fees(deps: Deps, msg: Binary) -> StdResult<Uint128> {
     let mut ust_amount_provided = Uint128::zero();
     match from_binary(&msg) {
         Ok(ExecuteMsg::Configure {
-            pool_pair_address: _,
-            liquidity_token: _,
-            swap_opening_date: _,
-        }) => {
+               pool_pair_address: _,
+               liquidity_token: _,
+               swap_opening_date: _,
+           }) => {
             return Ok(Uint128::zero());
         }
         Ok(ExecuteMsg::Receive(_)) => {
             return Ok(Uint128::zero());
         }
         Ok(ExecuteMsg::ProvidePairForReward {
-            assets,
-            slippage_tolerance: _,
-            auto_stake: _,
-        }) => {
+               assets,
+               slippage_tolerance: _,
+               auto_stake: _,
+           }) => {
             platform_fees_percentage = config.platform_fees + config.transaction_fees;
             for asset in assets {
                 if asset.info.is_native_token() {
@@ -1509,28 +1509,28 @@ pub fn query_platform_fees(deps: Deps, msg: Binary) -> StdResult<Uint128> {
             }
         }
         Ok(ExecuteMsg::ProvideNativeForReward {
-            asset,
-            slippage_tolerance: _,
-            auto_stake: _,
-        }) => {
+               asset,
+               slippage_tolerance: _,
+               auto_stake: _,
+           }) => {
             platform_fees_percentage = config.platform_fees + config.transaction_fees;
             if asset.info.is_native_token() {
                 ust_amount_provided = asset.amount;
             }
         }
         Ok(ExecuteMsg::ProvideLiquidity {
-            assets: _,
-            slippage_tolerance: _,
-            auto_stake: _,
-        }) => {
+               assets: _,
+               slippage_tolerance: _,
+               auto_stake: _,
+           }) => {
             return Ok(Uint128::zero());
         }
         Ok(ExecuteMsg::Swap {
-            offer_asset,
-            belief_price: _,
-            max_spread: _,
-            to: _,
-        }) => {
+               offer_asset,
+               belief_price: _,
+               max_spread: _,
+               to: _,
+           }) => {
             platform_fees_percentage =
                 config.platform_fees + config.transaction_fees + config.swap_fees;
             if offer_asset.info.is_native_token() {
@@ -1541,9 +1541,9 @@ pub fn query_platform_fees(deps: Deps, msg: Binary) -> StdResult<Uint128> {
             }
         }
         Ok(ExecuteMsg::RewardClaim {
-            receiver: _,
-            withdrawal_amount,
-        }) => {
+               receiver: _,
+               withdrawal_amount,
+           }) => {
             platform_fees_percentage = config.platform_fees + config.transaction_fees;
             fury_amount_provided = withdrawal_amount;
         }
@@ -1563,6 +1563,6 @@ pub fn query_platform_fees(deps: Deps, msg: Binary) -> StdResult<Uint128> {
         amount: platform_fee,
     };
 
-    let tax_on_pf = pf_asset.compute_tax(&deps.querier)?;
-    return Ok(platform_fee.checked_add(tax_on_pf)?);
+    // let tax_on_pf = pf_asset.compute_tax(&deps.querier)?;
+    return Ok(platform_fee);
 }
