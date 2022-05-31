@@ -24,7 +24,7 @@ backtraces = ["cosmwasm-std/backtraces"]
 
 [dependencies]
 cw20 = { version = "0.8" }
-cosmwasm-std = { version = "1.0.0", features = ["stargate"] }
+cosmwasm-std = { version = "1.0.0", features = ["stargate", "iterator"] }
 cw-storage-plus = { path = "../../packages/storage-plus", version = "0.9.1" }
 schemars = "0.8.1"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }

@@ -1,8 +1,4 @@
-use cosmwasm_std::{
-    Addr, BankMsg, Binary, Coin, ContractResult, CosmosMsg, Decimal, Deps, DepsMut,
-    entry_point, Env, from_binary, MessageInfo, Reply, ReplyOn, Response, StdError, StdResult, Storage,
-    SubMsg, Timestamp, to_binary, Uint128, Uint64, WasmMsg,
-};
+use cosmwasm_std::{Addr, BankMsg, Binary, Coin, ContractResult, CosmosMsg, Decimal, Deps, DepsMut, entry_point, Env, from_binary, MessageInfo, Reply, ReplyOn, Response, StdError, StdResult, Storage, SubMsg, SubMsgResult, Timestamp, to_binary, Uint128, Uint64, WasmMsg};
 use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg};
 
 use terraswap::asset::{Asset, AssetInfo, PairInfo};
@@ -1247,7 +1243,7 @@ pub fn set_swap_opening_date(
 pub fn reply(deps: DepsMut, env: Env, msg: Reply) -> Result<Response, ContractError> {
     let result = msg.result;
     match result {
-        ContractResult::Ok(sub_msg) => {
+        SubMsgResult::Ok(sub_msg) => {
             let sub_msg_id = msg.id;
             let sub_message_details =
                 SUB_MESSAGE_DETAILS.may_load(deps.storage, sub_msg_id.to_string())?;
@@ -1342,7 +1338,7 @@ pub fn reply(deps: DepsMut, env: Env, msg: Reply) -> Result<Response, ContractEr
             }
             return Ok(resp);
         }
-        ContractResult::Err(error) => {
+        SubMsgResult::Err(error) => {
             return Err(ContractError::Std(StdError::generic_err(format!(
                 "Received error: {:?}",
                 error
