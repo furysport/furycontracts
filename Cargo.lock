@@ -42,22 +42,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "astroport-proxy"
-version = "1.0.0"
-dependencies = [
- "astroport",
- "cosmwasm-schema 0.16.7",
- "cosmwasm-std 0.16.7",
- "cosmwasm-storage 0.16.7",
- "cw-storage-plus 0.8.1",
- "cw20 0.8.1",
- "schemars",
- "serde",
- "terraswap",
- "thiserror",
-]
-
-[[package]]
 name = "autocfg"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -144,7 +128,7 @@ name = "club-staking"
 version = "0.9.1"
 dependencies = [
  "astroport",
- "cosmwasm-schema 1.0.0",
+ "cosmwasm-schema",
  "cosmwasm-std 1.0.0",
  "cw-storage-plus 0.9.1",
  "cw0 0.9.1",
@@ -224,16 +208,6 @@ dependencies = [
 
 [[package]]
 name = "cosmwasm-schema"
-version = "0.16.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b021bdefb9d855c5135e83046e5407a9fddba869e42e78b6036b53a606dc8c10"
-dependencies = [
- "schemars",
- "serde_json",
-]
-
-[[package]]
-name = "cosmwasm-schema"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "772e80bbad231a47a2068812b723a1ff81dd4a0d56c9391ac748177bea3a61da"
@@ -278,16 +252,6 @@ dependencies = [
 
 [[package]]
 name = "cosmwasm-storage"
-version = "0.16.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c243d26ba6c49abb5ed69762648a9c664ba263debce425ad10603e7b8aa92ced"
-dependencies = [
- "cosmwasm-std 0.16.7",
- "serde",
-]
-
-[[package]]
-name = "cosmwasm-storage"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d18403b07304d15d304dad11040d45bbcaf78d603b4be3fb5e2685c16f9229b5"
@@ -309,7 +273,7 @@ dependencies = [
 name = "crll-airdrop"
 version = "0.9.1"
 dependencies = [
- "cosmwasm-schema 1.0.0",
+ "cosmwasm-schema",
  "cosmwasm-std 1.0.0",
  "cw-storage-plus 0.9.1",
  "cw0 0.9.1",
@@ -397,7 +361,7 @@ version = "0.9.1"
 dependencies = [
  "anyhow",
  "cosmwasm-std 1.0.0",
- "cosmwasm-storage 1.0.0",
+ "cosmwasm-storage",
  "cw-storage-plus 0.9.1",
  "cw0 0.9.1",
  "derivative",
@@ -502,7 +466,7 @@ dependencies = [
 name = "cw1"
 version = "0.9.1"
 dependencies = [
- "cosmwasm-schema 1.0.0",
+ "cosmwasm-schema",
  "cosmwasm-std 1.0.0",
  "schemars",
  "serde",
@@ -512,7 +476,7 @@ dependencies = [
 name = "cw1155"
 version = "0.9.1"
 dependencies = [
- "cosmwasm-schema 1.0.0",
+ "cosmwasm-schema",
  "cosmwasm-std 1.0.0",
  "cw0 0.9.1",
  "schemars",
@@ -557,7 +521,7 @@ dependencies = [
 name = "cw20"
 version = "0.9.1"
 dependencies = [
- "cosmwasm-schema 1.0.0",
+ "cosmwasm-schema",
  "cosmwasm-std 1.0.0",
  "cw0 0.9.1",
  "schemars",
@@ -592,7 +556,7 @@ dependencies = [
 name = "cw20-base"
 version = "0.9.1"
 dependencies = [
- "cosmwasm-schema 1.0.0",
+ "cosmwasm-schema",
  "cosmwasm-std 1.0.0",
  "cw-storage-plus 0.9.1",
  "cw0 0.9.1",
@@ -623,7 +587,7 @@ dependencies = [
 name = "cw3"
 version = "0.9.1"
 dependencies = [
- "cosmwasm-schema 1.0.0",
+ "cosmwasm-schema",
  "cosmwasm-std 1.0.0",
  "cw0 0.9.1",
  "schemars",
@@ -634,7 +598,7 @@ dependencies = [
 name = "cw4"
 version = "0.9.1"
 dependencies = [
- "cosmwasm-schema 1.0.0",
+ "cosmwasm-schema",
  "cosmwasm-std 1.0.0",
  "cw-storage-plus 0.9.1",
  "schemars",
@@ -645,7 +609,7 @@ dependencies = [
 name = "cw721"
 version = "0.9.1"
 dependencies = [
- "cosmwasm-schema 1.0.0",
+ "cosmwasm-schema",
  "cosmwasm-std 1.0.0",
  "cw0 0.9.1",
  "schemars",
@@ -1271,12 +1235,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "terra-swap-proxy"
+version = "1.0.0"
+dependencies = [
+ "cosmwasm-schema",
+ "cosmwasm-std 1.0.0",
+ "cosmwasm-storage",
+ "cw-storage-plus 0.9.1",
+ "cw20 0.8.1",
+ "schemars",
+ "serde",
+ "terraswap",
+ "thiserror",
+]
+
+[[package]]
 name = "terraswap"
 version = "2.6.1"
 dependencies = [
- "cosmwasm-schema 1.0.0",
+ "cosmwasm-schema",
  "cosmwasm-std 1.0.0",
- "cosmwasm-storage 1.0.0",
+ "cosmwasm-storage",
  "cw20 0.13.2",
  "protobuf",
  "schemars",
@@ -1287,9 +1266,9 @@ dependencies = [
 name = "terraswap-factory"
 version = "0.0.0"
 dependencies = [
- "cosmwasm-schema 1.0.0",
+ "cosmwasm-schema",
  "cosmwasm-std 1.0.0",
- "cosmwasm-storage 1.0.0",
+ "cosmwasm-storage",
  "cw-storage-plus 0.13.2",
  "cw20 0.11.1",
  "protobuf",
@@ -1303,9 +1282,9 @@ name = "terraswap-pair"
 version = "0.0.0"
 dependencies = [
  "cosmwasm-bignumber",
- "cosmwasm-schema 1.0.0",
+ "cosmwasm-schema",
  "cosmwasm-std 1.0.0",
- "cosmwasm-storage 1.0.0",
+ "cosmwasm-storage",
  "cw-storage-plus 0.13.2",
  "cw2 0.13.2",
  "cw20 0.13.2",
@@ -1321,9 +1300,9 @@ dependencies = [
 name = "terraswap-router"
 version = "0.1.0"
 dependencies = [
- "cosmwasm-schema 1.0.0",
+ "cosmwasm-schema",
  "cosmwasm-std 1.0.0",
- "cosmwasm-storage 1.0.0",
+ "cosmwasm-storage",
  "cw-storage-plus 0.13.2",
  "cw20 0.13.2",
  "integer-sqrt",
@@ -1336,9 +1315,9 @@ dependencies = [
 name = "terraswap-token"
 version = "0.0.0"
 dependencies = [
- "cosmwasm-schema 1.0.0",
+ "cosmwasm-schema",
  "cosmwasm-std 1.0.0",
- "cosmwasm-storage 1.0.0",
+ "cosmwasm-storage",
  "cw-storage-plus 0.13.2",
  "cw0 0.10.3",
  "cw2 0.13.2",
@@ -1404,7 +1383,7 @@ checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 name = "vest-n-distribute"
 version = "0.9.1"
 dependencies = [
- "cosmwasm-schema 1.0.0",
+ "cosmwasm-schema",
  "cosmwasm-std 1.0.0",
  "cw-storage-plus 0.9.1",
  "cw2 0.9.1",
