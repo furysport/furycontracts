@@ -739,7 +739,7 @@ pub fn migrate(_deps: DepsMut, _env: Env, _msg: MigrateMsg) -> StdResult<Respons
 #[cfg(test)]
 mod tests {
     use cosmwasm_std::{Addr, coins, CosmosMsg, from_binary, StdError, SubMsg, WasmMsg};
-    use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
+    use cosmwasm_std::testing::{mock_dependencies, mock_dependencies_with_balance, mock_env, mock_info};
 
     use crate::msg::InstantiateMarketingInfo;
 
@@ -818,7 +818,7 @@ mod tests {
 
         #[test]
         fn basic() {
-            let mut deps = mock_dependencies(&[]);
+            let mut deps = mock_dependencies();
             let amount = Uint128::from(11223344u128);
             let instantiate_msg = InstantiateMsg {
                 name: "Cash Token".to_string(),
@@ -853,7 +853,7 @@ mod tests {
 
         #[test]
         fn mintable() {
-            let mut deps = mock_dependencies(&[]);
+            let mut deps = mock_dependencies();
             let amount = Uint128::new(11223344);
             let minter = String::from("asmodat");
             let limit = Uint128::new(511223344);
@@ -900,7 +900,7 @@ mod tests {
 
         #[test]
         fn mintable_over_cap() {
-            let mut deps = mock_dependencies(&[]);
+            let mut deps = mock_dependencies();
             let amount = Uint128::new(11223344);
             let minter = String::from("asmodat");
             let limit = Uint128::new(11223300);
@@ -932,7 +932,7 @@ mod tests {
 
             #[test]
             fn basic() {
-                let mut deps = mock_dependencies(&[]);
+                let mut deps = mock_dependencies();
                 let instantiate_msg = InstantiateMsg {
                     name: "Cash Token".to_string(),
                     symbol: "CASH".to_string(),
@@ -972,7 +972,7 @@ mod tests {
 
             #[test]
             fn invalid_marketing() {
-                let mut deps = mock_dependencies(&[]);
+                let mut deps = mock_dependencies();
                 let instantiate_msg = InstantiateMsg {
                     name: "Cash Token".to_string(),
                     symbol: "CASH".to_string(),
@@ -1003,7 +1003,7 @@ mod tests {
 
     #[test]
     fn can_mint_by_minter() {
-        let mut deps = mock_dependencies(&[]);
+        let mut deps = mock_dependencies();
 
         let genesis = String::from("genesis");
         let amount = Uint128::new(11223344);
@@ -1050,7 +1050,7 @@ mod tests {
 
     #[test]
     fn others_cannot_mint() {
-        let mut deps = mock_dependencies(&[]);
+        let mut deps = mock_dependencies();
         do_instantiate_with_minter(
             deps.as_mut(),
             &String::from("genesis"),
@@ -1071,7 +1071,7 @@ mod tests {
 
     #[test]
     fn no_one_mints_if_minter_unset() {
-        let mut deps = mock_dependencies(&[]);
+        let mut deps = mock_dependencies();
         do_instantiate(deps.as_mut(), &String::from("genesis"), Uint128::new(1234));
 
         let msg = Cw20ExecuteMsg::Mint {
@@ -1086,7 +1086,7 @@ mod tests {
 
     #[test]
     fn instantiate_multiple_accounts() {
-        let mut deps = mock_dependencies(&[]);
+        let mut deps = mock_dependencies();
         let amount1 = Uint128::from(11223344u128);
         let addr1 = String::from("addr0001");
         let amount2 = Uint128::from(7890987u128);
@@ -1128,7 +1128,7 @@ mod tests {
 
     #[test]
     fn queries_work() {
-        let mut deps = mock_dependencies(&coins(2, "token"));
+        let mut deps = mock_dependencies_with_balance(&coins(2, "token"));
         let addr1 = String::from("addr0001");
         let amount1 = Uint128::from(12340000u128);
 
@@ -1165,7 +1165,7 @@ mod tests {
 
     #[test]
     fn transfer() {
-        let mut deps = mock_dependencies(&coins(2, "token"));
+        let mut deps = mock_dependencies_with_balance(&coins(2, "token"));
         let addr1 = String::from("addr0001");
         let addr2 = String::from("addr0002");
         let amount1 = Uint128::from(12340000u128);
@@ -1225,7 +1225,7 @@ mod tests {
 
     #[test]
     fn burn() {
-        let mut deps = mock_dependencies(&coins(2, "token"));
+        let mut deps = mock_dependencies_with_balance(&coins(2, "token"));
         let addr1 = String::from("addr0001");
         let amount1 = Uint128::from(12340000u128);
         let burn = Uint128::from(76543u128);
@@ -1274,7 +1274,7 @@ mod tests {
 
     #[test]
     fn send() {
-        let mut deps = mock_dependencies(&coins(2, "token"));
+        let mut deps = mock_dependencies_with_balance(&coins(2, "token"));
         let addr1 = String::from("addr0001");
         let contract = String::from("addr0002");
         let amount1 = Uint128::from(12340000u128);
@@ -1348,7 +1348,7 @@ mod tests {
 
     #[test]
     fn test_whitelist_restriction_list_creation() {
-        let mut deps = mock_dependencies(&[]);
+        let mut deps = mock_dependencies();
 
         let genesis = String::from("genesis");
         let amount = Uint128::new(11223344);
@@ -1373,11 +1373,11 @@ mod tests {
 
         let mut wallet_whitelist = Vec::new();
         let mut remove_list = Vec::new();
-        wallet_whitelist.push("Alphawallet".to_string());
-        wallet_whitelist.push("Betawallet".to_string());
+        wallet_whitelist.push("alphawallet".to_string());
+        wallet_whitelist.push("betawallet".to_string());
         let mut contract_whitelist = Vec::new();
-        contract_whitelist.push("Alphacontract".to_string());
-        contract_whitelist.push("Betacontract".to_string());
+        contract_whitelist.push("alphacontract".to_string());
+        contract_whitelist.push("betacontract".to_string());
         set_whitelist_expiration_timestamp(deps.as_mut(), env.clone(), info.clone(), env.clone().block.time.plus_seconds(10 * 86400));
         restricted_wallet_list_update(deps.as_mut(), env.clone(), info.clone(), wallet_whitelist, remove_list.clone());
         restricted_contract_list_update(deps.as_mut(), env.clone(), info.clone(), contract_whitelist, remove_list.clone());
@@ -1389,8 +1389,8 @@ mod tests {
         let res3 = query_restricted_contract_list(deps.as_ref()).unwrap();
         println!("contract list = {:?}", res3);
         assert_eq!(res3.len(), 2);
-        remove_list.push("Betacontract".to_string());
-        remove_list.push("Betawallet".to_string());
+        remove_list.push("betacontract".to_string());
+        remove_list.push("betawallet".to_string());
         let empty_add_list = Vec::new();
         restricted_contract_list_update(deps.as_mut(), env.clone(), info.clone(), empty_add_list.clone(), remove_list.clone());
         let res4 = query_restricted_contract_list(deps.as_ref()).unwrap();
@@ -1406,7 +1406,7 @@ mod tests {
     fn test_whitelist_executions() {
         use cw20::{Expiration};
 
-        let mut deps = mock_dependencies(&[]);
+        let mut deps = mock_dependencies();
 
         let genesis = String::from("genesis");
         let amount = Uint128::new(11223344);
@@ -1431,20 +1431,20 @@ mod tests {
 
         let mut wallet_whitelist = Vec::new();
         let mut remove_list = Vec::new();
-        wallet_whitelist.push("Alphawallet".to_string());
-        wallet_whitelist.push("Betawallet".to_string());
+        wallet_whitelist.push("alphawallet".to_string());
+        wallet_whitelist.push("betawallet".to_string());
         let mut contract_whitelist = Vec::new();
-        contract_whitelist.push("Alphacontract".to_string());
-        contract_whitelist.push("Betacontract".to_string());
+        contract_whitelist.push("alphacontract".to_string());
+        contract_whitelist.push("betacontract".to_string());
         set_whitelist_expiration_timestamp(deps.as_mut(), env.clone(), info.clone(), env.clone().block.time.plus_seconds(10 * 86400));
         restricted_wallet_list_update(deps.as_mut(), env.clone(), info.clone(), wallet_whitelist, remove_list.clone());
         restricted_contract_list_update(deps.as_mut(), env.clone(), info.clone(), contract_whitelist, remove_list.clone());
 
         let unrestricted_contract = String::from("contract");
         let send_msg = Binary::from(r#"{"some":123}"#.as_bytes());
-        let restricted_wallet = String::from("Alphawallet");
+        let restricted_wallet = String::from("alphawallet");
         let addr2 = String::from("addr0002");
-        let restricted_contract = String::from("Alphacontract");
+        let restricted_contract = String::from("alphacontract");
         let info1 = mock_info(restricted_wallet.as_ref(), &[]);
         let info2 = mock_info(addr2.as_ref(), &[]);
         let amount1 = Uint128::from(12340000u128);
@@ -1512,7 +1512,7 @@ mod tests {
 
     #[test]
     fn test_whitelist_restriction_list_creation_unauthorized() {
-        let mut deps = mock_dependencies(&[]);
+        let mut deps = mock_dependencies();
 
         let genesis = String::from("genesis");
         let amount = Uint128::new(11223344);
@@ -1538,11 +1538,11 @@ mod tests {
         let info2 = mock_info(winner.as_ref(), &[]);
         let mut wallet_whitelist = Vec::new();
         let mut remove_list = Vec::new();
-        wallet_whitelist.push("Alphawallet".to_string());
-        wallet_whitelist.push("Betawallet".to_string());
+        wallet_whitelist.push("alphawallet".to_string());
+        wallet_whitelist.push("betawallet".to_string());
         let mut contract_whitelist = Vec::new();
-        contract_whitelist.push("Alphacontract".to_string());
-        contract_whitelist.push("Betacontract".to_string());
+        contract_whitelist.push("alphacontract".to_string());
+        contract_whitelist.push("betacontract".to_string());
         set_whitelist_expiration_timestamp(deps.as_mut(), env.clone(), info2.clone(), env.clone().block.time.plus_seconds(10 * 86400));
         restricted_wallet_list_update(deps.as_mut(), env.clone(), info2.clone(), wallet_whitelist, remove_list.clone());
         restricted_contract_list_update(deps.as_mut(), env.clone(), info2.clone(), contract_whitelist, remove_list.clone());
@@ -1559,7 +1559,7 @@ mod tests {
 
         #[test]
         fn update_unauthorised() {
-            let mut deps = mock_dependencies(&[]);
+            let mut deps = mock_dependencies();
             let instantiate_msg = InstantiateMsg {
                 name: "Cash Token".to_string(),
                 symbol: "CASH".to_string(),
@@ -1613,7 +1613,7 @@ mod tests {
 
         #[test]
         fn update_project() {
-            let mut deps = mock_dependencies(&[]);
+            let mut deps = mock_dependencies();
             let instantiate_msg = InstantiateMsg {
                 name: "Cash Token".to_string(),
                 symbol: "CASH".to_string(),
@@ -1666,7 +1666,7 @@ mod tests {
 
         #[test]
         fn clear_project() {
-            let mut deps = mock_dependencies(&[]);
+            let mut deps = mock_dependencies();
             let instantiate_msg = InstantiateMsg {
                 name: "Cash Token".to_string(),
                 symbol: "CASH".to_string(),
@@ -1719,7 +1719,7 @@ mod tests {
 
         #[test]
         fn update_description() {
-            let mut deps = mock_dependencies(&[]);
+            let mut deps = mock_dependencies();
             let instantiate_msg = InstantiateMsg {
                 name: "Cash Token".to_string(),
                 symbol: "CASH".to_string(),
@@ -1772,7 +1772,7 @@ mod tests {
 
         #[test]
         fn clear_description() {
-            let mut deps = mock_dependencies(&[]);
+            let mut deps = mock_dependencies();
             let instantiate_msg = InstantiateMsg {
                 name: "Cash Token".to_string(),
                 symbol: "CASH".to_string(),
@@ -1825,7 +1825,7 @@ mod tests {
 
         #[test]
         fn update_marketing() {
-            let mut deps = mock_dependencies(&[]);
+            let mut deps = mock_dependencies();
             let instantiate_msg = InstantiateMsg {
                 name: "Cash Token".to_string(),
                 symbol: "CASH".to_string(),
@@ -1878,7 +1878,7 @@ mod tests {
 
         #[test]
         fn update_marketing_invalid() {
-            let mut deps = mock_dependencies(&[]);
+            let mut deps = mock_dependencies();
             let instantiate_msg = InstantiateMsg {
                 name: "Cash Token".to_string(),
                 symbol: "CASH".to_string(),
@@ -1935,7 +1935,7 @@ mod tests {
 
         #[test]
         fn clear_marketing() {
-            let mut deps = mock_dependencies(&[]);
+            let mut deps = mock_dependencies();
             let instantiate_msg = InstantiateMsg {
                 name: "Cash Token".to_string(),
                 symbol: "CASH".to_string(),
@@ -1988,7 +1988,7 @@ mod tests {
 
         #[test]
         fn update_logo_url() {
-            let mut deps = mock_dependencies(&[]);
+            let mut deps = mock_dependencies();
             let instantiate_msg = InstantiateMsg {
                 name: "Cash Token".to_string(),
                 symbol: "CASH".to_string(),
@@ -2037,7 +2037,7 @@ mod tests {
 
         #[test]
         fn update_logo_png() {
-            let mut deps = mock_dependencies(&[]);
+            let mut deps = mock_dependencies();
             let instantiate_msg = InstantiateMsg {
                 name: "Cash Token".to_string(),
                 symbol: "CASH".to_string(),
@@ -2087,7 +2087,7 @@ mod tests {
 
         #[test]
         fn update_logo_svg() {
-            let mut deps = mock_dependencies(&[]);
+            let mut deps = mock_dependencies();
             let instantiate_msg = InstantiateMsg {
                 name: "Cash Token".to_string(),
                 symbol: "CASH".to_string(),
@@ -2138,7 +2138,7 @@ mod tests {
 
         #[test]
         fn update_logo_png_oversized() {
-            let mut deps = mock_dependencies(&[]);
+            let mut deps = mock_dependencies();
             let instantiate_msg = InstantiateMsg {
                 name: "Cash Token".to_string(),
                 symbol: "CASH".to_string(),
@@ -2188,7 +2188,7 @@ mod tests {
 
         #[test]
         fn update_logo_svg_oversized() {
-            let mut deps = mock_dependencies(&[]);
+            let mut deps = mock_dependencies();
             let instantiate_msg = InstantiateMsg {
                 name: "Cash Token".to_string(),
                 symbol: "CASH".to_string(),
@@ -2245,7 +2245,7 @@ mod tests {
 
         #[test]
         fn update_logo_png_invalid() {
-            let mut deps = mock_dependencies(&[]);
+            let mut deps = mock_dependencies();
             let instantiate_msg = InstantiateMsg {
                 name: "Cash Token".to_string(),
                 symbol: "CASH".to_string(),
@@ -2295,7 +2295,7 @@ mod tests {
 
         #[test]
         fn update_logo_svg_invalid() {
-            let mut deps = mock_dependencies(&[]);
+            let mut deps = mock_dependencies();
             let instantiate_msg = InstantiateMsg {
                 name: "Cash Token".to_string(),
                 symbol: "CASH".to_string(),

@@ -369,9 +369,9 @@ fn buy_a_club(
 
     let required_ust_fees: Uint128;
     //To bypass calls from unit tests
-    if info.sender.clone().into_string() == String::from("Owner001")
-        || info.sender.clone().into_string() == String::from("Owner002")
-        || info.sender.clone().into_string() == String::from("Owner003")
+    if info.sender.clone().into_string() == String::from("owner001")
+        || info.sender.clone().into_string() == String::from("owner002")
+        || info.sender.clone().into_string() == String::from("owner003")
     {
         required_ust_fees = Uint128::zero();
     } else {
@@ -797,12 +797,12 @@ fn stake_on_a_club(
 
     let required_ust_fees: Uint128;
     //To bypass calls from unit tests
-    if info.sender.clone().into_string() == String::from("Staker001")
-        || info.sender.clone().into_string() == String::from("Staker002")
-        || info.sender.clone().into_string() == String::from("Staker003")
-        || info.sender.clone().into_string() == String::from("Staker004")
-        || info.sender.clone().into_string() == String::from("Staker005")
-        || info.sender.clone().into_string() == String::from("Staker006")
+    if info.sender.clone().into_string() == String::from("staker001")
+        || info.sender.clone().into_string() == String::from("staker002")
+        || info.sender.clone().into_string() == String::from("staker003")
+        || info.sender.clone().into_string() == String::from("staker004")
+        || info.sender.clone().into_string() == String::from("staker005")
+        || info.sender.clone().into_string() == String::from("staker006")
     {
         required_ust_fees = Uint128::zero();
     } else {
@@ -1000,12 +1000,12 @@ fn withdraw_stake_from_a_club(
 
     let required_ust_fees: Uint128;
     //To bypass calls from unit tests
-    if info.sender.clone().into_string() == String::from("Staker001")
-        || info.sender.clone().into_string() == String::from("Staker002")
-        || info.sender.clone().into_string() == String::from("Staker003")
-        || info.sender.clone().into_string() == String::from("Staker004")
-        || info.sender.clone().into_string() == String::from("Staker005")
-        || info.sender.clone().into_string() == String::from("Staker006")
+    if info.sender.clone().into_string() == String::from("staker001")
+        || info.sender.clone().into_string() == String::from("staker002")
+        || info.sender.clone().into_string() == String::from("staker003")
+        || info.sender.clone().into_string() == String::from("staker004")
+        || info.sender.clone().into_string() == String::from("staker005")
+        || info.sender.clone().into_string() == String::from("staker006")
     {
         required_ust_fees = Uint128::zero();
     } else {
@@ -2248,7 +2248,7 @@ mod tests {
 
     #[test]
     fn test_buying_of_club() {
-        let mut deps = mock_dependencies(&[]);
+        let mut deps = mock_dependencies();
         let now = mock_env().block.time; // today
 
         let instantiate_msg = InstantiateMsg {
@@ -2277,12 +2277,12 @@ mod tests {
         )
             .unwrap();
 
-        let owner1_info = mock_info("Owner001", &[coin(0, "uusd")]);
+        let owner1_info = mock_info("owner001", &[coin(0, "uusd")]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
             owner1_info.clone(),
-            "Owner001".to_string(),
+            "owner001".to_string(),
             Some(String::default()),
             "CLUB001".to_string(),
             Uint128::from(1000000u128),
@@ -2292,7 +2292,7 @@ mod tests {
         let query_res = query_club_ownership_details(&mut deps.storage, "CLUB001".to_string());
         match query_res {
             Ok(cod) => {
-                assert_eq!(cod.owner_address, "Owner001".to_string());
+                assert_eq!(cod.owner_address, "owner001".to_string());
                 assert_eq!(cod.price_paid, Uint128::from(1000000u128));
                 assert_eq!(cod.owner_released, false);
                 assert_eq!(cod.reward_amount, Uint128::from(CLUB_BUYING_REWARD_AMOUNT));
@@ -2306,7 +2306,7 @@ mod tests {
 
     #[test]
     fn test_owner_claim_rewards() {
-        let mut deps = mock_dependencies(&[]);
+        let mut deps = mock_dependencies();
         let now = mock_env().block.time; // today
 
         let instantiate_msg = InstantiateMsg {
@@ -2335,12 +2335,12 @@ mod tests {
         )
             .unwrap();
 
-        let owner1_info = mock_info("Owner001", &[coin(0, "uusd")]);
+        let owner1_info = mock_info("owner001", &[coin(0, "uusd")]);
         let result = buy_a_club(
             deps.as_mut(),
             mock_env(),
             owner1_info.clone(),
-            "Owner001".to_string(),
+            "owner001".to_string(),
             Some(String::default()),
             "CLUB001".to_string(),
             Uint128::from(1000000u128),
@@ -2350,7 +2350,7 @@ mod tests {
         let query_res = query_club_ownership_details(&mut deps.storage, "CLUB001".to_string());
         match query_res {
             Ok(cod) => {
-                assert_eq!(cod.owner_address, "Owner001".to_string());
+                assert_eq!(cod.owner_address, "owner001".to_string());
                 assert_eq!(cod.price_paid, Uint128::from(1000000u128));
                 assert_eq!(cod.owner_released, false);
                 assert_eq!(cod.reward_amount, Uint128::from(CLUB_BUYING_REWARD_AMOUNT));
@@ -2365,14 +2365,14 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             owner1_info.clone(),
-            "Owner001".to_string(),
+            "owner001".to_string(),
             "CLUB001".to_string(),
         );
 
         let queryResAfter = query_club_ownership_details(&mut deps.storage, "CLUB001".to_string());
         match queryResAfter {
             Ok(cod) => {
-                assert_eq!(cod.owner_address, "Owner001".to_string());
+                assert_eq!(cod.owner_address, "owner001".to_string());
                 assert_eq!(cod.price_paid, Uint128::from(1000000u128));
                 assert_eq!(cod.owner_released, false);
                 assert_eq!(cod.reward_amount, Uint128::from(0u128));
@@ -2386,7 +2386,7 @@ mod tests {
 
     #[test]
     fn test_multiple_buying_of_club() {
-        let mut deps = mock_dependencies(&[]);
+        let mut deps = mock_dependencies();
         let now = mock_env().block.time; // today
 
         let instantiate_msg = InstantiateMsg {
@@ -2415,24 +2415,24 @@ mod tests {
         )
             .unwrap();
 
-        let owner1_info = mock_info("Owner001", &[coin(0, "uusd")]);
+        let owner1_info = mock_info("owner001", &[coin(0, "uusd")]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
             owner1_info.clone(),
-            "Owner001".to_string(),
+            "owner001".to_string(),
             Some(String::default()),
             "CLUB001".to_string(),
             Uint128::from(1000000u128),
             SET_AUTO_STAKE,
         );
 
-        let owner2_info = mock_info("Owner002", &[coin(1000, "uusd")]);
+        let owner2_info = mock_info("owner002", &[coin(1000, "uusd")]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
             owner2_info.clone(),
-            "Owner002".to_string(),
+            "owner002".to_string(),
             Some(String::default()),
             "CLUB001".to_string(),
             Uint128::from(1000000u128),
@@ -2442,7 +2442,7 @@ mod tests {
         let query_res = query_club_ownership_details(&mut deps.storage, "CLUB001".to_string());
         match query_res {
             Ok(cod) => {
-                assert_eq!(cod.owner_address, "Owner001".to_string());
+                assert_eq!(cod.owner_address, "owner001".to_string());
                 assert_eq!(cod.price_paid, Uint128::from(1000000u128));
                 assert_eq!(cod.owner_released, false);
             }
@@ -2455,7 +2455,7 @@ mod tests {
 
     #[test]
     fn test_assign_a_club() {
-        let mut deps = mock_dependencies(&[]);
+        let mut deps = mock_dependencies();
         let now = mock_env().block.time; // today
 
         let instantiate_msg = InstantiateMsg {
@@ -2484,15 +2484,15 @@ mod tests {
         )
             .unwrap();
 
-        let owner1_info = mock_info("Owner001", &[coin(1000, "stake")]);
-        let owner2_info = mock_info("Owner002", &[coin(1000, "stake")]);
+        let owner1_info = mock_info("owner001", &[coin(1000, "stake")]);
+        let owner2_info = mock_info("owner002", &[coin(1000, "stake")]);
 
-        println!("Now assigning the club to Owner001");
+        println!("Now assigning the club to owner001");
         assign_a_club(
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Owner001".to_string(),
+            "owner001".to_string(),
             Some(String::default()),
             "CLUB001".to_string(),
             SET_AUTO_STAKE,
@@ -2501,7 +2501,7 @@ mod tests {
         let queryRes0 = query_club_ownership_details(&mut deps.storage, "CLUB001".to_string());
         match queryRes0 {
             Ok(mut cod) => {
-                assert_eq!(cod.owner_address, "Owner001".to_string());
+                assert_eq!(cod.owner_address, "owner001".to_string());
                 assert_eq!(cod.price_paid, Uint128::from(0u128));
                 assert_eq!(cod.owner_released, false);
             }
@@ -2511,13 +2511,13 @@ mod tests {
             }
         }
 
-        println!("Now releasing the club from Owner001");
-        release_club(deps.as_mut(), mock_env(), owner1_info.clone(), "Owner001".to_string(), "CLUB001".to_string());
+        println!("Now releasing the club from owner001");
+        release_club(deps.as_mut(), mock_env(), owner1_info.clone(), "owner001".to_string(), "CLUB001".to_string());
 
         let queryRes1 = query_club_ownership_details(&mut deps.storage, "CLUB001".to_string());
         match queryRes1 {
             Ok(mut cod) => {
-                assert_eq!(cod.owner_address, "Owner001".to_string());
+                assert_eq!(cod.owner_address, "owner001".to_string());
                 assert_eq!(cod.price_paid, Uint128::from(0u128));
                 assert_eq!(cod.owner_released, true);
             }
@@ -2527,24 +2527,24 @@ mod tests {
             }
         }
 
-        println!("Now assigning the club to Owner002");
+        println!("Now assigning the club to owner002");
         assign_a_club(
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Owner002".to_string(),
-            Some("Owner001".to_string()),
+            "owner002".to_string(),
+            Some("owner001".to_string()),
             "CLUB001".to_string(),
             SET_AUTO_STAKE,
         );
 
-        println!("Now releasing the club from Owner002");
-        release_club(deps.as_mut(), mock_env(), owner2_info.clone(), "Owner002".to_string(), "CLUB001".to_string());
+        println!("Now releasing the club from owner002");
+        release_club(deps.as_mut(), mock_env(), owner2_info.clone(), "owner002".to_string(), "CLUB001".to_string());
 
         let queryRes2 = query_club_ownership_details(&mut deps.storage, "CLUB001".to_string());
         match queryRes2 {
             Ok(mut cod) => {
-                assert_eq!(cod.owner_address, "Owner002".to_string());
+                assert_eq!(cod.owner_address, "owner002".to_string());
                 assert_eq!(cod.price_paid, Uint128::from(0u128));
                 assert_eq!(cod.owner_released, true);
                 cod.start_timestamp = now.minus_seconds(22 * 24 * 60 * 60);
@@ -2556,13 +2556,13 @@ mod tests {
             }
         }
 
-        println!("Now trying to assign the club to Owner003 - should fail");
+        println!("Now trying to assign the club to owner003 - should fail");
         assign_a_club(
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Owner003".to_string(),
-            Some("Owner002".to_string()),
+            "owner003".to_string(),
+            Some("owner002".to_string()),
             "CLUB001".to_string(),
             SET_AUTO_STAKE,
         );
@@ -2570,7 +2570,7 @@ mod tests {
         let queryRes3 = query_club_ownership_details(&mut deps.storage, "CLUB001".to_string());
         match queryRes3 {
             Ok(cod) => {
-                assert_eq!(cod.owner_address, "Owner002".to_string());
+                assert_eq!(cod.owner_address, "owner002".to_string());
                 assert_eq!(cod.price_paid, Uint128::from(0u128));
                 assert_eq!(cod.owner_released, true);
                 assert_eq!(cod.start_timestamp, now.minus_seconds(22 * 24 * 60 * 60));
@@ -2584,7 +2584,7 @@ mod tests {
 
     #[test]
     fn test_assign_stakes_to_a_club() {
-        let mut deps = mock_dependencies(&[]);
+        let mut deps = mock_dependencies();
         let now = mock_env().block.time; // today
 
         let instantiate_msg = InstantiateMsg {
@@ -2613,14 +2613,14 @@ mod tests {
         )
             .unwrap();
 
-        let owner1_info = mock_info("Owner001", &[coin(1000, "stake")]);
+        let owner1_info = mock_info("owner001", &[coin(1000, "stake")]);
 
-        println!("Now assigning the club to Owner001");
+        println!("Now assigning the club to owner001");
         assign_a_club(
             deps.as_mut(),
             mock_env(),
             adminInfo.clone(),
-            "Owner001".to_string(),
+            "owner001".to_string(),
             Some(String::default()),
             "CLUB001".to_string(),
             SET_AUTO_STAKE,
@@ -2629,7 +2629,7 @@ mod tests {
         let queryRes0 = query_club_ownership_details(&mut deps.storage, "CLUB001".to_string());
         match queryRes0 {
             Ok(mut cod) => {
-                assert_eq!(cod.owner_address, "Owner001".to_string());
+                assert_eq!(cod.owner_address, "owner001".to_string());
                 assert_eq!(cod.price_paid, Uint128::from(0u128));
                 assert_eq!(cod.owner_released, false);
             }
@@ -2641,16 +2641,16 @@ mod tests {
 
         let mut stake_list: Vec<ClubStakingDetails> = Vec::new();
         let mut user_address_list = Vec::new();
-        user_address_list.push("Owner001".to_string());
+        user_address_list.push("owner001".to_string());
         for i in 1..7 {
             let mut staker = String::default();
             match i {
-                1 => { staker = "Staker001".to_string(); }
-                2 => { staker = "Staker002".to_string(); }
-                3 => { staker = "Staker003".to_string(); }
-                4 => { staker = "Staker004".to_string(); }
-                5 => { staker = "Staker005".to_string(); }
-                6 => { staker = "Staker006".to_string(); }
+                1 => { staker = "staker001".to_string(); }
+                2 => { staker = "staker002".to_string(); }
+                3 => { staker = "staker003".to_string(); }
+                4 => { staker = "staker004".to_string(); }
+                5 => { staker = "staker005".to_string(); }
+                6 => { staker = "staker006".to_string(); }
                 _ => {}
             }
             user_address_list.push(staker.clone());
@@ -2666,7 +2666,7 @@ mod tests {
             });
         };
 
-        let staker6Info = mock_info("Staker006", &[coin(10, "stake")]);
+        let staker6Info = mock_info("staker006", &[coin(10, "stake")]);
         assign_stakes_to_a_club(
             deps.as_mut(),
             mock_env(),
@@ -2690,7 +2690,7 @@ mod tests {
 
     #[test]
     fn test_buying_of_club_after_releasing_by_prev_owner() {
-        let mut deps = mock_dependencies(&[]);
+        let mut deps = mock_dependencies();
         let now = mock_env().block.time; // today
 
         let instantiate_msg = InstantiateMsg {
@@ -2719,12 +2719,12 @@ mod tests {
         )
             .unwrap();
 
-        let owner1_info = mock_info("Owner001", &[coin(0, "uusd")]);
+        let owner1_info = mock_info("owner001", &[coin(0, "uusd")]);
         let mut resp = buy_a_club(
             deps.as_mut(),
             mock_env(),
             owner1_info.clone(),
-            "Owner001".to_string(),
+            "owner001".to_string(),
             Some(String::default()),
             "CLUB001".to_string(),
             Uint128::from(1000000u128),
@@ -2735,7 +2735,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             owner1_info.clone(),
-            "Owner001".to_string(),
+            "owner001".to_string(),
             "CLUB001".to_string(),
         );
         println!("{:?}", resp);
@@ -2745,7 +2745,7 @@ mod tests {
         let query_res = query_club_ownership_details(&mut deps.storage, "CLUB001".to_string());
         match query_res {
             Ok(mut cod) => {
-                assert_eq!(cod.owner_address, "Owner001".to_string());
+                assert_eq!(cod.owner_address, "owner001".to_string());
                 assert_eq!(cod.price_paid, Uint128::from(1000000u128));
                 cod.start_timestamp = now.minus_seconds(22 * 24 * 60 * 60);
                 CLUB_OWNERSHIP_DETAILS.save(&mut deps.storage, "CLUB001".to_string(), &cod);
@@ -2760,7 +2760,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             owner1_info.clone(),
-            "Owner001".to_string(),
+            "owner001".to_string(),
             "CLUB001".to_string(),
         );
 
@@ -2768,7 +2768,7 @@ mod tests {
             query_club_ownership_details(&mut deps.storage, "CLUB001".to_string());
         match queryResAfterReleasing {
             Ok(cod) => {
-                assert_eq!(cod.owner_address, "Owner001".to_string());
+                assert_eq!(cod.owner_address, "owner001".to_string());
                 assert_eq!(cod.price_paid, Uint128::from(1000000u128));
                 assert_eq!(cod.owner_released, true);
             }
@@ -2778,13 +2778,13 @@ mod tests {
             }
         }
 
-        let owner2_info = mock_info("Owner002", &[coin(0, "uusd")]);
+        let owner2_info = mock_info("owner002", &[coin(0, "uusd")]);
         let resp = buy_a_club(
             deps.as_mut(),
             mock_env(),
             owner2_info.clone(),
-            "Owner002".to_string(),
-            Some("Owner001".to_string()),
+            "owner002".to_string(),
+            Some("owner001".to_string()),
             "CLUB001".to_string(),
             Uint128::from(1000000u128),
             SET_AUTO_STAKE,
@@ -2794,7 +2794,7 @@ mod tests {
             query_club_ownership_details(&mut deps.storage, "CLUB001".to_string());
         match queryResAfterSellingByPrevOwner {
             Ok(cod) => {
-                assert_eq!(cod.owner_address, "Owner002".to_string());
+                assert_eq!(cod.owner_address, "owner002".to_string());
                 assert_eq!(cod.price_paid, Uint128::from(1000000u128));
                 assert_eq!(cod.owner_released, false);
             }
@@ -2807,7 +2807,7 @@ mod tests {
 
     #[test]
     fn test_claim_previous_owner_rewards() {
-        let mut deps = mock_dependencies(&[]);
+        let mut deps = mock_dependencies();
         let now = mock_env().block.time; // today
 
         let instantiate_msg = InstantiateMsg {
@@ -2836,12 +2836,12 @@ mod tests {
         )
             .unwrap();
 
-        let owner1_info = mock_info("Owner001", &[coin(0, "uusd")]);
+        let owner1_info = mock_info("owner001", &[coin(0, "uusd")]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
             owner1_info.clone(),
-            "Owner001".to_string(),
+            "owner001".to_string(),
             Some(String::default()),
             "CLUB001".to_string(),
             Uint128::from(1000000u128),
@@ -2852,7 +2852,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             owner1_info.clone(),
-            "Owner001".to_string(),
+            "owner001".to_string(),
             "CLUB001".to_string(),
         );
 
@@ -2861,7 +2861,7 @@ mod tests {
         let query_res = query_club_ownership_details(&mut deps.storage, "CLUB001".to_string());
         match query_res {
             Ok(mut cod) => {
-                assert_eq!(cod.owner_address, "Owner001".to_string());
+                assert_eq!(cod.owner_address, "owner001".to_string());
                 assert_eq!(cod.price_paid, Uint128::from(1000000u128));
                 cod.start_timestamp = now.minus_seconds(22 * 24 * 60 * 60);
                 CLUB_OWNERSHIP_DETAILS.save(&mut deps.storage, "CLUB001".to_string(), &cod);
@@ -2872,12 +2872,12 @@ mod tests {
             }
         }
 
-        let stakerInfo = mock_info("Staker001", &[coin(10, "stake")]);
+        let stakerInfo = mock_info("staker001", &[coin(10, "stake")]);
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker001".to_string(),
+            "staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(33u128),
             SET_AUTO_STAKE,
@@ -2892,8 +2892,8 @@ mod tests {
         );
 
         let mut staker_list1 = Vec::new();
-        staker_list1.push("Staker001".to_string());
-        staker_list1.push("Owner001".to_string());
+        staker_list1.push("staker001".to_string());
+        staker_list1.push("owner001".to_string());
         let club_name1 = "CLUB001".to_string();
         calculate_and_distribute_rewards(deps.as_mut(), mock_env(), adminInfo.clone(), staker_list1.clone(), club_name1, true, true);
 
@@ -2902,7 +2902,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             owner1_info.clone(),
-            "Owner001".to_string(),
+            "owner001".to_string(),
             "CLUB001".to_string(),
         );
 
@@ -2914,7 +2914,7 @@ mod tests {
                     "before - owner:{:?}, reward {:?}",
                     cod.owner_address, cod.reward_amount
                 );
-                assert_eq!(cod.owner_address, "Owner001".to_string());
+                assert_eq!(cod.owner_address, "owner001".to_string());
                 assert_eq!(cod.price_paid, Uint128::from(1000000u128));
                 assert_eq!(cod.owner_released, true);
             }
@@ -2930,13 +2930,13 @@ mod tests {
         );
 
         println!("buy a club with new owner");
-        let owner2_info = mock_info("Owner002", &[coin(0, "uusd")]);
+        let owner2_info = mock_info("owner002", &[coin(0, "uusd")]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
             owner2_info.clone(),
-            "Owner002".to_string(),
-            Some("Owner001".to_string()),
+            "owner002".to_string(),
+            Some("owner001".to_string()),
             "CLUB001".to_string(),
             Uint128::from(1000000u128),
             SET_AUTO_STAKE,
@@ -2950,7 +2950,7 @@ mod tests {
                     "after - owner:{:?}, reward {:?}",
                     cod.owner_address, cod.reward_amount
                 );
-                assert_eq!(cod.owner_address, "Owner002".to_string());
+                assert_eq!(cod.owner_address, "owner002".to_string());
                 assert_eq!(cod.price_paid, Uint128::from(1000000u128));
                 assert_eq!(cod.owner_released, false);
             }
@@ -2966,14 +2966,14 @@ mod tests {
                      so there will be no previous owner details
 
         let queryPrevOwnerDetailsBeforeRewardClaim =
-            query_club_previous_owner_details(&mut deps.storage, "Owner001".to_string());
+            query_club_previous_owner_details(&mut deps.storage, "owner001".to_string());
         match queryPrevOwnerDetailsBeforeRewardClaim {
             Ok(pod) => {
                 println!(
                     "before - owner:{:?}, reward {:?}",
                     pod.previous_owner_address, pod.reward_amount
                 );
-                assert_eq!(pod.previous_owner_address, "Owner001".to_string());
+                assert_eq!(pod.previous_owner_address, "owner001".to_string());
                 assert_eq!(pod.reward_amount, Uint128::from(10000u128));
             }
             Err(e) => {
@@ -2988,9 +2988,9 @@ mod tests {
             query_all_previous_club_ownership_details(&mut deps.storage)
         );
 
-        claim_previous_owner_rewards(deps.as_mut(), owner1_info.clone(), "Owner001".to_string());
+        claim_previous_owner_rewards(deps.as_mut(), owner1_info.clone(), "owner001".to_string());
         let queryPrevOwnerDetailsAfterRewardClaim =
-            query_club_previous_owner_details(&mut deps.storage, "Owner001".to_string())
+            query_club_previous_owner_details(&mut deps.storage, "owner001".to_string())
                 .unwrap_err();
         assert_eq!(
             queryPrevOwnerDetailsAfterRewardClaim,
@@ -3007,7 +3007,7 @@ mod tests {
 
     #[test]
     fn test_claim_rewards_with_no_auto_stake() {
-        let mut deps = mock_dependencies(&[]);
+        let mut deps = mock_dependencies();
         let now = mock_env().block.time; // today
 
         let instantiate_msg = InstantiateMsg {
@@ -3036,12 +3036,12 @@ mod tests {
         )
             .unwrap();
 
-        let owner1_info = mock_info("Owner001", &[coin(0, "uusd")]);
+        let owner1_info = mock_info("owner001", &[coin(0, "uusd")]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
             owner1_info.clone(),
-            "Owner001".to_string(),
+            "owner001".to_string(),
             Some(String::default()),
             "CLUB001".to_string(),
             Uint128::from(1000000u128),
@@ -3049,12 +3049,12 @@ mod tests {
         );
 
 
-        let stakerInfo = mock_info("Staker001", &[coin(10, "stake")]);
+        let stakerInfo = mock_info("staker001", &[coin(10, "stake")]);
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker001".to_string(),
+            "staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(33000u128),
             false, // NO AUTO STAKE
@@ -3069,14 +3069,14 @@ mod tests {
         );
 
         let mut staker_list1 = Vec::new();
-        staker_list1.push("Staker001".to_string());
-        staker_list1.push("Owner001".to_string());
+        staker_list1.push("staker001".to_string());
+        staker_list1.push("owner001".to_string());
         let club_name1 = "CLUB001".to_string();
         calculate_and_distribute_rewards(deps.as_mut(), mock_env(), adminInfo.clone(), staker_list1.clone(), club_name1, true, true);
 
         let mut user_address_list = Vec::new();
-        user_address_list.push("Staker001".to_string());
-        user_address_list.push("Owner001".to_string());
+        user_address_list.push("staker001".to_string());
+        user_address_list.push("owner001".to_string());
         let queryRes = query_all_stakes(&mut deps.storage, user_address_list);
         match queryRes {
             Ok(all_stakes) => {
@@ -3086,11 +3086,11 @@ mod tests {
                     let reward_amount = stake.reward_amount;
                     let staked_amount = stake.staked_amount;
                     println!("staker : {:?} reward_amount : {:?} staked_amount : {:?}", staker_address.clone(), reward_amount, staked_amount);
-                    if staker_address == "Staker001" {
+                    if staker_address == "staker001" {
                         assert_eq!(reward_amount, Uint128::from(970000u128));
                         assert_eq!(staked_amount, Uint128::from(33000u128));
                     }
-                    if staker_address == "Owner001" {
+                    if staker_address == "owner001" {
                         assert_eq!(staked_amount, Uint128::from(0u128));
                         assert_eq!(reward_amount, Uint128::from(30000u128));
                     }
@@ -3105,7 +3105,7 @@ mod tests {
 
     #[test]
     fn test_multiple_staking_on_club_by_same_address() {
-        let mut deps = mock_dependencies(&[]);
+        let mut deps = mock_dependencies();
         let now = mock_env().block.time; // today
 
         let instantiate_msg = InstantiateMsg {
@@ -3134,24 +3134,24 @@ mod tests {
         )
             .unwrap();
 
-        let owner1_info = mock_info("Owner001", &[coin(0, "uusd")]);
+        let owner1_info = mock_info("owner001", &[coin(0, "uusd")]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
             owner1_info.clone(),
-            "Owner001".to_string(),
+            "owner001".to_string(),
             Some(String::default()),
             "CLUB001".to_string(),
             Uint128::from(1000000u128),
             SET_AUTO_STAKE,
         );
 
-        let stakerInfo = mock_info("Staker001", &[coin(10, "stake")]);
+        let stakerInfo = mock_info("staker001", &[coin(10, "stake")]);
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker001".to_string(),
+            "staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(33u128),
             SET_AUTO_STAKE,
@@ -3160,7 +3160,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker001".to_string(),
+            "staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(11u128),
             SET_AUTO_STAKE,
@@ -3169,21 +3169,21 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker001".to_string(),
+            "staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(42u128),
             SET_AUTO_STAKE,
         );
 
         let mut user_address_list = Vec::new();
-        user_address_list.push("Staker001".to_string());
-        user_address_list.push("Owner001".to_string());
+        user_address_list.push("staker001".to_string());
+        user_address_list.push("owner001".to_string());
         let query_stakes = query_all_stakes(&mut deps.storage, user_address_list);
         match query_stakes {
             Ok(all_stakes) => {
                 assert_eq!(all_stakes.len(), 2);
                 for stake in all_stakes {
-                    if stake.staker_address == "Staker001".to_string() {
+                    if stake.staker_address == "staker001".to_string() {
                         assert_eq!(stake.staked_amount, Uint128::from(86u128));
                     } else {
                         assert_eq!(stake.staked_amount, Uint128::from(0u128));
@@ -3199,7 +3199,7 @@ mod tests {
 
     #[test]
     fn test_immediate_partial_withdrawals_from_club() {
-        let mut deps = mock_dependencies(&[]);
+        let mut deps = mock_dependencies();
         let now = mock_env().block.time; // today
 
         let instantiate_msg = InstantiateMsg {
@@ -3228,24 +3228,24 @@ mod tests {
         )
             .unwrap();
 
-        let owner1_info = mock_info("Owner001", &[coin(0, "uusd")]);
+        let owner1_info = mock_info("owner001", &[coin(0, "uusd")]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
             owner1_info.clone(),
-            "Owner001".to_string(),
+            "owner001".to_string(),
             Some(String::default()),
             "CLUB001".to_string(),
             Uint128::from(1000000u128),
             SET_AUTO_STAKE,
         );
 
-        let stakerInfo = mock_info("Staker001", &[coin(10, "stake")]);
+        let stakerInfo = mock_info("staker001", &[coin(10, "stake")]);
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker001".to_string(),
+            "staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(99u128),
             SET_AUTO_STAKE,
@@ -3254,7 +3254,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker001".to_string(),
+            "staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(11u128),
             IMMEDIATE_WITHDRAWAL,
@@ -3263,7 +3263,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker001".to_string(),
+            "staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(12u128),
             IMMEDIATE_WITHDRAWAL,
@@ -3272,21 +3272,21 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker001".to_string(),
+            "staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(13u128),
             IMMEDIATE_WITHDRAWAL,
         );
 
         let mut user_address_list = Vec::new();
-        user_address_list.push("Staker001".to_string());
-        user_address_list.push("Owner001".to_string());
+        user_address_list.push("staker001".to_string());
+        user_address_list.push("owner001".to_string());
         let query_stakes = query_all_stakes(&mut deps.storage, user_address_list.clone());
         match query_stakes {
             Ok(all_stakes) => {
                 assert_eq!(all_stakes.len(), 2);
                 for stake in all_stakes {
-                    if stake.staker_address == "Staker001".to_string() {
+                    if stake.staker_address == "staker001".to_string() {
                         assert_eq!(stake.staked_amount, Uint128::from(63u128));
                     } else {
                         assert_eq!(stake.staked_amount, Uint128::from(0u128));
@@ -3313,7 +3313,7 @@ mod tests {
 
     #[test]
     fn test_immediate_complete_withdrawals_from_club() {
-        let mut deps = mock_dependencies(&[]);
+        let mut deps = mock_dependencies();
         let now = mock_env().block.time; // today
 
         let instantiate_msg = InstantiateMsg {
@@ -3342,24 +3342,24 @@ mod tests {
         )
             .unwrap();
 
-        let owner1Info = mock_info("Owner001", &[coin(1000, "stake")]);
+        let owner1Info = mock_info("owner001", &[coin(1000, "stake")]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
             owner1Info.clone(),
-            "Owner001".to_string(),
+            "owner001".to_string(),
             Some(String::default()),
             "CLUB001".to_string(),
             Uint128::from(1000000u128),
             SET_AUTO_STAKE,
         );
 
-        let stakerInfo = mock_info("Staker001", &[coin(10, "stake")]);
+        let stakerInfo = mock_info("staker001", &[coin(10, "stake")]);
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker001".to_string(),
+            "staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(99u128),
             SET_AUTO_STAKE,
@@ -3368,7 +3368,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker001".to_string(),
+            "staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(11u128),
             IMMEDIATE_WITHDRAWAL,
@@ -3377,7 +3377,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker001".to_string(),
+            "staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(12u128),
             IMMEDIATE_WITHDRAWAL,
@@ -3386,7 +3386,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker001".to_string(),
+            "staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(13u128),
             IMMEDIATE_WITHDRAWAL,
@@ -3395,15 +3395,15 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker001".to_string(),
+            "staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(63u128),
             IMMEDIATE_WITHDRAWAL,
         );
 
         let mut user_address_list = Vec::new();
-        user_address_list.push("Staker001".to_string());
-        user_address_list.push("Owner001".to_string());
+        user_address_list.push("staker001".to_string());
+        user_address_list.push("owner001".to_string());
         let query_stakes = query_all_stakes(&mut deps.storage, user_address_list.clone());
         match query_stakes {
             Ok(all_stakes) => {
@@ -3429,7 +3429,7 @@ mod tests {
 
     #[test]
     fn test_non_immediate_complete_withdrawals_from_club() {
-        let mut deps = mock_dependencies(&[]);
+        let mut deps = mock_dependencies();
         let now = mock_env().block.time; // today
 
         let instantiate_msg = InstantiateMsg {
@@ -3458,24 +3458,24 @@ mod tests {
         )
             .unwrap();
 
-        let owner1_info = mock_info("Owner001", &[coin(0, "uusd")]);
+        let owner1_info = mock_info("owner001", &[coin(0, "uusd")]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
             owner1_info.clone(),
-            "Owner001".to_string(),
+            "owner001".to_string(),
             Some(String::default()),
             "CLUB001".to_string(),
             Uint128::from(1000000u128),
             SET_AUTO_STAKE,
         );
 
-        let stakerInfo = mock_info("Staker001", &[coin(10, "stake")]);
+        let stakerInfo = mock_info("staker001", &[coin(10, "stake")]);
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker001".to_string(),
+            "staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(99u128),
             SET_AUTO_STAKE,
@@ -3484,7 +3484,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker001".to_string(),
+            "staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(11u128),
             NO_IMMEDIATE_WITHDRAWAL,
@@ -3493,7 +3493,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker001".to_string(),
+            "staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(12u128),
             NO_IMMEDIATE_WITHDRAWAL,
@@ -3502,7 +3502,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker001".to_string(),
+            "staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(13u128),
             NO_IMMEDIATE_WITHDRAWAL,
@@ -3511,15 +3511,15 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker001".to_string(),
+            "staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(63u128),
             NO_IMMEDIATE_WITHDRAWAL,
         );
 
         let mut user_address_list = Vec::new();
-        user_address_list.push("Staker001".to_string());
-        user_address_list.push("Owner001".to_string());
+        user_address_list.push("staker001".to_string());
+        user_address_list.push("owner001".to_string());
         let query_stakes = query_all_stakes(&mut deps.storage, user_address_list.clone());
         match query_stakes {
             Ok(all_stakes) => {
@@ -3551,12 +3551,12 @@ mod tests {
                 assert_eq!(1, 2);
             }
         }
-        let stakerInfo = mock_info("Staker002", &[coin(10, "stake")]);
+        let stakerInfo = mock_info("staker002", &[coin(10, "stake")]);
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker002".to_string(),
+            "staker002".to_string(),
             "CLUB001".to_string(),
             Uint128::from(99u128),
             SET_AUTO_STAKE,
@@ -3565,7 +3565,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker002".to_string(),
+            "staker002".to_string(),
             "CLUB001".to_string(),
             Uint128::from(11u128),
             NO_IMMEDIATE_WITHDRAWAL,
@@ -3574,7 +3574,7 @@ mod tests {
         let queryBonds = query_club_bonding_details_for_user(
             &mut deps.storage,
             "CLUB001".to_string(),
-            "Staker002".to_string(),
+            "staker002".to_string(),
         );
         match queryBonds {
             Ok(all_bonds) => {
@@ -3595,7 +3595,7 @@ mod tests {
 
     #[test]
     fn test_non_immediate_complete_withdrawals_from_club_with_scheduled_refunds() {
-        let mut deps = mock_dependencies(&[]);
+        let mut deps = mock_dependencies();
         let now = mock_env().block.time; // today
 
         let instantiate_msg = InstantiateMsg {
@@ -3623,24 +3623,24 @@ mod tests {
             instantiate_msg,
         );
 
-        let owner1_info = mock_info("Owner001", &[coin(0, "uusd")]);
+        let owner1_info = mock_info("owner001", &[coin(0, "uusd")]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
             owner1_info.clone(),
-            "Owner001".to_string(),
+            "owner001".to_string(),
             Some(String::default()),
             "CLUB001".to_string(),
             Uint128::from(1000000u128),
             SET_AUTO_STAKE,
         );
 
-        let stakerInfo = mock_info("Staker001", &[coin(10, "stake")]);
+        let stakerInfo = mock_info("staker001", &[coin(10, "stake")]);
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker001".to_string(),
+            "staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(99u128),
             SET_AUTO_STAKE,
@@ -3649,7 +3649,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker001".to_string(),
+            "staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(11u128),
             NO_IMMEDIATE_WITHDRAWAL,
@@ -3658,7 +3658,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker001".to_string(),
+            "staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(12u128),
             NO_IMMEDIATE_WITHDRAWAL,
@@ -3667,7 +3667,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker001".to_string(),
+            "staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(13u128),
             NO_IMMEDIATE_WITHDRAWAL,
@@ -3676,15 +3676,15 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker001".to_string(),
+            "staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(63u128),
             NO_IMMEDIATE_WITHDRAWAL,
         );
 
         let mut user_address_list = Vec::new();
-        user_address_list.push("Staker001".to_string());
-        user_address_list.push("Owner001".to_string());
+        user_address_list.push("staker001".to_string());
+        user_address_list.push("owner001".to_string());
         let query_stakes = query_all_stakes(&mut deps.storage, user_address_list.clone());
         match query_stakes {
             Ok(all_stakes) => {
@@ -3759,7 +3759,7 @@ mod tests {
 
     #[test]
     fn test_non_immediate_partial_withdrawals_from_club() {
-        let mut deps = mock_dependencies(&[]);
+        let mut deps = mock_dependencies();
         let now = mock_env().block.time; // today
 
         let instantiate_msg = InstantiateMsg {
@@ -3788,24 +3788,24 @@ mod tests {
         )
             .unwrap();
 
-        let owner1_info = mock_info("Owner001", &[coin(0, "uusd")]);
+        let owner1_info = mock_info("owner001", &[coin(0, "uusd")]);
         let result = buy_a_club(
             deps.as_mut(),
             mock_env(),
             owner1_info.clone(),
-            "Owner001".to_string(),
+            "owner001".to_string(),
             Some(String::default()),
             "CLUB001".to_string(),
             Uint128::from(1000000u128),
             SET_AUTO_STAKE,
         );
         println!("buy_a_club result = {:?}", result);
-        let stakerInfo = mock_info("Staker001", &[coin(10, "uusd")]);
+        let stakerInfo = mock_info("staker001", &[coin(10, "uusd")]);
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker001".to_string(),
+            "staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(99u128),
             SET_AUTO_STAKE,
@@ -3814,7 +3814,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker001".to_string(),
+            "staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(11u128),
             NO_IMMEDIATE_WITHDRAWAL,
@@ -3823,7 +3823,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker001".to_string(),
+            "staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(12u128),
             NO_IMMEDIATE_WITHDRAWAL,
@@ -3832,21 +3832,21 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             stakerInfo.clone(),
-            "Staker001".to_string(),
+            "staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(13u128),
             NO_IMMEDIATE_WITHDRAWAL,
         );
         println!("result = {:?}", result);
         let mut user_address_list = Vec::new();
-        user_address_list.push("Staker001".to_string());
-        user_address_list.push("Owner001".to_string());
+        user_address_list.push("staker001".to_string());
+        user_address_list.push("owner001".to_string());
         let query_stakes = query_all_stakes(&mut deps.storage, user_address_list.clone());
         match query_stakes {
             Ok(all_stakes) => {
                 assert_eq!(all_stakes.len(), 2);
                 for stake in all_stakes {
-                    if stake.staker_address == "Staker001".to_string() {
+                    if stake.staker_address == "staker001".to_string() {
                         assert_eq!(stake.staked_amount, Uint128::from(63u128));
                     } else {
                         assert_eq!(stake.staked_amount, Uint128::from(0u128));
@@ -3882,7 +3882,7 @@ mod tests {
 
     #[test]
     fn test_distribute_rewards() {
-        let mut deps = mock_dependencies(&[]);
+        let mut deps = mock_dependencies();
         let now = mock_env().block.time; // today
 
         let instantiate_msg = InstantiateMsg {
@@ -3913,116 +3913,116 @@ mod tests {
         )
             .unwrap();
 
-        let owner1Info = mock_info("Owner001", &[coin(1000, "stake")]);
+        let owner1Info = mock_info("owner001", &[coin(1000, "stake")]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
             owner1Info.clone(),
-            "Owner001".to_string(),
+            "owner001".to_string(),
             Some(String::default()),
             "CLUB001".to_string(),
             Uint128::from(1000000u128),
             SET_AUTO_STAKE,
         );
-        let owner2Info = mock_info("Owner002", &[coin(1000, "stake")]);
+        let owner2Info = mock_info("owner002", &[coin(1000, "stake")]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
             owner2Info.clone(),
-            "Owner002".to_string(),
+            "owner002".to_string(),
             Some(String::default()),
             "CLUB002".to_string(),
             Uint128::from(1000000u128),
             SET_AUTO_STAKE,
         );
-        let owner3Info = mock_info("Owner003", &[coin(1000, "stake")]);
+        let owner3Info = mock_info("owner003", &[coin(1000, "stake")]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
             owner3Info.clone(),
-            "Owner003".to_string(),
+            "owner003".to_string(),
             Some(String::default()),
             "CLUB003".to_string(),
             Uint128::from(1000000u128),
             SET_AUTO_STAKE,
         );
 
-        let staker1Info = mock_info("Staker001", &[coin(10, "stake")]);
+        let staker1Info = mock_info("staker001", &[coin(10, "stake")]);
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
             staker1Info.clone(),
-            "Staker001".to_string(),
+            "staker001".to_string(),
             "CLUB001".to_string(),
             Uint128::from(330000u128),
             SET_AUTO_STAKE,
         );
 
-        let staker2Info = mock_info("Staker002", &[coin(10, "stake")]);
+        let staker2Info = mock_info("staker002", &[coin(10, "stake")]);
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
             staker2Info.clone(),
-            "Staker002".to_string(),
+            "staker002".to_string(),
             "CLUB001".to_string(),
             Uint128::from(110000u128),
             SET_AUTO_STAKE,
         );
 
-        let staker3Info = mock_info("Staker003", &[coin(10, "stake")]);
+        let staker3Info = mock_info("staker003", &[coin(10, "stake")]);
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
             staker3Info.clone(),
-            "Staker003".to_string(),
+            "staker003".to_string(),
             "CLUB002".to_string(),
             Uint128::from(420000u128),
             SET_AUTO_STAKE,
         );
 
-        let staker4Info = mock_info("Staker004", &[coin(10, "stake")]);
+        let staker4Info = mock_info("staker004", &[coin(10, "stake")]);
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
             staker4Info.clone(),
-            "Staker004".to_string(),
+            "staker004".to_string(),
             "CLUB002".to_string(),
             Uint128::from(100000u128),
             SET_AUTO_STAKE,
         );
 
-        let staker5Info = mock_info("Staker005", &[coin(10, "stake")]);
+        let staker5Info = mock_info("staker005", &[coin(10, "stake")]);
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
             staker5Info.clone(),
-            "Staker005".to_string(),
+            "staker005".to_string(),
             "CLUB003".to_string(),
             Uint128::from(820000u128),
             SET_AUTO_STAKE,
         );
 
-        let staker6Info = mock_info("Staker006", &[coin(10, "stake")]);
+        let staker6Info = mock_info("staker006", &[coin(10, "stake")]);
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
             staker6Info.clone(),
-            "Staker006".to_string(),
+            "staker006".to_string(),
             "CLUB003".to_string(),
             Uint128::from(50000u128),
             SET_AUTO_STAKE,
         );
 
         let mut user_address_list = Vec::new();
-        user_address_list.push("Staker001".to_string());
-        user_address_list.push("Staker002".to_string());
-        user_address_list.push("Staker003".to_string());
-        user_address_list.push("Staker004".to_string());
-        user_address_list.push("Staker005".to_string());
-        user_address_list.push("Staker006".to_string());
-        user_address_list.push("Owner001".to_string());
-        user_address_list.push("Owner002".to_string());
-        user_address_list.push("Owner003".to_string());
+        user_address_list.push("staker001".to_string());
+        user_address_list.push("staker002".to_string());
+        user_address_list.push("staker003".to_string());
+        user_address_list.push("staker004".to_string());
+        user_address_list.push("staker005".to_string());
+        user_address_list.push("staker006".to_string());
+        user_address_list.push("owner001".to_string());
+        user_address_list.push("owner002".to_string());
+        user_address_list.push("owner003".to_string());
         let queryRes0 = query_all_stakes(&mut deps.storage, user_address_list.clone());
         match queryRes0 {
             Ok(all_stakes) => {
@@ -4103,31 +4103,31 @@ mod tests {
                     let staker_address = stake.staker_address;
                     let staked_amount = stake.staked_amount;
                     println!("staker : {:?} staked_amount : {:?}", staker_address.clone(), staked_amount);
-                    if staker_address == "Staker001" {
+                    if staker_address == "staker001" {
                         assert_eq!(staked_amount, Uint128::from(470655u128));
                     }
-                    if staker_address == "Staker002" {
+                    if staker_address == "staker002" {
                         assert_eq!(staked_amount, Uint128::from(156885u128));
                     }
-                    if staker_address == "Staker003" {
+                    if staker_address == "staker003" {
                         assert_eq!(staked_amount, Uint128::from(599016u128));
                     }
-                    if staker_address == "Staker004" {
+                    if staker_address == "staker004" {
                         assert_eq!(staked_amount, Uint128::from(142622u128));
                     }
-                    if staker_address == "Staker005" {
+                    if staker_address == "staker005" {
                         assert_eq!(staked_amount, Uint128::from(1348588u128));
                     }
-                    if staker_address == "Staker006" {
+                    if staker_address == "staker006" {
                         assert_eq!(staked_amount, Uint128::from(82230u128));
                     }
-                    if staker_address == "Owner001" {
+                    if staker_address == "owner001" {
                         assert_eq!(staked_amount, Uint128::from(10000u128));
                     }
-                    if staker_address == "Owner002" {
+                    if staker_address == "owner002" {
                         assert_eq!(staked_amount, Uint128::from(10000u128));
                     }
-                    if staker_address == "Owner003" {
+                    if staker_address == "owner003" {
                         assert_eq!(staked_amount, Uint128::from(10000u128));
                     }
                 }
@@ -4194,7 +4194,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             staker4Info.clone(),
-            "Staker004".to_string(),
+            "staker004".to_string(),
             "CLUB002".to_string(),
             Uint128::from(100000u128),
             SET_AUTO_STAKE,
@@ -4203,7 +4203,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             staker4Info.clone(),
-            "Staker004".to_string(),
+            "staker004".to_string(),
             "CLUB001".to_string(),
             Uint128::from(500000u128),
             SET_AUTO_STAKE,
@@ -4212,7 +4212,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             staker4Info.clone(),
-            "Staker004".to_string(),
+            "staker004".to_string(),
             "CLUB003".to_string(),
             Uint128::from(126718u128),
             SET_AUTO_STAKE,

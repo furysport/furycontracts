@@ -60,7 +60,7 @@ mod tests {
 /*  Inter contract communication is not there - so these test cases with transfer are not valid anymore
     #[test]
     fn transfer_to_categories() {
-        let mut deps = mock_dependencies(&[]);
+        let mut deps = mock_dependencies();
         let distribute_from = String::from("addr0001");
         let distribute_to = String::from("addr0002");
         let amount = Uint128::from(1000u128);
@@ -91,7 +91,7 @@ mod tests {
 
     #[test]
     fn fail_transfer_to_categories() {
-        let mut deps = mock_dependencies(&[]);
+        let mut deps = mock_dependencies();
         let distribute_from = String::from("addr0001");
         let distribute_to = String::from("addr0002");
         let _amount1 = Uint128::from(1000u128);

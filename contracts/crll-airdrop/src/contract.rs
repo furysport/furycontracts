@@ -833,16 +833,16 @@ mod tests {
 
     #[test]
     fn test_create_luna_user() {
-        let mut deps = mock_dependencies(&[]);
+        let mut deps = mock_dependencies();
 
-        let user1Info = mock_info("LunaUser001", &[coin(1000, "stake")]);
-        create_luna_user_details(deps.as_mut(), mock_env(), user1Info.clone(), "LunaUser001".to_string(),
+        let user1Info = mock_info("lunauser001", &[coin(1000, "stake")]);
+        create_luna_user_details(deps.as_mut(), mock_env(), user1Info.clone(), "lunauser001".to_string(),
             QUALIFIED_FOR_REWARD, Uint128::from(100u128));
 
-        let queryRes = query_luna_user_details(&mut deps.storage, "LunaUser001".to_string());
+        let queryRes = query_luna_user_details(&mut deps.storage, "lunauser001".to_string());
         match queryRes {
             Ok(lud) => {
-                assert_eq!(lud.user_name, "LunaUser001".to_string());
+                assert_eq!(lud.user_name, "lunauser001".to_string());
             }
             Err(e) => {
                 println!("error parsing header: {:?}", e);
@@ -850,14 +850,14 @@ mod tests {
             }
         }
 
-        let user2Info = mock_info("LunaUser002", &[coin(1000, "stake")]);
-        create_luna_user_details(deps.as_mut(), mock_env(), user2Info.clone(), "LunaUser002".to_string(),
+        let user2Info = mock_info("lunauser002", &[coin(1000, "stake")]);
+        create_luna_user_details(deps.as_mut(), mock_env(), user2Info.clone(), "lunauser002".to_string(),
             QUALIFIED_FOR_REWARD, Uint128::from(100u128));
 
-        let queryRes = query_luna_user_details(&mut deps.storage, "LunaUser002".to_string());
+        let queryRes = query_luna_user_details(&mut deps.storage, "lunauser002".to_string());
         match queryRes {
             Ok(lud) => {
-                assert_eq!(lud.user_name, "LunaUser002".to_string());
+                assert_eq!(lud.user_name, "lunauser002".to_string());
             }
             Err(e) => {
                 println!("error parsing header: {:?}", e);
@@ -869,7 +869,7 @@ mod tests {
 
     #[test]
     fn test_create_million_luna_user() {
-        let mut deps = mock_dependencies(&[]);
+        let mut deps = mock_dependencies();
 
         let instantiate_msg = InstantiateMsg {
             cw20_token_address: "cwtoken11111".to_string(),
@@ -892,7 +892,7 @@ mod tests {
         for count in 1..total_count+1 {
             let count_str : String = count.to_string();
             let mut username = String::new();
-            username += "LunaUser_";
+            username += "lunauser_";
             username += &count_str;
             user_name_list_for_final_processing.push(username.clone());
             qualified_list_for_final_processing.push(QUALIFIED_FOR_REWARD);
@@ -983,7 +983,7 @@ mod tests {
 
     #[test]
     fn test_userlist_update_activity() {
-        let mut deps = mock_dependencies(&[]);
+        let mut deps = mock_dependencies();
 
         let instantiate_msg = InstantiateMsg {
             cw20_token_address: "cwtoken11111".to_string(),
@@ -1004,7 +1004,7 @@ mod tests {
         for count in 1..total_count+1 {
             let count_str : String = count.to_string();
             let mut username = String::new();
-            username += "LunaUser_";
+            username += "lunauser_";
             username += &count_str;
 
 			let mut user_reward = UserRewardInfo { 
@@ -1104,7 +1104,7 @@ mod tests {
 
     #[test]
     fn test_user_activities () {
-        let mut deps = mock_dependencies(&[]);
+        let mut deps = mock_dependencies();
 
         let instantiate_msg = InstantiateMsg {
             cw20_token_address: "cwtoken11111".to_string(),
@@ -1114,8 +1114,8 @@ mod tests {
 
         set_contract_lock_status (deps.as_mut(), Uint128::from(UNLOCKED));
         
-        let user1Info = mock_info("LunaUser001", &[coin(1000, "stake")]);
-        create_luna_user_details(deps.as_mut(), mock_env(), user1Info.clone(), "LunaUser001".to_string(),
+        let user1Info = mock_info("lunauser001", &[coin(1000, "stake")]);
+        create_luna_user_details(deps.as_mut(), mock_env(), user1Info.clone(), "lunauser001".to_string(),
             QUALIFIED_FOR_REWARD, Uint128::from(100u128));
 
         create_activity(deps.as_mut(), mock_env(), rewardInfo.clone(), 
@@ -1139,7 +1139,7 @@ mod tests {
             }
         }
 
-        update_user_activity(deps.as_mut(), mock_env(), user1Info.clone(), "LunaUser001".to_string(), 
+        update_user_activity(deps.as_mut(), mock_env(), user1Info.clone(), "lunauser001".to_string(), 
             STAKING_ACTIVITY.to_string(), QUALIFIED_FOR_REWARD);
 
         let queryResAfter = query_all_user_activities(&mut deps.storage);
@@ -1163,7 +1163,7 @@ mod tests {
 
     #[test]
     fn test_update_activity_eligibile_amount () {
-        let mut deps = mock_dependencies(&[]);
+        let mut deps = mock_dependencies();
 
         let instantiate_msg = InstantiateMsg {
             cw20_token_address: "cwtoken11111".to_string(),
@@ -1173,8 +1173,8 @@ mod tests {
 
         set_contract_lock_status (deps.as_mut(), Uint128::from(UNLOCKED));
         
-        let user1Info = mock_info("LunaUser001", &[coin(1000, "stake")]);
-        create_luna_user_details(deps.as_mut(), mock_env(), user1Info.clone(), "LunaUser001".to_string(),
+        let user1Info = mock_info("lunauser001", &[coin(1000, "stake")]);
+        create_luna_user_details(deps.as_mut(), mock_env(), user1Info.clone(), "lunauser001".to_string(),
             QUALIFIED_FOR_REWARD, Uint128::from(100u128));
 
         create_activity(deps.as_mut(), mock_env(), rewardInfo.clone(), 
@@ -1222,7 +1222,7 @@ mod tests {
             }
         }
 
-        update_user_activity(deps.as_mut(), mock_env(), user1Info.clone(), "LunaUser001".to_string(), 
+        update_user_activity(deps.as_mut(), mock_env(), user1Info.clone(), "lunauser001".to_string(), 
             STAKING_ACTIVITY.to_string(), QUALIFIED_FOR_REWARD);
 
         let queryResAfterUpdateUser = query_all_user_activities(&mut deps.storage);
@@ -1246,7 +1246,7 @@ mod tests {
 
     #[test]
     fn test_claim_user_rewards () {
-        let mut deps = mock_dependencies(&[]);
+        let mut deps = mock_dependencies();
 
         let instantiate_msg = InstantiateMsg {
             cw20_token_address: "cwtoken11111".to_string(),
@@ -1256,8 +1256,8 @@ mod tests {
 
         set_contract_lock_status (deps.as_mut(), Uint128::from(UNLOCKED));
         
-        let user1Info = mock_info("LunaUser001", &[coin(1000, "stake")]);
-        create_luna_user_details(deps.as_mut(), mock_env(), user1Info.clone(), "LunaUser001".to_string(),
+        let user1Info = mock_info("lunauser001", &[coin(1000, "stake")]);
+        create_luna_user_details(deps.as_mut(), mock_env(), user1Info.clone(), "lunauser001".to_string(),
             QUALIFIED_FOR_REWARD, Uint128::from(100u128));
 
         create_activity(deps.as_mut(), mock_env(), rewardInfo.clone(), 
@@ -1306,7 +1306,7 @@ mod tests {
             }
         }
 
-        update_user_activity(deps.as_mut(), mock_env(), user1Info.clone(), "LunaUser001".to_string(), 
+        update_user_activity(deps.as_mut(), mock_env(), user1Info.clone(), "lunauser001".to_string(), 
             STAKING_ACTIVITY.to_string(), QUALIFIED_FOR_REWARD);
 
         let queryResAfterUpdateUser = query_all_user_activities(&mut deps.storage);
@@ -1326,7 +1326,7 @@ mod tests {
                 assert_eq!(1, 2);
             }
         }
-        let rsp1 = claim_user_rewards(deps.as_mut(), mock_env(), user1Info.clone(), "LunaUser001".to_string());
+        let rsp1 = claim_user_rewards(deps.as_mut(), mock_env(), user1Info.clone(), "lunauser001".to_string());
         match rsp1 {
             Ok(rsp1) => {
                 assert_eq!(rsp1, Response::new().add_attribute("reward", Uint128::from(88u128)));
@@ -1337,10 +1337,10 @@ mod tests {
             }
         }
 
-        update_luna_user_details(deps.as_mut(), mock_env(), user1Info.clone(), "LunaUser001".to_string(), 
+        update_luna_user_details(deps.as_mut(), mock_env(), user1Info.clone(), "lunauser001".to_string(), 
             QUALIFIED_FOR_REWARD, Uint128::from(100u128));
 
-        let rsp = claim_user_rewards(deps.as_mut(), mock_env(), user1Info.clone(), "LunaUser001".to_string());
+        let rsp = claim_user_rewards(deps.as_mut(), mock_env(), user1Info.clone(), "lunauser001".to_string());
         match rsp {
             Ok(rsp) => {
                 /*
@@ -1372,7 +1372,7 @@ mod tests {
 
     #[test]
     fn test_update_activity_if_luna_is_not_qualified () {
-        let mut deps = mock_dependencies(&[]);
+        let mut deps = mock_dependencies();
 
         let instantiate_msg = InstantiateMsg {
             cw20_token_address: "cwtoken11111".to_string(),
@@ -1382,8 +1382,8 @@ mod tests {
 
         set_contract_lock_status (deps.as_mut(), Uint128::from(UNLOCKED));
         
-        let user1Info = mock_info("LunaUser001", &[coin(1000, "stake")]);
-        create_luna_user_details(deps.as_mut(), mock_env(), user1Info.clone(), "LunaUser001".to_string(),
+        let user1Info = mock_info("lunauser001", &[coin(1000, "stake")]);
+        create_luna_user_details(deps.as_mut(), mock_env(), user1Info.clone(), "lunauser001".to_string(),
             NOT_QUALIFIED_FOR_REWARD, Uint128::from(100u128));
 
         create_activity(deps.as_mut(), mock_env(), rewardInfo.clone(), 
@@ -1431,7 +1431,7 @@ mod tests {
             }
         }
 
-        update_user_activity(deps.as_mut(), mock_env(), user1Info.clone(), "LunaUser001".to_string(), 
+        update_user_activity(deps.as_mut(), mock_env(), user1Info.clone(), "lunauser001".to_string(), 
             STAKING_ACTIVITY.to_string(), QUALIFIED_FOR_REWARD);
 
         let queryResAfterUpdateUser = query_all_user_activities(&mut deps.storage);
@@ -1448,10 +1448,10 @@ mod tests {
             }
         }
 
-        update_luna_user_details(deps.as_mut(), mock_env(), user1Info.clone(), "LunaUser001".to_string(), 
+        update_luna_user_details(deps.as_mut(), mock_env(), user1Info.clone(), "lunauser001".to_string(), 
             QUALIFIED_FOR_REWARD, Uint128::from(100u128));
 
-        let rsp = claim_user_rewards(deps.as_mut(), mock_env(), user1Info.clone(), "LunaUser001".to_string());
+        let rsp = claim_user_rewards(deps.as_mut(), mock_env(), user1Info.clone(), "lunauser001".to_string());
         match rsp {
             Ok(rsp) => {
                 /*
@@ -1483,7 +1483,7 @@ mod tests {
 
     #[test]
     fn test_lock_unlock () {
-        let mut deps = mock_dependencies(&[]);
+        let mut deps = mock_dependencies();
         set_contract_lock_status (deps.as_mut(), Uint128::from(LOCKED));
         let queryRes = get_contract_lock_status(deps.as_mut());
         match queryRes {
