@@ -5,7 +5,7 @@ use cosmwasm_schema::{export_schema, remove_schemas, schema_for};
 
 use cw20::{Cw20ReceiveMsg};
 
-use astroport_proxy::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use terra_swap_proxy::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 
 fn main() {
     let mut out_dir = current_dir().unwrap();
