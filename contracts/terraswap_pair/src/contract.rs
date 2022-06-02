@@ -1,6 +1,6 @@
 use crate::error::ContractError;
 use crate::response::MsgInstantiateContractResponse;
-use crate::state::PAIR_INFO;
+use crate::state::{PAIR_INFO, PROXY_ADDRESS};
 
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
@@ -29,6 +29,7 @@ const INSTANTIATE_REPLY_ID: u64 = 1;
 
 /// Commission rate == 0.3%
 const COMMISSION_RATE: &str = "0.003";
+
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
     deps: DepsMut<Empty>,
@@ -45,6 +46,7 @@ pub fn instantiate(
         ],
         asset_decimals: msg.asset_decimals,
     };
+    PROXY_ADDRESS.save(deps.storage, &msg.proxy_contract_addr);
 
     PAIR_INFO.save(deps.storage, pair_info)?;
 
@@ -66,7 +68,7 @@ pub fn instantiate(
             funds: vec![],
             label: "lp".to_string(),
         }
-        .into(),
+            .into(),
         gas_limit: None,
         id: INSTANTIATE_REPLY_ID,
         reply_on: ReplyOn::Success,
@@ -93,6 +95,7 @@ pub fn execute(
             max_spread,
             to,
         } => {
+            check_auth(&deps, &info)?;
             if !offer_asset.is_native_token() {
                 return Err(ContractError::Unauthorized {});
             }
@@ -117,6 +120,18 @@ pub fn execute(
     }
 }
 
+pub fn check_auth(
+    deps: &DepsMut,
+    info: &MessageInfo,
+) -> Result<Response, ContractError> {
+    let proxy = PROXY_ADDRESS.load(deps.storage)?;
+    return if info.sender != proxy {
+        Err(ContractError::Unauthorized {})
+    } else {
+        Ok(Response::default())
+    };
+}
+
 pub fn receive_cw20(
     deps: DepsMut<Empty>,
     env: Env,
@@ -127,10 +142,10 @@ pub fn receive_cw20(
 
     match from_binary(&cw20_msg.msg) {
         Ok(Cw20HookMsg::Swap {
-            belief_price,
-            max_spread,
-            to,
-        }) => {
+               belief_price,
+               max_spread,
+               to,
+           }) => {
             // only asset contract can execute this message
             let mut authorized: bool = false;
             let config: PairInfoRaw = PAIR_INFO.load(deps.storage)?;
@@ -211,6 +226,8 @@ pub fn provide_liquidity(
     slippage_tolerance: Option<Decimal>,
     receiver: Option<String>,
 ) -> Result<Response, ContractError> {
+    check_auth(&deps, &info)?;
+
     for asset in assets.iter() {
         asset.assert_sent_native_token_balance(&info)?;
     }
@@ -465,7 +482,7 @@ pub fn query_pool(deps: Deps<Empty>) -> Result<PoolResponse, ContractError> {
         &deps.querier,
         deps.api.addr_humanize(&pair_info.liquidity_token)?,
     )?
-    .total_supply;
+        .total_supply;
 
     let resp = PoolResponse {
         assets,
@@ -720,7 +737,7 @@ fn assert_slippage_tolerance(
         if Decimal256::from_ratio(deposits[0], deposits[1]) * one_minus_slippage_tolerance
             > Decimal256::from_ratio(pools[0], pools[1])
             || Decimal256::from_ratio(deposits[1], deposits[0]) * one_minus_slippage_tolerance
-                > Decimal256::from_ratio(pools[1], pools[0])
+            > Decimal256::from_ratio(pools[1], pools[0])
         {
             return Err(ContractError::MaxSlippageAssertion {});
         }

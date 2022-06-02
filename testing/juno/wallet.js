@@ -45,11 +45,11 @@ export class Wallet {
         }])
     }
 
-    execute_contract(msg, contractAddress) {
+    execute_contract(msg, contractAddress,coins) {
         let msg_list = []
         if (Array.isArray(msg)) {
             msg.forEach((msg) => {
-                msg_list.push(this.get_execute(msg, contractAddress))
+                msg_list.push(this.get_execute(msg, contractAddress,coins))
             })
 
         } else {
@@ -61,13 +61,13 @@ export class Wallet {
 
     }
 
-    get_execute(message, contract) {
+    get_execute(message, contract,coins) {
         let transferBytes = new Buffer(JSON.stringify(message));
         const msgExecuteContract = new message.cosmwasm.wasm.v1.MsgExecuteContract({
             sender: this.wallet_address,
             contract: contract,
             msg: transferBytes,
-            funds: []
+            funds: coins
         });
         return new message.google.protobuf.Any({
             type_url: "/cosmwasm.wasm.v1.MsgExecuteContract",

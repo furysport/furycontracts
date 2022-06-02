@@ -8,7 +8,7 @@ use terraswap::mock_querier::mock_dependencies;
 use cosmwasm_std::testing::{mock_env, mock_info, MOCK_CONTRACT_ADDR};
 use cosmwasm_std::{
     attr, to_binary, BankMsg, Coin, CosmosMsg, Decimal, Reply, ReplyOn, Response, StdError, SubMsg,
-    SubMsgResponse, SubMsgResult, Uint128, WasmMsg,
+    SubMsgResponse, SubMsgResult, Uint128, WasmMsg, Addr,
 };
 use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg, MinterResponse};
 use terraswap::asset::{Asset, AssetInfo, PairInfo};
@@ -33,6 +33,7 @@ fn proper_initialization() {
         ],
         token_code_id: 10u64,
         asset_decimals: [6u8, 8u8],
+        proxy_contract_addr: Addr::unchecked("addr0000"),
     };
 
     // we can just call .unwrap() to assert this was a success
@@ -124,6 +125,7 @@ fn provide_liquidity() {
         ],
         token_code_id: 10u64,
         asset_decimals: [6u8, 8u8],
+        proxy_contract_addr: Addr::unchecked("addr0000"),
     };
 
     let env = mock_env();
@@ -366,7 +368,7 @@ fn provide_liquidity() {
 
     let env = mock_env();
     let info = mock_info(
-        "addr0001",
+        "addr0000",
         &[Coin {
             denom: "uusd".to_string(),
             amount: Uint128::from(100u128),
@@ -409,7 +411,7 @@ fn provide_liquidity() {
 
     let env = mock_env();
     let info = mock_info(
-        "addr0001",
+        "addr0000",
         &[Coin {
             denom: "uusd".to_string(),
             amount: Uint128::from(98u128),
@@ -454,7 +456,7 @@ fn provide_liquidity() {
 
     let env = mock_env();
     let info = mock_info(
-        "addr0001",
+        "addr0000",
         &[Coin {
             denom: "uusd".to_string(),
             amount: Uint128::from(100u128),
@@ -493,7 +495,7 @@ fn provide_liquidity() {
 
     let env = mock_env();
     let info = mock_info(
-        "addr0001",
+        "addr0000",
         &[Coin {
             denom: "uusd".to_string(),
             amount: Uint128::from(99u128),
@@ -531,6 +533,7 @@ fn withdraw_liquidity() {
         ],
         token_code_id: 10u64,
         asset_decimals: [6u8, 8u8],
+        proxy_contract_addr: Addr::unchecked("addr0000"),
     };
 
     let env = mock_env();
@@ -648,6 +651,7 @@ fn try_native_to_token() {
         ],
         token_code_id: 10u64,
         asset_decimals: [6u8, 8u8],
+        proxy_contract_addr: Addr::unchecked("addr0000"),
     };
 
     let env = mock_env();
@@ -822,6 +826,7 @@ fn try_token_to_native() {
         ],
         token_code_id: 10u64,
         asset_decimals: [8u8, 8u8],
+        proxy_contract_addr: Addr::unchecked("addr0000"),
     };
 
     let env = mock_env();
@@ -1198,6 +1203,7 @@ fn test_query_pool() {
         ],
         token_code_id: 10u64,
         asset_decimals: [6u8, 8u8],
+        proxy_contract_addr: Addr::unchecked("addr0000"),
     };
 
     let env = mock_env();

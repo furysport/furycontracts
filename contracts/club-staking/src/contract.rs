@@ -80,6 +80,7 @@ pub fn instantiate(
         transaction_fees: msg.transaction_fees,
         control_fees: msg.control_fees,
         max_bonding_limit_per_user: msg.max_bonding_limit_per_user,
+        usdc_ibc_symbol: msg.usdc_ibc_symbol
     };
     CONFIG.save(deps.storage, &config)?;
 
@@ -177,6 +178,12 @@ pub fn execute(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, ContractError> {
     Ok(Response::default())
+}
+pub fn uusd(
+    deps: &DepsMut,
+) -> Result<String, ContractError> {
+    let config = CONFIG.load(deps.storage)?;
+    return Ok(config.usdc_ibc_symbol)
 }
 
 
@@ -387,7 +394,7 @@ fn buy_a_club(
     }
     let mut fees = Uint128::zero();
     for fund in info.funds.clone() {
-        if fund.denom == "uusd" {
+        if fund.denom == uusd(&deps)? {
             fees = fees.checked_add(fund.amount).unwrap();
         }
     }
@@ -818,7 +825,7 @@ fn stake_on_a_club(
     }
     let mut fees = Uint128::zero();
     for fund in info.funds.clone() {
-        if fund.denom == "uusd" {
+        if fund.denom == uusd(&deps)? {
             fees = fees.checked_add(fund.amount).unwrap();
         }
     }
@@ -1021,7 +1028,7 @@ fn withdraw_stake_from_a_club(
     }
     let mut fees = Uint128::zero();
     for fund in info.funds.clone() {
-        if fund.denom == "uusd" {
+        if fund.denom == uusd(&deps)? {
             fees = fees.checked_add(fund.amount).unwrap();
         }
     }
@@ -1451,7 +1458,7 @@ fn claim_staker_rewards(
     )?;
     let mut fees = Uint128::zero();
     for fund in info.funds.clone() {
-        if fund.denom == "uusd" {
+        if fund.denom == uusd(&deps)? {
             fees = fees.checked_add(fund.amount).unwrap();
         }
     }
@@ -2266,6 +2273,7 @@ mod tests {
             transaction_fees: Uint128::from(30u128),
             control_fees: Uint128::from(50u128),
             max_bonding_limit_per_user: 10u64,
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -2324,6 +2332,7 @@ mod tests {
             transaction_fees: Uint128::from(30u128),
             control_fees: Uint128::from(50u128),
             max_bonding_limit_per_user: 10u64,
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -2404,6 +2413,7 @@ mod tests {
             transaction_fees: Uint128::from(30u128),
             control_fees: Uint128::from(50u128),
             max_bonding_limit_per_user: 10u64,
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -2473,6 +2483,7 @@ mod tests {
             transaction_fees: Uint128::from(30u128),
             control_fees: Uint128::from(50u128),
             max_bonding_limit_per_user: 10u64,
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -2602,6 +2613,7 @@ mod tests {
             transaction_fees: Uint128::from(30u128),
             control_fees: Uint128::from(50u128),
             max_bonding_limit_per_user: 10u64,
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -2708,6 +2720,7 @@ mod tests {
             transaction_fees: Uint128::from(30u128),
             control_fees: Uint128::from(50u128),
             max_bonding_limit_per_user: 10u64,
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -2825,6 +2838,7 @@ mod tests {
             transaction_fees: Uint128::from(30u128),
             control_fees: Uint128::from(50u128),
             max_bonding_limit_per_user: 10u64,
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -3025,6 +3039,7 @@ mod tests {
             transaction_fees: Uint128::from(30u128),
             control_fees: Uint128::from(50u128),
             max_bonding_limit_per_user: 10u64,
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -3123,6 +3138,7 @@ mod tests {
             transaction_fees: Uint128::from(30u128),
             control_fees: Uint128::from(50u128),
             max_bonding_limit_per_user: 10u64,
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -3217,6 +3233,7 @@ mod tests {
             transaction_fees: Uint128::from(30u128),
             control_fees: Uint128::from(50u128),
             max_bonding_limit_per_user: 10u64,
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -3331,6 +3348,7 @@ mod tests {
             transaction_fees: Uint128::from(30u128),
             control_fees: Uint128::from(50u128),
             max_bonding_limit_per_user: 10u64,
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -3447,6 +3465,7 @@ mod tests {
             transaction_fees: Uint128::from(30u128),
             control_fees: Uint128::from(50u128),
             max_bonding_limit_per_user: 10u64,
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let admin_info = mock_info("admin11111", &[]);
         let minting_contract_info = mock_info("minting_admin11111", &[]);
@@ -3613,6 +3632,7 @@ mod tests {
             transaction_fees: Uint128::from(30u128),
             control_fees: Uint128::from(50u128),
             max_bonding_limit_per_user: 10u64,
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -3777,6 +3797,7 @@ mod tests {
             transaction_fees: Uint128::from(30u128),
             control_fees: Uint128::from(50u128),
             max_bonding_limit_per_user: 10u64,
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -3901,6 +3922,7 @@ mod tests {
             transaction_fees: Uint128::from(30u128),
             control_fees: Uint128::from(50u128),
             max_bonding_limit_per_user: 10u64,
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -4181,6 +4203,7 @@ mod tests {
             transaction_fees: Uint128::from(30u128),
             control_fees: Uint128::from(50u128),
             max_bonding_limit_per_user: 10u64,
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         instantiate(
             deps.as_mut(),
