@@ -23,6 +23,7 @@ pub struct Config {
     ///Specified in percentage multiplied by 100, i.e. 100% = 10000 and 0.01% = 1
     pub control_fees: Uint128,
     pub max_bonding_limit_per_user: u64,
+    pub usdc_ibc_symbol:String,
 }
 
 pub const CONFIG_KEY: &str = "config";

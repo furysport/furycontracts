@@ -80,6 +80,7 @@ pub fn instantiate(
         transaction_fees: msg.transaction_fees,
         control_fees: msg.control_fees,
         max_bonding_limit_per_user: msg.max_bonding_limit_per_user,
+        usdc_ibc_symbol: msg.usdc_ibc_symbol
     };
     CONFIG.save(deps.storage, &config)?;
 
@@ -177,6 +178,12 @@ pub fn execute(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, ContractError> {
     Ok(Response::default())
+}
+pub fn uusd(
+    deps: &DepsMut,
+) -> Result<String, ContractError> {
+    let config = CONFIG.load(deps.storage)?;
+    return Ok(config.usdc_ibc_symbol)
 }
 
 
@@ -387,7 +394,7 @@ fn buy_a_club(
     }
     let mut fees = Uint128::zero();
     for fund in info.funds.clone() {
-        if fund.denom == "uusd" {
+        if fund.denom == uusd(&deps)? {
             fees = fees.checked_add(fund.amount).unwrap();
         }
     }
@@ -818,7 +825,7 @@ fn stake_on_a_club(
     }
     let mut fees = Uint128::zero();
     for fund in info.funds.clone() {
-        if fund.denom == "uusd" {
+        if fund.denom == uusd(&deps)? {
             fees = fees.checked_add(fund.amount).unwrap();
         }
     }
@@ -1021,7 +1028,7 @@ fn withdraw_stake_from_a_club(
     }
     let mut fees = Uint128::zero();
     for fund in info.funds.clone() {
-        if fund.denom == "uusd" {
+        if fund.denom == uusd(&deps)? {
             fees = fees.checked_add(fund.amount).unwrap();
         }
     }
@@ -1451,7 +1458,7 @@ fn claim_staker_rewards(
     )?;
     let mut fees = Uint128::zero();
     for fund in info.funds.clone() {
-        if fund.denom == "uusd" {
+        if fund.denom == uusd(&deps)? {
             fees = fees.checked_add(fund.amount).unwrap();
         }
     }
@@ -2277,7 +2284,7 @@ mod tests {
         )
             .unwrap();
 
-        let owner1_info = mock_info("owner001", &[coin(0, "uusd")]);
+        let owner1_info = mock_info("owner001", &[coin(0, uusd(&deps)?)]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
@@ -2335,7 +2342,7 @@ mod tests {
         )
             .unwrap();
 
-        let owner1_info = mock_info("owner001", &[coin(0, "uusd")]);
+        let owner1_info = mock_info("owner001", &[coin(0, uusd(&deps)?)]);
         let result = buy_a_club(
             deps.as_mut(),
             mock_env(),
@@ -2415,7 +2422,7 @@ mod tests {
         )
             .unwrap();
 
-        let owner1_info = mock_info("owner001", &[coin(0, "uusd")]);
+        let owner1_info = mock_info("owner001", &[coin(0, uusd(&deps)?)]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
@@ -2427,7 +2434,7 @@ mod tests {
             SET_AUTO_STAKE,
         );
 
-        let owner2_info = mock_info("owner002", &[coin(1000, "uusd")]);
+        let owner2_info = mock_info("owner002", &[coin(1000, uusd(&deps)?)]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
@@ -2719,7 +2726,7 @@ mod tests {
         )
             .unwrap();
 
-        let owner1_info = mock_info("owner001", &[coin(0, "uusd")]);
+        let owner1_info = mock_info("owner001", &[coin(0, uusd(&deps)?)]);
         let mut resp = buy_a_club(
             deps.as_mut(),
             mock_env(),
@@ -2778,7 +2785,7 @@ mod tests {
             }
         }
 
-        let owner2_info = mock_info("owner002", &[coin(0, "uusd")]);
+        let owner2_info = mock_info("owner002", &[coin(0, uusd(&deps)?)]);
         let resp = buy_a_club(
             deps.as_mut(),
             mock_env(),
@@ -2836,7 +2843,7 @@ mod tests {
         )
             .unwrap();
 
-        let owner1_info = mock_info("owner001", &[coin(0, "uusd")]);
+        let owner1_info = mock_info("owner001", &[coin(0, uusd(&deps)?)]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
@@ -2930,7 +2937,7 @@ mod tests {
         );
 
         println!("buy a club with new owner");
-        let owner2_info = mock_info("owner002", &[coin(0, "uusd")]);
+        let owner2_info = mock_info("owner002", &[coin(0, uusd(&deps)?)]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
@@ -3036,7 +3043,7 @@ mod tests {
         )
             .unwrap();
 
-        let owner1_info = mock_info("owner001", &[coin(0, "uusd")]);
+        let owner1_info = mock_info("owner001", &[coin(0, uusd(&deps)?)]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
@@ -3134,7 +3141,7 @@ mod tests {
         )
             .unwrap();
 
-        let owner1_info = mock_info("owner001", &[coin(0, "uusd")]);
+        let owner1_info = mock_info("owner001", &[coin(0, uusd(&deps)?)]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
@@ -3228,7 +3235,7 @@ mod tests {
         )
             .unwrap();
 
-        let owner1_info = mock_info("owner001", &[coin(0, "uusd")]);
+        let owner1_info = mock_info("owner001", &[coin(0, uusd(&deps)?)]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
@@ -3458,7 +3465,7 @@ mod tests {
         )
             .unwrap();
 
-        let owner1_info = mock_info("owner001", &[coin(0, "uusd")]);
+        let owner1_info = mock_info("owner001", &[coin(0, uusd(&deps)?)]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
@@ -3623,7 +3630,7 @@ mod tests {
             instantiate_msg,
         );
 
-        let owner1_info = mock_info("owner001", &[coin(0, "uusd")]);
+        let owner1_info = mock_info("owner001", &[coin(0, uusd(&deps)?)]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
@@ -3788,7 +3795,7 @@ mod tests {
         )
             .unwrap();
 
-        let owner1_info = mock_info("owner001", &[coin(0, "uusd")]);
+        let owner1_info = mock_info("owner001", &[coin(0, uusd(&deps)?)]);
         let result = buy_a_club(
             deps.as_mut(),
             mock_env(),
@@ -3800,7 +3807,7 @@ mod tests {
             SET_AUTO_STAKE,
         );
         println!("buy_a_club result = {:?}", result);
-        let stakerInfo = mock_info("staker001", &[coin(10, "uusd")]);
+        let stakerInfo = mock_info("staker001", &[coin(10, uusd(&deps)?)]);
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
