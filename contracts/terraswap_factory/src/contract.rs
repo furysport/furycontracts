@@ -27,6 +27,8 @@ pub fn instantiate(
         owner: deps.api.addr_canonicalize(info.sender.as_str())?,
         token_code_id: msg.token_code_id,
         pair_code_id: msg.pair_code_id,
+        proxy_contract_addr: msg.proxy_contract_addr,
+
     };
 
     CONFIG.save(deps.storage, &config)?;
@@ -150,6 +152,7 @@ pub fn execute_create_pair(
                     asset_infos,
                     token_code_id: config.token_code_id,
                     asset_decimals,
+                    proxy_contract_addr: config.proxy_contract_addr,
                 })?,
             }),
             reply_on: ReplyOn::Success,

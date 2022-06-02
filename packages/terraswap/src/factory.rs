@@ -1,3 +1,4 @@
+use cosmwasm_std::Addr;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -8,6 +9,8 @@ pub struct InstantiateMsg {
     /// Pair contract code ID, which is used to
     pub pair_code_id: u64,
     pub token_code_id: u64,
+    pub proxy_contract_addr:Addr,
+
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
