@@ -11,3 +11,11 @@ export const mnemonic = "example cruise forward hidden earth lizard tide guilt t
 export const cosmos = new Cosmos(lcdUrl, chainId);
 cosmos.setBech32MainPrefix("juno")
 console.log(cosmos.bech32MainPrefix)
+//-------------------------------
+export const MintingContractPath = "artifacts/cw20_base.wasm"
+export const VnDContractPath = "artifacts/vest_n_distribute.wasm"
+export const PairContractPath = "../artifacts/terraswap_pair.wasm"
+// export const StakingContractPath = "../artifacts/astroport_staking.wasm"
+// export const WhitelistContractPath = "../artifacts/astroport_whitelist.wasm"
+export const FactoryContractPath = "../artifacts/terraswap_factory.wasm"
+export const ProxyContractPath = "../artifacts/terra_swap_proxy.wasm"

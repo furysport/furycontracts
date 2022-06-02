@@ -1,6 +1,7 @@
 import {cosmos} from "./constants.js";
 import message from "@cosmostation/cosmosjs/src/messages/proto.js";
 import fs from "fs";
+import fetch from "node-fetch";
 
 
 export class Wallet {
@@ -12,6 +13,7 @@ export class Wallet {
         this.privateKey = cosmos.getECPairPriv(memonic);
         this.publicKey = cosmos.getPubKeyAny(this.privateKey);
         this.wallet_address = cosmos.getAddress(memonic);
+        this.url = cosmos.url
         this.feeValue = new message.cosmos.tx.v1beta1.Fee({
             amount: [{denom: "ujunox", amount: String(20000)}],
             gas_limit: 100000000
@@ -38,7 +40,8 @@ export class Wallet {
             to_address: to_address,
             amount: [coins]
         });
-        this.sign_and_broadcast([{
+
+        return this.sign_and_broadcast([{
             type_url: "/cosmos.bank.v1beta1.MsgSend",
             value: message.cosmos.bank.v1beta1.MsgSend.encode(msgSend).finish()
         }])
@@ -118,6 +121,11 @@ export class Wallet {
 
     sleep(time) {
         return new Promise((resolve) => setTimeout(resolve, time));
+    }
+
+    queryBankUusd(address) {
+        let api = "/cosmos/bank/1beta1/balances/";
+        return fetch(this.url + api + address).then(response => response.json())
     }
 
 

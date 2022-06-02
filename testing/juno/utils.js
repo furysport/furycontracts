@@ -1,6 +1,7 @@
 import {readFileSync, writeFileSync} from "fs";
 import path from 'path';
 import {cosmos} from "./constants.js";
+import {terraClient} from "../constants";
 
 export const ARTIFACTS_PATH = 'artifacts'
 
@@ -81,18 +82,10 @@ export async function queryContractInfo(contractAddress) {
 //     let dateObject = new Date(time);
 //     return dateObject.getTime()
 // }
-
-export async function queryBankUusd(address) {
-    let response = await terraClient.bank.balance(address)
-    let value;
-    try {
-        value = Number(response[0]._coins.uusd.amount);
-    } catch {
-        value = 0;
-    } finally {
-        return value
-    }
-}
+//
+// export async function queryBankUusd(address) {
+//
+// }
 
 
 export async function queryTokenBalance(token_address, address) {
@@ -129,8 +122,6 @@ export async function bankTransferFund(wallet_from, wallet_to, uluna_amount, uus
             funds = {uluna: uluna_amount, uusd: uusd_amount}
         }
     }
-
-
     return wallet_from.send_funds(wallet_to, funds)
 }
 
@@ -140,4 +131,8 @@ export async function get_wallets(number_of_users) {
         wallets_to_return.push(cosmos.getRandomMnemonic())
     }
     return wallets_to_return
+}
+
+export async function sendTransaction(senderWallet, msgs, verbose = false) {
+    return senderWallet.sign_and_broadcast(msgs)
 }
