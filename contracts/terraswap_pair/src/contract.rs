@@ -95,6 +95,7 @@ pub fn execute(
             max_spread,
             to,
         } => {
+			check_auth(&deps, &info)?;
             if !offer_asset.is_native_token() {
                 return Err(ContractError::Unauthorized {});
             }
@@ -375,7 +376,6 @@ pub fn swap(
     max_spread: Option<Decimal>,
     to: Option<Addr>,
 ) -> Result<Response, ContractError> {
-    check_auth(&deps, &info)?;
     offer_asset.assert_sent_native_token_balance(&info)?;
 
     let pair_info: PairInfoRaw = PAIR_INFO.load(deps.storage)?;
