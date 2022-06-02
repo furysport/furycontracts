@@ -95,7 +95,7 @@ pub fn execute(
             max_spread,
             to,
         } => {
-			check_auth(&deps, &info)?;
+            check_auth(&deps, &info)?;
             if !offer_asset.is_native_token() {
                 return Err(ContractError::Unauthorized {});
             }
