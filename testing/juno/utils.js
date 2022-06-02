@@ -1,8 +1,6 @@
-import fs, {readFileSync, writeFileSync} from "fs";
-import chalk from "chalk";
+import {readFileSync, writeFileSync} from "fs";
 import path from 'path';
-import {Wallet} from "./wallet";
-import {cosmos} from "./constants";
+import {cosmos} from "./constants.js";
 
 export const ARTIFACTS_PATH = 'artifacts'
 
@@ -76,7 +74,6 @@ export async function queryContractInfo(contractAddress) {
 }
 
 
-
 // export async function get_server_epoch_seconds() {
 //     const blockInfo = await cosmos.tendermint.blockInfo()
 //     const time = blockInfo['block']['header']['time']
@@ -108,7 +105,7 @@ export async function queryTokenBalance(token_address, address) {
 export async function transferToken(wallet_from, wallet_to_address, token_addres, token_amount) {
     let token_info = await queryContractInfo(token_addres)
     console.log(`Funding ${wallet_to_address} from ${wallet_from.key.accAddress} : ${token_amount} ${token_info.name}`);
-    wallet_from.execute_contract({transfer: {recipient: wallet_to_address, amount: token_amount}},token_addres)
+    wallet_from.execute_contract({transfer: {recipient: wallet_to_address, amount: token_amount}}, token_addres)
 }
 
 export async function bankTransferUusd(wallet_from, wallet_to_address, uusd_amount) {
@@ -134,7 +131,7 @@ export async function bankTransferFund(wallet_from, wallet_to, uluna_amount, uus
     }
 
 
-    return wallet_from.send_funds(wallet_to,funds)
+    return wallet_from.send_funds(wallet_to, funds)
 }
 
 export async function get_wallets(number_of_users) {
