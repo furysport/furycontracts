@@ -2273,6 +2273,7 @@ mod tests {
             transaction_fees: Uint128::from(30u128),
             control_fees: Uint128::from(50u128),
             max_bonding_limit_per_user: 10u64,
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -2284,7 +2285,7 @@ mod tests {
         )
             .unwrap();
 
-        let owner1_info = mock_info("owner001", &[coin(0, uusd(&deps)?)]);
+        let owner1_info = mock_info("owner001", &[coin(0, "uusd")]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
@@ -2331,6 +2332,7 @@ mod tests {
             transaction_fees: Uint128::from(30u128),
             control_fees: Uint128::from(50u128),
             max_bonding_limit_per_user: 10u64,
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -2342,7 +2344,7 @@ mod tests {
         )
             .unwrap();
 
-        let owner1_info = mock_info("owner001", &[coin(0, uusd(&deps)?)]);
+        let owner1_info = mock_info("owner001", &[coin(0, "uusd")]);
         let result = buy_a_club(
             deps.as_mut(),
             mock_env(),
@@ -2411,6 +2413,7 @@ mod tests {
             transaction_fees: Uint128::from(30u128),
             control_fees: Uint128::from(50u128),
             max_bonding_limit_per_user: 10u64,
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -2422,7 +2425,7 @@ mod tests {
         )
             .unwrap();
 
-        let owner1_info = mock_info("owner001", &[coin(0, uusd(&deps)?)]);
+        let owner1_info = mock_info("owner001", &[coin(0, "uusd")]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
@@ -2434,7 +2437,7 @@ mod tests {
             SET_AUTO_STAKE,
         );
 
-        let owner2_info = mock_info("owner002", &[coin(1000, uusd(&deps)?)]);
+        let owner2_info = mock_info("owner002", &[coin(1000, "uusd")]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
@@ -2480,6 +2483,7 @@ mod tests {
             transaction_fees: Uint128::from(30u128),
             control_fees: Uint128::from(50u128),
             max_bonding_limit_per_user: 10u64,
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -2609,6 +2613,7 @@ mod tests {
             transaction_fees: Uint128::from(30u128),
             control_fees: Uint128::from(50u128),
             max_bonding_limit_per_user: 10u64,
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -2715,6 +2720,7 @@ mod tests {
             transaction_fees: Uint128::from(30u128),
             control_fees: Uint128::from(50u128),
             max_bonding_limit_per_user: 10u64,
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -2726,7 +2732,7 @@ mod tests {
         )
             .unwrap();
 
-        let owner1_info = mock_info("owner001", &[coin(0, uusd(&deps)?)]);
+        let owner1_info = mock_info("owner001", &[coin(0, "uusd")]);
         let mut resp = buy_a_club(
             deps.as_mut(),
             mock_env(),
@@ -2785,7 +2791,7 @@ mod tests {
             }
         }
 
-        let owner2_info = mock_info("owner002", &[coin(0, uusd(&deps)?)]);
+        let owner2_info = mock_info("owner002", &[coin(0, "uusd")]);
         let resp = buy_a_club(
             deps.as_mut(),
             mock_env(),
@@ -2832,6 +2838,7 @@ mod tests {
             transaction_fees: Uint128::from(30u128),
             control_fees: Uint128::from(50u128),
             max_bonding_limit_per_user: 10u64,
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -2843,7 +2850,7 @@ mod tests {
         )
             .unwrap();
 
-        let owner1_info = mock_info("owner001", &[coin(0, uusd(&deps)?)]);
+        let owner1_info = mock_info("owner001", &[coin(0, "uusd")]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
@@ -2937,7 +2944,7 @@ mod tests {
         );
 
         println!("buy a club with new owner");
-        let owner2_info = mock_info("owner002", &[coin(0, uusd(&deps)?)]);
+        let owner2_info = mock_info("owner002", &[coin(0, "uusd")]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
@@ -3032,6 +3039,7 @@ mod tests {
             transaction_fees: Uint128::from(30u128),
             control_fees: Uint128::from(50u128),
             max_bonding_limit_per_user: 10u64,
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -3043,7 +3051,7 @@ mod tests {
         )
             .unwrap();
 
-        let owner1_info = mock_info("owner001", &[coin(0, uusd(&deps)?)]);
+        let owner1_info = mock_info("owner001", &[coin(0, "uusd")]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
@@ -3130,6 +3138,7 @@ mod tests {
             transaction_fees: Uint128::from(30u128),
             control_fees: Uint128::from(50u128),
             max_bonding_limit_per_user: 10u64,
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -3141,7 +3150,7 @@ mod tests {
         )
             .unwrap();
 
-        let owner1_info = mock_info("owner001", &[coin(0, uusd(&deps)?)]);
+        let owner1_info = mock_info("owner001", &[coin(0, "uusd")]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
@@ -3224,6 +3233,7 @@ mod tests {
             transaction_fees: Uint128::from(30u128),
             control_fees: Uint128::from(50u128),
             max_bonding_limit_per_user: 10u64,
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -3235,7 +3245,7 @@ mod tests {
         )
             .unwrap();
 
-        let owner1_info = mock_info("owner001", &[coin(0, uusd(&deps)?)]);
+        let owner1_info = mock_info("owner001", &[coin(0, "uusd")]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
@@ -3338,6 +3348,7 @@ mod tests {
             transaction_fees: Uint128::from(30u128),
             control_fees: Uint128::from(50u128),
             max_bonding_limit_per_user: 10u64,
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -3454,6 +3465,7 @@ mod tests {
             transaction_fees: Uint128::from(30u128),
             control_fees: Uint128::from(50u128),
             max_bonding_limit_per_user: 10u64,
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let admin_info = mock_info("admin11111", &[]);
         let minting_contract_info = mock_info("minting_admin11111", &[]);
@@ -3465,7 +3477,7 @@ mod tests {
         )
             .unwrap();
 
-        let owner1_info = mock_info("owner001", &[coin(0, uusd(&deps)?)]);
+        let owner1_info = mock_info("owner001", &[coin(0, "uusd")]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
@@ -3620,6 +3632,7 @@ mod tests {
             transaction_fees: Uint128::from(30u128),
             control_fees: Uint128::from(50u128),
             max_bonding_limit_per_user: 10u64,
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -3630,7 +3643,7 @@ mod tests {
             instantiate_msg,
         );
 
-        let owner1_info = mock_info("owner001", &[coin(0, uusd(&deps)?)]);
+        let owner1_info = mock_info("owner001", &[coin(0, "uusd")]);
         buy_a_club(
             deps.as_mut(),
             mock_env(),
@@ -3784,6 +3797,7 @@ mod tests {
             transaction_fees: Uint128::from(30u128),
             control_fees: Uint128::from(50u128),
             max_bonding_limit_per_user: 10u64,
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -3795,7 +3809,7 @@ mod tests {
         )
             .unwrap();
 
-        let owner1_info = mock_info("owner001", &[coin(0, uusd(&deps)?)]);
+        let owner1_info = mock_info("owner001", &[coin(0, "uusd")]);
         let result = buy_a_club(
             deps.as_mut(),
             mock_env(),
@@ -3807,7 +3821,7 @@ mod tests {
             SET_AUTO_STAKE,
         );
         println!("buy_a_club result = {:?}", result);
-        let stakerInfo = mock_info("staker001", &[coin(10, uusd(&deps)?)]);
+        let stakerInfo = mock_info("staker001", &[coin(10, "uusd")]);
         stake_on_a_club(
             deps.as_mut(),
             mock_env(),
@@ -3908,6 +3922,7 @@ mod tests {
             transaction_fees: Uint128::from(30u128),
             control_fees: Uint128::from(50u128),
             max_bonding_limit_per_user: 10u64,
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         let mintingContractInfo = mock_info("minting_admin11111", &[]);
@@ -4188,6 +4203,7 @@ mod tests {
             transaction_fees: Uint128::from(30u128),
             control_fees: Uint128::from(50u128),
             max_bonding_limit_per_user: 10u64,
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         instantiate(
             deps.as_mut(),
