@@ -7,7 +7,7 @@ use cosmwasm_std::testing::{
     mock_dependencies_with_balance, mock_env, mock_info, MockApi, MockStorage, MOCK_CONTRACT_ADDR,
 };
 use cosmwasm_std::{
-    attr, coin, from_binary, to_binary, Empty, OwnedDeps, Reply, ReplyOn, StdError, SubMsg,
+    attr, coin, from_binary, to_binary, Empty, OwnedDeps, Reply, ReplyOn, StdError, SubMsg, Addr,
     SubMsgResponse, SubMsgResult, Uint128, WasmMsg,
 };
 use terraswap::asset::{AssetInfo, PairInfo};
@@ -21,6 +21,7 @@ fn proper_initialization() {
     let msg = InstantiateMsg {
         pair_code_id: 321u64,
         token_code_id: 123u64,
+        proxy_contract_addr: Addr::unchecked("addr0000"),
     };
 
     let info = mock_info("addr0000", &[]);
@@ -42,6 +43,7 @@ fn update_config() {
     let msg = InstantiateMsg {
         pair_code_id: 321u64,
         token_code_id: 123u64,
+        proxy_contract_addr: Addr::unchecked("addr0000"),
     };
 
     let info = mock_info("addr0000", &[]);
@@ -108,6 +110,7 @@ fn init(
     let msg = InstantiateMsg {
         pair_code_id: 321u64,
         token_code_id: 123u64,
+        proxy_contract_addr: Addr::unchecked("addr0000"),
     };
 
     let env = mock_env();
@@ -161,7 +164,8 @@ fn create_pair() {
                 msg: to_binary(&PairInstantiateMsg {
                     asset_infos: asset_infos.clone(),
                     token_code_id: 123u64,
-                    asset_decimals: [6u8, 8u8]
+                    asset_decimals: [6u8, 8u8],
+                    proxy_contract_addr: Addr::unchecked("addr0000"),
                 })
                 .unwrap(),
                 code_id: 321u64,
@@ -226,7 +230,8 @@ fn create_pair_native_token_and_ibc_token() {
                 msg: to_binary(&PairInstantiateMsg {
                     asset_infos: asset_infos.clone(),
                     token_code_id: 123u64,
-                    asset_decimals: [6u8, 6u8]
+                    asset_decimals: [6u8, 6u8],
+                    proxy_contract_addr: Addr::unchecked("addr0000"),
                 })
                 .unwrap(),
                 code_id: 321u64,
@@ -323,6 +328,7 @@ fn fail_to_create_pair_with_unknown_token() {
     let msg = InstantiateMsg {
         pair_code_id: 321u64,
         token_code_id: 123u64,
+        proxy_contract_addr: Addr::unchecked("addr0000"),
     };
 
     let env = mock_env();
@@ -354,6 +360,7 @@ fn fail_to_create_pair_with_unknown_ibc_token() {
     let msg = InstantiateMsg {
         pair_code_id: 321u64,
         token_code_id: 123u64,
+        proxy_contract_addr: Addr::unchecked("addr0000"),
     };
 
     let env = mock_env();
