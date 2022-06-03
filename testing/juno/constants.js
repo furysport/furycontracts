@@ -1,18 +1,11 @@
 import {Cosmos} from "@cosmostation/cosmosjs";
-import {Wallet} from "./wallet";
-import {deployer} from "../constants";
+import {cosmos, mnemonic, Wallet} from "./wallet.js";
 
 /*
 docker run -it --name juno_node_1 -p 26656:26656 -p 26657:26657 -p 1317:1317 -e STAKE_TOKEN=ujunox -e UNSAFE_CORS=true ghcr.io/cosmoscontracts/juno:v5.0.1 ./setup_and_run.sh juno16g2rahf5846rxzp3fwlswy08fz8ccuwk03k57y
 Use This command To Up the Local JUNO
 * */
-const chainId = "testing"
-const lcdUrl = "http://127.0.0.1:1317"
-// Copy Memonic from the Terminal in which the Juno Node contrainer was upped
-export const mnemonic = "example cruise forward hidden earth lizard tide guilt toy peace method slam turtle reflect close meat pond patrol rookie legend business brother acoustic thunder"
-export const cosmos = new Cosmos(lcdUrl, chainId);
-cosmos.setBech32MainPrefix("juno")
-console.log(cosmos.bech32MainPrefix)
+
 //-------------------------------
 export const MintingContractPath = "artifacts/cw20_base.wasm"
 export const VnDContractPath = "artifacts/vest_n_distribute.wasm"
@@ -24,15 +17,23 @@ export const ProxyContractPath = "../artifacts/terra_swap_proxy.wasm"
 export const StakingContractPath = "../../artifacts/club_staking.wasm"
 
 // Wallets
-export const mint_wallet = new Wallet(mnemonic)
-export const treasury_wallet = new Wallet(mnemonic)
-export const liquidity_wallet = new Wallet(mnemonic)
-export const marketing_wallet = new Wallet(mnemonic)
-export const team_wallet = new Wallet(mnemonic)
-export const nitin_wallet = new Wallet(mnemonic)
-export const ajay_wallet = new Wallet(mnemonic)
-export const sameer_wallet = new Wallet(mnemonic)
-export const bonded_lp_reward_wallet = new Wallet(mnemonic)
+export const mint_wallet = new Wallet(cosmos.getRandomMnemonic())
+export const treasury_wallet = new Wallet(cosmos.getRandomMnemonic())
+export const liquidity_wallet = new Wallet(cosmos.getRandomMnemonic())
+export const marketing_wallet = new Wallet(cosmos.getRandomMnemonic())
+export const team_wallet = new Wallet(cosmos.getRandomMnemonic())
+export const nitin_wallet = new Wallet(cosmos.getRandomMnemonic())
+export const ajay_wallet = new Wallet(cosmos.getRandomMnemonic())
+export const sameer_wallet = new Wallet(cosmos.getRandomMnemonic())
+export const bonded_lp_reward_wallet = new Wallet(cosmos.getRandomMnemonic())
+export const walletTest1 = new Wallet(mnemonic)
+export const walletTest2 = new Wallet(mnemonic)
+export const walletTest3 = new Wallet(mnemonic)
+export const walletTest4 = new Wallet(mnemonic)
+export const walletTest5 = new Wallet(mnemonic)
+export const walletTest6 = new Wallet(mnemonic)
+export const walletTest7 = new Wallet(mnemonic)
+export const deployer = new Wallet(mnemonic)
 // Init
 export const mintInitMessage = {
     name: "Fury",
@@ -45,7 +46,7 @@ export const mintInitMessage = {
         {address: "terra1wjq02nwcv6rq4zutq9rpsyq9k08rj30rhzgvt4", amount: "0"},
         {address: "terra19rgzfvlvq0f82zyy4k7whrur8x9wnpfcj5j9g7", amount: "0"},
         {address: "terra12g4sj6euv68kgx40k7mxu5xlm5sfat806umek7", amount: "0"},
-        {address: deployer.key.accAddress, amount: "010000000000000"},
+        {address: deployer.publicKey, amount: "010000000000000"},
     ],
     mint: {
         minter: "terra1ttjw6nscdmkrx3zhxqx3md37phldgwhggm345k",

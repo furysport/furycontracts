@@ -1,7 +1,6 @@
 import {readFileSync, writeFileSync} from "fs";
 import path from 'path';
-import {cosmos} from "./constants.js";
-import {terraClient} from "../constants";
+import {cosmos} from "./wallet.js";
 
 export const ARTIFACTS_PATH = 'artifacts'
 
@@ -69,10 +68,10 @@ export async function queryContract(contractAddress, query) {
 }
 
 // TODO Need to fix a method in cosmos for it
-export async function queryContractInfo(contractAddress) {
-    const d = await terraClient.wasm.contractInfo(contractAddress);
-    return d
-}
+// export async function queryContractInfo(contractAddress) {
+//     const d = await terraClient.wasm.contractInfo(contractAddress);
+//     return d
+// }
 
 
 // export async function get_server_epoch_seconds() {
