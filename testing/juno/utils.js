@@ -25,7 +25,7 @@ export function readArtifact(name = 'artifact') {
  * @notice Upload contract code to LocalTerra. Return code ID.
  */
 export async function storeCode(deployerWallet, filepath) {
-    deployerWallet.upload(filepath)
+    return deployerWallet.upload(filepath)
 }
 
 // export async function migrateContract(senderWallet, contractAddress, new_code_id, migrate_msg, verbose = false) {
