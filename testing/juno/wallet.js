@@ -3,11 +3,10 @@ import fs from "fs";
 import fetch from "node-fetch";
 import {Cosmos} from "@cosmostation/cosmosjs";
 
-const chainId = "testing"
-const lcdUrl = "http://127.0.0.1:1317"
+const chainId = "juno"
+const lcdUrl = "http://localhost:1317"
 // Copy Memonic from the Terminal in which the Juno Node contrainer was upped
-export const mnemonic = "clip hire initial neck maid actor venue client foam budget lock catalog sweet steak waste crater broccoli pipe steak sister coyote moment obvious choose"
-
+export const mnemonic = "soup travel dinosaur remember rally leader prosper live during tent change lend hollow acquire expand maze dove walnut lumber mammal song raw decline draft"
 export const cosmos = new Cosmos(lcdUrl, chainId);
 cosmos.setBech32MainPrefix("juno")
 console.log(cosmos.bech32MainPrefix)
@@ -105,6 +104,7 @@ export class Wallet {
             type_url: "/cosmwasm.wasm.v1.MsgStoreCode",
             value: message.cosmwasm.wasm.v1.MsgStoreCode.encode(msgStoreCode).finish()
         }])
+        console.log(response.tx_response.raw_log)
         let j = JSON.parse(response.tx_response.raw_log)
         return parseInt(j[0].events[1].attributes[0].value)
     }
@@ -132,8 +132,11 @@ export class Wallet {
                 console.log(attr[j])
             }
         }
-        return Buffer.from(response.tx_response.events[response.tx_response.events.length - 1].attributes[0].value, "base64").toString()
-
+        let address = Buffer.from(response.tx_response.events[response.tx_response.events.length - 1].attributes[0].value, "base64").toString()
+        if (address.includes("juno")) {
+            return address
+        }
+        throw new Error("Error Instantiating the contract, please check the init message and try again...")
     }
 
 

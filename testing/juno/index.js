@@ -22,7 +22,6 @@ import {primeAccountsWithFunds} from "./primeCustomAccounts.js";
 import * as readline from 'node:readline';
 
 import * as chai from 'chai';
-import {Coin} from '@terra-money/terra.js';
 
 dotenv.config();
 const assert = chai.assert;
@@ -68,13 +67,13 @@ async function proceedToSetup(deploymentDetails) {
         deploymentDetails = {};
     }
     if (!deploymentDetails.adminWallet) {
-        deploymentDetails.adminWallet = mint_wallet.publicKey;
+        deploymentDetails.adminWallet = mint_wallet.wallet_address;
     }
     if (!deploymentDetails.authLiquidityProvider) {
-        deploymentDetails.authLiquidityProvider = treasury_wallet.publicKey;
+        deploymentDetails.authLiquidityProvider = treasury_wallet.wallet_address;
     }
     if (!deploymentDetails.defaultLPTokenHolder) {
-        deploymentDetails.defaultLPTokenHolder = liquidity_wallet.publicKey;
+        deploymentDetails.defaultLPTokenHolder = liquidity_wallet.wallet_address;
     }
     const sleep_time = (process.env.TERRA_CLIENT === "testing") ? 31 : 15000;
 
@@ -150,7 +149,7 @@ async function uploadFuryTokenContract(deploymentDetails) {
         }
         if (deployFury) {
             console.log("Uploading Fury token contract");
-            console.log(`mint_wallet = ${mint_wallet.publicKey}`);
+            console.log(`mint_wallet = ${mint_wallet.wallet_address}`);
             let contractId = await storeCode(mint_wallet, MintingContractPath); // Getting the contract id from local terra
             console.log(`Fury Token Contract ID: ${contractId}`);
             deploymentDetails.furyTokenCodeId = contractId;
@@ -201,7 +200,7 @@ async function uploadVnDContract(deploymentDetails) {
         }
         if (deployVnD) {
             console.log("Uploading VnD contract");
-            console.log(`mint_wallet = ${mint_wallet.publicKey}`);
+            console.log(`mint_wallet = ${mint_wallet.wallet_address}`);
             let contractId = await storeCode(mint_wallet, VnDContractPath); // Getting the contract id from local terra
             console.log(`VnD Contract ID: ${contractId}`);
             deploymentDetails.VnDCodeId = contractId;
@@ -223,55 +222,55 @@ async function instantiateVnDContract(deploymentDetails) {
         }
         if (instantiateVnD) {
             let VnDInitMessage = {
-                admin_wallet: mint_wallet.publicKey,
+                admin_wallet: mint_wallet.wallet_address,
                 fury_token_contract: deploymentDetails.furyContractAddress,
                 vesting: {
                     vesting_schedules: [
                         {
-                            address: treasury_wallet.publicKey,
+                            address: treasury_wallet.wallet_address,
                             cliff_period: 0,
                             initial_vesting_count: "0000000",
-                            parent_category_address: treasury_wallet.publicKey,
+                            parent_category_address: treasury_wallet.wallet_address,
                             should_transfer: true,
                             total_vesting_token_count: "42000000000000",
                             vesting_count_per_period: "69490740000",
                             vesting_periodicity: 10
                         },
                         {
-                            address: liquidity_wallet.publicKey,
+                            address: liquidity_wallet.wallet_address,
                             cliff_period: 0,
                             initial_vesting_count: "7000000000000",
-                            parent_category_address: liquidity_wallet.publicKey,
+                            parent_category_address: liquidity_wallet.wallet_address,
                             should_transfer: true,
                             total_vesting_token_count: "21000000000000",
                             vesting_count_per_period: "140000000000",
                             vesting_periodicity: 120
                         },
                         {
-                            address: bonded_lp_reward_wallet.publicKey,
+                            address: bonded_lp_reward_wallet.wallet_address,
                             cliff_period: 0,
                             initial_vesting_count: "3150000000000",
-                            parent_category_address: bonded_lp_reward_wallet.publicKey,
+                            parent_category_address: bonded_lp_reward_wallet.wallet_address,
                             should_transfer: true,
                             total_vesting_token_count: "31500000000000",
                             vesting_count_per_period: "630000000000",
                             vesting_periodicity: 60
                         },
                         {
-                            address: marketing_wallet.publicKey,
+                            address: marketing_wallet.wallet_address,
                             cliff_period: 0,
                             initial_vesting_count: "4000000",
-                            parent_category_address: marketing_wallet.publicKey,
+                            parent_category_address: marketing_wallet.wallet_address,
                             should_transfer: false,
                             total_vesting_token_count: "40000004000000",
                             vesting_count_per_period: "20000000000",
                             vesting_periodicity: 30
                         },
                         {
-                            address: nitin_wallet.publicKey,
+                            address: nitin_wallet.wallet_address,
                             cliff_period: 1,
                             initial_vesting_count: "0",
-                            parent_category_address: marketing_wallet.publicKey,
+                            parent_category_address: marketing_wallet.wallet_address,
                             should_transfer: true,
                             total_vesting_token_count: "1000000000",
                             vesting_count_per_period: "10000000",
@@ -298,7 +297,7 @@ async function VnDIncreaseAllowance(deploymentDetails) {
     let increaseAllowanceMsg = {
         increase_allowance:
             {
-                owner: mint_wallet.publicKey,
+                owner: mint_wallet.wallet_address,
                 spender: deploymentDetails.VnDContractAddress,
                 amount: "134501004000000"
             }
@@ -321,7 +320,7 @@ async function VnDPeriodic(deploymentDetails) {
 async function transferFuryToTreasury(deploymentDetails) {
     let transferFuryToTreasuryMsg = {
         transfer: {
-            recipient: treasury_wallet.publicKey,
+            recipient: treasury_wallet.wallet_address,
             amount: "5000000000"
         }
     };
@@ -333,7 +332,7 @@ async function transferFuryToTreasury(deploymentDetails) {
 async function transferFuryTokens(deploymentDetails, toAddress, amount) {
     let transferFuryToTreasuryMsg = {
         transfer: {
-            recipient: toAddress.publicKey,
+            recipient: toAddress.wallet_address,
             amount: amount
         }
     };
@@ -345,7 +344,7 @@ async function transferFuryTokens(deploymentDetails, toAddress, amount) {
 async function transferFuryToMarketing(deploymentDetails) {
     let transferFuryToMarketingMsg = {
         transfer: {
-            recipient: marketing_wallet.publicKey,
+            recipient: marketing_wallet.wallet_address,
             amount: "50000000"
         }
     };
@@ -357,7 +356,7 @@ async function transferFuryToMarketing(deploymentDetails) {
 async function transferFuryToLiquidity(deploymentDetails) {
     let transferFuryToLiquidityMsg = {
         transfer: {
-            recipient: liquidity_wallet.publicKey,
+            recipient: liquidity_wallet.wallet_address,
             amount: "50000000"
         }
     };
@@ -463,7 +462,7 @@ async function instantiateProxyContract(deploymentDetails) {
         console.log("Instantiating proxy contract");
         let proxyInitMessage = {
             /// admin address for configuration activities
-            admin_address: mint_wallet.publicKey,
+            admin_address: mint_wallet.wallet_address,
             /// contract address of Fury token
             custom_token_address: deploymentDetails.furyContractAddress,
 
@@ -472,11 +471,11 @@ async function instantiateProxyContract(deploymentDetails) {
             /// bonding period when fury and UST are both provided TODO 7*24*60*60
             pair_bonding_period_in_sec: 2 * 60,
             /// Fury tokens for balanced investment will be fetched from this wallet
-            pair_fury_reward_wallet: liquidity_wallet.publicKey,
+            pair_fury_reward_wallet: liquidity_wallet.wallet_address,
             /// The LP tokens for all liquidity providers except
             /// authorised_liquidity_provider will be stored to this address
             /// The LPTokens for balanced investment are delivered to this wallet
-            pair_lp_tokens_holder: liquidity_wallet.publicKey,
+            pair_lp_tokens_holder: liquidity_wallet.wallet_address,
 
             /// discount_rate when only UST are both provided
             native_discount_rate: 500,
@@ -484,9 +483,9 @@ async function instantiateProxyContract(deploymentDetails) {
             native_bonding_period_in_sec: 3 * 60,
             /// Fury tokens for native(UST only) investment will be fetched from this wallet
             //TODO: Change to Bonded Rewards Wallet == (old name)community/LP incentives Wallet
-            native_investment_reward_wallet: bonded_lp_reward_wallet.publicKey,
+            native_investment_reward_wallet: bonded_lp_reward_wallet.wallet_address,
             /// The native(UST only) investment will be stored into this wallet
-            native_investment_receive_wallet: treasury_wallet.publicKey,
+            native_investment_receive_wallet: treasury_wallet.wallet_address,
 
             /// This address has the authority to pump in liquidity
             /// The LP tokens for this address will be returned to this address
@@ -497,7 +496,7 @@ async function instantiateProxyContract(deploymentDetails) {
             /// Pool pair contract address of astroport
             pool_pair_address: deploymentDetails.poolPairContractAddress,
 
-            platform_fees_collector_wallet: mint_wallet.publicKey,
+            platform_fees_collector_wallet: mint_wallet.wallet_address,
             ///Specified in percentage multiplied by 100, i.e. 100% = 10000 and 0.01% = 1
             platform_fees: "100",
             ///Specified in percentage multiplied by 100, i.e. 100% = 10000 and 0.01% = 1
@@ -702,7 +701,7 @@ async function provideLiquidityAuthorised(deploymentDetails) {
             ]
         }
     };
-    let tax = await terraClient.utils.calculateTax(new Coin("uusd", "500000000"));
+    let tax = 0;
     console.log(`tax = ${tax}`);
     let funds = Number(500000000);
     funds = funds + Number(tax.amount);
@@ -763,7 +762,7 @@ async function provideLiquidityGeneral(deploymentDetails) {
             ]
         }
     };
-    let tax = await terraClient.utils.calculateTax(new Coin("uusd", "5000000"));
+    let tax = 0;
     console.log(`tax = ${tax}`);
     let funds = Number(5000000);
     funds = funds + Number(tax.amount);
@@ -839,7 +838,7 @@ async function providePairForReward(deploymentDetails) {
             ]
         }
     };
-    let tax = await terraClient.utils.calculateTax(new Coin("uusd", baseUstAmount.toString()));
+    let tax = 0;
     console.log(`tax = ${tax}`);
     let funds = baseUstAmount + Number(tax.amount);
     console.log(`funds + tax = ${funds}`);
@@ -856,13 +855,13 @@ async function providePairForReward(deploymentDetails) {
 async function claimInvestmentReward(deploymentDetails) {
     let qRes = await queryContract(deploymentDetails.proxyContractAddress, {
         get_bonding_details: {
-            user_address: marketing_wallet.publicKey
+            user_address: marketing_wallet.wallet_address
         }
     });
 
     let rewardClaimMsg = {
         reward_claim: {
-            receiver: marketing_wallet.publicKey,
+            receiver: marketing_wallet.wallet_address,
             withdrawal_amount: "105298",
         }
     };
@@ -893,7 +892,7 @@ async function claimInvestmentReward(deploymentDetails) {
 
         rewardClaimMsg = {
             reward_claim: {
-                receiver: marketing_wallet.publicKey,
+                receiver: marketing_wallet.wallet_address,
                 withdrawal_amount: "53781",
             }
         };
@@ -961,7 +960,7 @@ async function provideNativeForRewards(deploymentDetails) {
             }
         }
     };
-    let tax = await terraClient.utils.calculateTax(new Coin("uusd", baseUstAmount.toString()));
+    let tax = 0;
     console.log(`tax = ${tax}`);
     let funds = baseUstAmount + Number(tax.amount);
     console.log(`funds + tax = ${funds}`);
@@ -1007,7 +1006,7 @@ async function getFuryEquivalentToUST(deploymentDetails) {
 async function buyFuryTokens(deploymentDetails) {
     let buyFuryMsg = {
         swap: {
-            to: mint_wallet.publicKey,
+            to: mint_wallet.wallet_address,
             offer_asset: {
                 info: {
                     native_token: {
@@ -1018,7 +1017,7 @@ async function buyFuryTokens(deploymentDetails) {
             },
         }
     };
-    let tax = await terraClient.utils.calculateTax(new Coin("uusd", "10000"));
+    let tax = 0;
     console.log(`tax = ${tax}`);
     let funds = 10000 + Number(tax.amount);
     console.log(`funds + tax = ${funds}`);
@@ -1053,7 +1052,7 @@ async function sellFuryTokens(deploymentDetails) {
     console.log("increase allowance resp tx = " + incrAllowResp['txhash']);
     let sellFuryMsg = {
         swap: {
-            to: mint_wallet.publicKey,
+            to: mint_wallet.wallet_address,
             offer_asset: {
                 info: {
                     token: {
@@ -1144,7 +1143,7 @@ async function reverseSimulationAskFury(deploymentDetails) {
 async function queryInvestmentReward(deploymentDetails) {
     let qRes = await queryContract(deploymentDetails.proxyContractAddress, {
         get_bonding_details: {
-            user_address: marketing_wallet.publicKey
+            user_address: marketing_wallet.wallet_address
         }
     });
     console.log(`bonded reward query response ${JSON.stringify(qRes)}`);
@@ -1152,12 +1151,12 @@ async function queryInvestmentReward(deploymentDetails) {
 
 const increasePOLRewardAllowance = async (deploymentDetails, wallet) => {
     let response = await queryContract(deploymentDetails.furyContractAddress, {
-        balance: {address: wallet.publicKey}
+        balance: {address: wallet.wallet_address}
     });
     let respBalance = Number(response.balance);
     response = await queryContract(deploymentDetails.furyContractAddress, {
         allowance: {
-            owner: wallet.publicKey,
+            owner: wallet.wallet_address,
             spender: deploymentDetails.proxyContractAddress
         }
     });
@@ -1172,18 +1171,18 @@ const increasePOLRewardAllowance = async (deploymentDetails, wallet) => {
             }
         };
         let execResponse = await executeContract(wallet, deploymentDetails.furyContractAddress, execMsg);
-        console.log(`POL increase allowance by ${increase_amount} uFury for proxy in wallet ${wallet.publicKey}, txhash ${execResponse['txhash']}`);
+        console.log(`POL increase allowance by ${increase_amount} uFury for proxy in wallet ${wallet.wallet_address}, txhash ${execResponse['txhash']}`);
     }
 }
 
 const claimVestedFury = async (deploymentDetails, wallet) => {
     let response = await queryContract(deploymentDetails.VnDContractAddress, {
-        vesting_details: {address: wallet.publicKey}
+        vesting_details: {address: wallet.wallet_address}
     });
     let respBalance = Number(response.tokens_available_to_claim);
     let execMsg = {claim_vested_tokens: {amount: respBalance.toString()}};
     let execResponse = await executeContract(wallet, deploymentDetails.VnDContractAddress, execMsg);
-    console.log(`Claim all Vested Tokens ${respBalance} uFury for wallet ${wallet.publicKey}, txhash ${execResponse['txhash']}`);
+    console.log(`Claim all Vested Tokens ${respBalance} uFury for wallet ${wallet.wallet_address}, txhash ${execResponse['txhash']}`);
 }
 
 main()
