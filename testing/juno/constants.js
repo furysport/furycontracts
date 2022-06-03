@@ -11,7 +11,7 @@ export const VnDContractPath = "../../artifacts/vest_n_distribute.wasm"
 export const PairContractPath = "../../artifacts/terraswap_pair.wasm"
 // export const StakingContractPath = "../artifacts/astroport_staking.wasm"
 // export const WhitelistContractPath = "../artifacts/astroport_whitelist.wasm"
-export const FactoryContractPath = ".../../artifacts/terraswap_factory.wasm"
+export const FactoryContractPath = "../../artifacts/terraswap_factory.wasm"
 export const ProxyContractPath = "../../artifacts/terra_swap_proxy.wasm"
 export const StakingContractPath = "../../artifacts/club_staking.wasm"
 
@@ -39,16 +39,16 @@ export const mintInitMessage = {
     symbol: "FURY",
     decimals: 6,
     initial_balances: [
-        {address: "juno1y7yph5knactz5vdj5gz5rynahqzfdtsyvvntpe", amount: "420000000000000"},
+        {address: walletTest1.wallet_address, amount: "420000000000000"},
     ],
     mint: {
-        minter: "juno1y7yph5knactz5vdj5gz5rynahqzfdtsyvvntpe",
+        minter: walletTest1.wallet_address,
         cap: "420000000000000"
     },
     marketing: {
         project: "crypto11.me",
         description: "This token in meant to be used for playing gamesin crypto11 world",
-        marketing: "juno1y7yph5knactz5vdj5gz5rynahqzfdtsyvvntpe"
+        marketing: walletTest1.wallet_address
     },
 }
 
