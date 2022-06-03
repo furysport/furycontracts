@@ -17,11 +17,11 @@ mod tests {
         let mut deps = mock_dependencies();
         let platform_fee = Uint128::from(300000u128);
         let transaction_fee = Uint128::from(100000u128);
-        let _owner1_info = mock_info("Owner001", &[coin(1000, "stake")]);
+        let _owner1_info = mock_info("owner001", &[coin(1000, "stake")]);
         let instantiate_msg = InstantiateMsg {
             minting_contract_address: "cwtoken11111".to_string(),
-            platform_fees_collector_wallet: "FEE_WALLET".to_string(),
-            astro_proxy_address: "ASTROPORT".to_string(),
+            platform_fees_collector_wallet: "feewallet".to_string(),
+            astro_proxy_address: "astroport".to_string(),
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
             transaction_fee: transaction_fee,
@@ -51,7 +51,7 @@ mod tests {
     #[test]
     fn test_create_and_query_pool_detail() {
         let mut deps = mock_dependencies();
-        let owner1_info = mock_info("Owner001", &[coin(1000, "stake")]);
+        let owner1_info = mock_info("owner001", &[coin(1000, "stake")]);
         let platform_fee = Uint128::from(300000u128);
         let transaction_fee = Uint128::from(100000u128);
 
@@ -60,9 +60,9 @@ mod tests {
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
             game_id: "Game001".to_string(),
-            platform_fees_collector_wallet: "FEE_WALLET".to_string(),
+            platform_fees_collector_wallet: "feewallet".to_string(),
             transaction_fee: transaction_fee,
-            astro_proxy_address: "ASTROPORT".to_string(),
+            astro_proxy_address: "astroport".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -106,7 +106,7 @@ mod tests {
     #[test]
     fn test_save_and_query_team_detail() {
         let mut deps = mock_dependencies();
-        let owner1_info = mock_info("Owner001", &[coin(1000, "stake")]);
+        let owner1_info = mock_info("owner001", &[coin(1000, "stake")]);
         let platform_fee = Uint128::from(300000u128);
         let transaction_fee = Uint128::from(100000u128);
         let instantiate_msg = InstantiateMsg {
@@ -116,8 +116,8 @@ mod tests {
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
             game_id: "Game001".to_string(),
-            platform_fees_collector_wallet: "FEE_WALLET".to_string(),
-            astro_proxy_address: "ASTROPORT".to_string(),
+            platform_fees_collector_wallet: "feewallet".to_string(),
+            astro_proxy_address: "astroport".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -200,8 +200,8 @@ mod tests {
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
             game_id: "Game001".to_string(),
-            platform_fees_collector_wallet: "FEE_WALLET".to_string(),
-            astro_proxy_address: "ASTROPORT".to_string(),
+            platform_fees_collector_wallet: "feewallet".to_string(),
+            astro_proxy_address: "astroport".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -302,8 +302,8 @@ mod tests {
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
             game_id: "Game001".to_string(),
-            platform_fees_collector_wallet: "FEE_WALLET".to_string(),
-            astro_proxy_address: "ASTROPORT".to_string(),
+            platform_fees_collector_wallet: "feewallet".to_string(),
+            astro_proxy_address: "astroport".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -417,8 +417,8 @@ mod tests {
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
             game_id: "Game001".to_string(),
-            platform_fees_collector_wallet: "FEE_WALLET".to_string(),
-            astro_proxy_address: "ASTROPORT".to_string(),
+            platform_fees_collector_wallet: "feewallet".to_string(),
+            astro_proxy_address: "astroport".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -690,8 +690,8 @@ mod tests {
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
             game_id: "Game001".to_string(),
-            platform_fees_collector_wallet: "FEE_WALLET".to_string(),
-            astro_proxy_address: "ASTROPORT".to_string(),
+            platform_fees_collector_wallet: "feewallet".to_string(),
+            astro_proxy_address: "astroport".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -818,8 +818,8 @@ mod tests {
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
             game_id: "Game001".to_string(),
-            platform_fees_collector_wallet: "FEE_WALLET".to_string(),
-            astro_proxy_address: "ASTROPORT".to_string(),
+            platform_fees_collector_wallet: "feewallet".to_string(),
+            astro_proxy_address: "astroport".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -1018,8 +1018,8 @@ mod tests {
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
             game_id: "Game001".to_string(),
-            platform_fees_collector_wallet: "FEE_WALLET".to_string(),
-            astro_proxy_address: "ASTROPORT".to_string(),
+            platform_fees_collector_wallet: "feewallet".to_string(),
+            astro_proxy_address: "astroport".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -1132,8 +1132,8 @@ mod tests {
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
             game_id: "Game001".to_string(),
-            platform_fees_collector_wallet: "FEE_WALLET".to_string(),
-            astro_proxy_address: "ASTROPORT".to_string(),
+            platform_fees_collector_wallet: "feewallet".to_string(),
+            astro_proxy_address: "astroport".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -1325,8 +1325,8 @@ mod tests {
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
             game_id: "Game001".to_string(),
-            platform_fees_collector_wallet: "FEE_WALLET".to_string(),
-            astro_proxy_address: "ASTROPORT".to_string(),
+            platform_fees_collector_wallet: "feewallet".to_string(),
+            astro_proxy_address: "astroport".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -1395,8 +1395,8 @@ mod tests {
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
             game_id: "Game001".to_string(),
-            platform_fees_collector_wallet: "FEE_WALLET".to_string(),
-            astro_proxy_address: "ASTROPORT".to_string(),
+            platform_fees_collector_wallet: "feewallet".to_string(),
+            astro_proxy_address: "astroport".to_string(),
         };
         let rewardInfo = mock_info("rewardinfo", &[]);
         instantiate(
@@ -1592,8 +1592,8 @@ mod tests {
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
             game_id: "Game001".to_string(),
-            platform_fees_collector_wallet: "FEE_WALLET".to_string(),
-            astro_proxy_address: "ASTROPORT".to_string(),
+            platform_fees_collector_wallet: "feewallet".to_string(),
+            astro_proxy_address: "astroport".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -1859,8 +1859,8 @@ mod tests {
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
             game_id: "Game001".to_string(),
-            platform_fees_collector_wallet: "FEE_WALLET".to_string(),
-            astro_proxy_address: "ASTROPORT".to_string(),
+            platform_fees_collector_wallet: "feewallet".to_string(),
+            astro_proxy_address: "astroport".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -1929,8 +1929,8 @@ mod tests {
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
             game_id: "Game001".to_string(),
-            platform_fees_collector_wallet: "FEE_WALLET".to_string(),
-            astro_proxy_address: "ASTROPORT".to_string(),
+            platform_fees_collector_wallet: "feewallet".to_string(),
+            astro_proxy_address: "astroport".to_string(),
         };
         let rewardInfo = mock_info("rewardinfo", &[]);
         let ownerXInfo = mock_info("gamer002", &[coin(1000, "stake")]);
@@ -2049,8 +2049,8 @@ mod tests {
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
             game_id: "Game001".to_string(),
-            platform_fees_collector_wallet: "FEE_WALLET".to_string(),
-            astro_proxy_address: "ASTROPORT".to_string(),
+            platform_fees_collector_wallet: "feewallet".to_string(),
+            astro_proxy_address: "astroport".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -2260,8 +2260,8 @@ mod tests {
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
             game_id: "Game001".to_string(),
-            platform_fees_collector_wallet: "FEE_WALLET".to_string(),
-            astro_proxy_address: "ASTROPORT".to_string(),
+            platform_fees_collector_wallet: "feewallet".to_string(),
+            astro_proxy_address: "astroport".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -2463,8 +2463,8 @@ mod tests {
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
             game_id: "Game001".to_string(),
-            platform_fees_collector_wallet: "FEE_WALLET".to_string(),
-            astro_proxy_address: "ASTROPORT".to_string(),
+            platform_fees_collector_wallet: "feewallet".to_string(),
+            astro_proxy_address: "astroport".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -2533,8 +2533,8 @@ mod tests {
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
             game_id: "Game001".to_string(),
-            platform_fees_collector_wallet: "FEE_WALLET".to_string(),
-            astro_proxy_address: "ASTROPORT".to_string(),
+            platform_fees_collector_wallet: "feewallet".to_string(),
+            astro_proxy_address: "astroport".to_string(),
         };
         let rewardInfo = mock_info("rewardinfo", &[]);
         let ownerXInfo = mock_info("gamer002", &[coin(1000, "stake")]);
@@ -2702,8 +2702,8 @@ mod tests {
             admin_address: "admin11111".to_string(),
             platform_fee: platform_fee,
             game_id: "Game001".to_string(),
-            platform_fees_collector_wallet: "FEE_WALLET".to_string(),
-            astro_proxy_address: "ASTROPORT".to_string(),
+            platform_fees_collector_wallet: "feewallet".to_string(),
+            astro_proxy_address: "astroport".to_string(),
         };
 
         let adminInfo = mock_info("admin11111", &[]);
