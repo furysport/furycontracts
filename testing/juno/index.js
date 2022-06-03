@@ -106,7 +106,8 @@ async function proceedToSetup(deploymentDetails) {
     await new Promise(resolve => setTimeout(resolve, sleep_time));
     await instantiateFactory(deploymentDetails);
     await new Promise(resolve => setTimeout(resolve, sleep_time));
-
+    await transferFuryToFactory(deploymentDetails);
+    await new Promise(resolve => setTimeout(resolve, sleep_time));
     await queryProxyConfiguration(deploymentDetails);
     await new Promise(resolve => setTimeout(resolve, sleep_time));
     await createPoolPairs(deploymentDetails);
@@ -477,6 +478,20 @@ async function queryProxyConfiguration(deploymentDetails) {
     configResponseReceived = configResponse;
     console.log(JSON.stringify(configResponseReceived));
 }
+
+
+async function transferFuryToFactory(deploymentDetails) {
+    let transferFuryToLiquidityMsg = {
+        transfer: {
+            recipient: deploymentDetails.factoryAddress,
+            amount: "50000000"
+        }
+    };
+    console.log(`transferFuryToFactoryMsg = ${JSON.stringify(transferFuryToLiquidityMsg)}`);
+    let response = await executeContract(mint_wallet, deploymentDetails.furyContractAddress, transferFuryToLiquidityMsg);
+    console.log(`transferFuryToLiquidityMsg Response - ${response['txhash']}`);
+}
+
 
 async function createPoolPairs(deploymentDetails) {
     if (!deploymentDetails.poolPairContractAddress) {
