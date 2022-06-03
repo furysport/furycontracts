@@ -39,7 +39,7 @@ export async function storeCode(deployerWallet, filepath) {
  * @notice Execute a contract
  */
 export async function executeContract(senderWallet, contractAddress, msg, coins, verbose = false) {
-    return senderWallet.execute_contract(msg, contractAddress, coins)
+    return await senderWallet.execute_contract(msg, contractAddress, coins)
 }
 
 /**
@@ -97,7 +97,7 @@ export async function queryTokenBalance(token_address, address) {
 export async function transferToken(wallet_from, wallet_to_address, token_addres, token_amount) {
     let token_info = await queryContractInfo(token_addres)
     console.log(`Funding ${wallet_to_address} from ${wallet_from.key.accAddress} : ${token_amount} ${token_info.name}`);
-    wallet_from.execute_contract({transfer: {recipient: wallet_to_address, amount: token_amount}}, token_addres)
+    await wallet_from.execute_contract({transfer: {recipient: wallet_to_address, amount: token_amount}}, token_addres)
 }
 
 export async function bankTransferUusd(wallet_from, wallet_to_address, uusd_amount) {

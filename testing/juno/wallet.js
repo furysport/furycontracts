@@ -55,7 +55,7 @@ export class Wallet {
         }])
     }
 
-    execute_contract(msg, contractAddress, coins) {
+    async execute_contract(msg, contractAddress, coins) {
         let msg_list = []
         if (Array.isArray(msg)) {
             msg.forEach((msg) => {
@@ -67,12 +67,13 @@ export class Wallet {
                 this.get_execute(msg, contractAddress)
             ]
         }
-        this.sign_and_broadcast(msg_list)
-
+        let response = await this.sign_and_broadcast(msg_list)
+        console.log(response)
+        return response
     }
 
-    get_execute(message, contract, coins) {
-        let transferBytes = new Buffer.from(JSON.stringify(message));
+    get_execute(msg, contract, coins) {
+        let transferBytes = new Buffer.from(JSON.stringify(msg));
         const msgExecuteContract = new message.cosmwasm.wasm.v1.MsgExecuteContract({
             sender: this.wallet_address,
             contract: contract,
@@ -122,6 +123,15 @@ export class Wallet {
             type_url: "/cosmwasm.wasm.v1.MsgInstantiateContract",
             value: message.cosmwasm.wasm.v1.MsgInstantiateContract.encode(msgInit).finish()
         }])
+        console.log("Events")
+        console.log(response.tx_response.events)
+        for (let i = 0; i < response.tx_response.events.length; i++) {
+            console.log(response.tx_response.events[i])
+            let attr = response.tx_response.events[i].attributes
+            for (let j = 0; j < attr.length; j++) {
+                console.log(attr[j])
+            }
+        }
         return Buffer.from(response.tx_response.events[response.tx_response.events.length - 1].attributes[0].value, "base64").toString()
 
     }
