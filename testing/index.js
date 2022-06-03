@@ -1,8 +1,29 @@
 import * as readline from 'node:readline';
-import { promisify } from 'util';
-import { ajay_wallet, ClubStakingContractPath, liquidity_wallet, marketing_wallet, MintingContractPath, mintInitMessage, mint_wallet, nitin_wallet, sameer_wallet, team_wallet, terraClient, treasury_wallet } from './constants.js';
-import { primeAccountsWithFunds } from "./primeCustomAccounts.js";
-import { executeContract, getGasUsed, instantiateContract, queryContract, readArtifact, storeCode, writeArtifact } from './utils.js';
+import {promisify} from 'util';
+import {
+    ajay_wallet,
+    ClubStakingContractPath,
+    liquidity_wallet,
+    marketing_wallet,
+    mint_wallet,
+    MintingContractPath,
+    mintInitMessage,
+    nitin_wallet,
+    sameer_wallet,
+    team_wallet,
+    terraClient,
+    treasury_wallet
+} from './constants.js';
+import {primeAccountsWithFunds} from "./primeCustomAccounts.js";
+import {
+    executeContract,
+    getGasUsed,
+    instantiateContract,
+    queryContract,
+    readArtifact,
+    storeCode,
+    writeArtifact
+} from './utils.js';
 
 const rl = readline.createInterface({
     input: process.stdin,
@@ -79,6 +100,7 @@ async function setAstroProxyContractAddress(deploymentDetails) {
         writeArtifact(deploymentDetails, terraClient.chainID);
     }
 }
+
 async function uploadFuryTokenContract(deploymentDetails) {
     if (!deploymentDetails.furyTokenCodeId) {
         let deployFury = false;
@@ -286,10 +308,10 @@ async function performOperationsOnClubStaking(deploymentDetails) {
     console.log("Balances of contract after club stake");
     await queryBalances(deploymentDetails, deploymentDetails.clubStakingAddress);
     console.log("Balances of contract after club stake");
-	await queryAllClubStakes(deploymentDetails);
-	await distributeRewards(deploymentDetails);
-	await queryAllClubStakes(deploymentDetails);
-	await queryAllClubOwnerships(deploymentDetails);
+    await queryAllClubStakes(deploymentDetails);
+    await distributeRewards(deploymentDetails);
+    await queryAllClubStakes(deploymentDetails);
+    await queryAllClubOwnerships(deploymentDetails);
     await withdrawStakeFromAClub(deploymentDetails);
     console.log("Balances of staker after withdraw stake");
     await queryBalances(deploymentDetails, deploymentDetails.sameerWallet);
@@ -338,12 +360,12 @@ async function buyAClub(deploymentDetails) {
                 club_name: "ClubB"
             }
         };
-        let platformFees = await queryContract(deploymentDetails.clubStakingAddress, { query_platform_fees: { msg: Buffer.from(JSON.stringify(bacRequest)).toString('base64') } });
+        let platformFees = await queryContract(deploymentDetails.clubStakingAddress, {query_platform_fees: {msg: Buffer.from(JSON.stringify(bacRequest)).toString('base64')}});
         console.log(`platformFees = ${JSON.stringify(platformFees)}`);
-        let bacResponse = await executeContract(nitin_wallet, deploymentDetails.clubStakingAddress, bacRequest, { 'uusd': Number(platformFees) });
+        let bacResponse = await executeContract(nitin_wallet, deploymentDetails.clubStakingAddress, bacRequest, {'uusd': Number(platformFees)});
         console.log("Buy a club transaction hash = " + bacResponse['txhash']);
         deploymentDetails.clubBought = true;
-		writeArtifact(deploymentDetails, terraClient.chainID);
+        writeArtifact(deploymentDetails, terraClient.chainID);
     }
 }
 
@@ -366,9 +388,9 @@ async function stakeOnAClub(deploymentDetails) {
             amount: "100000"
         }
     };
-    let platformFees = await queryContract(deploymentDetails.clubStakingAddress, { query_platform_fees: { msg: Buffer.from(JSON.stringify(soacRequest)).toString('base64') } });
+    let platformFees = await queryContract(deploymentDetails.clubStakingAddress, {query_platform_fees: {msg: Buffer.from(JSON.stringify(soacRequest)).toString('base64')}});
     console.log(`platformFees = ${JSON.stringify(platformFees)}`);
-    let soacResponse = await executeContract(sameer_wallet, deploymentDetails.clubStakingAddress, soacRequest, { 'uusd': Number(platformFees) });
+    let soacResponse = await executeContract(sameer_wallet, deploymentDetails.clubStakingAddress, soacRequest, {'uusd': Number(platformFees)});
     console.log("Stake on a club transaction hash = " + soacResponse['txhash']);
 }
 
@@ -381,10 +403,10 @@ async function withdrawStakeFromAClub(deploymentDetails) {
             immediate_withdrawal: false
         }
     };
-    let platformFees = await queryContract(deploymentDetails.clubStakingAddress, { query_platform_fees: { msg: Buffer.from(JSON.stringify(wsfacRequest)).toString('base64') } });
+    let platformFees = await queryContract(deploymentDetails.clubStakingAddress, {query_platform_fees: {msg: Buffer.from(JSON.stringify(wsfacRequest)).toString('base64')}});
     console.log(`platformFees = ${JSON.stringify(platformFees)}`);
 
-    let wsfacResponse = await executeContract(sameer_wallet, deploymentDetails.clubStakingAddress, wsfacRequest, { 'uusd': Number(platformFees) });
+    let wsfacResponse = await executeContract(sameer_wallet, deploymentDetails.clubStakingAddress, wsfacRequest, {'uusd': Number(platformFees)});
     console.log("Withdraw Stake on a club transaction hash = " + wsfacResponse['txhash']);
 
     console.log("Waiting for 30sec to try early Withdraw - would fail");
@@ -400,7 +422,7 @@ async function withdrawStakeFromAClub(deploymentDetails) {
         }
     };
     try {
-        wsfacResponse = await executeContract(sameer_wallet, deploymentDetails.clubStakingAddress, wsfacRequest, { 'uusd': Number(platformFees) });
+        wsfacResponse = await executeContract(sameer_wallet, deploymentDetails.clubStakingAddress, wsfacRequest, {'uusd': Number(platformFees)});
         console.log("Not expected to reach here");
         console.log("Withdraw Stake on a club transaction hash = " + wsfacResponse['txhash']);
     } catch (error) {
@@ -409,7 +431,7 @@ async function withdrawStakeFromAClub(deploymentDetails) {
         //ADD DELAY to reach beyond the bonding duration - 2min
         await new Promise(resolve => setTimeout(resolve, 100000));
 
-        wsfacResponse = await executeContract(sameer_wallet, deploymentDetails.clubStakingAddress, wsfacRequest, { 'uusd': Number(platformFees) });
+        wsfacResponse = await executeContract(sameer_wallet, deploymentDetails.clubStakingAddress, wsfacRequest, {'uusd': Number(platformFees)});
         console.log("Withdraw Stake on a club transaction hash = " + wsfacResponse['txhash']);
     } finally {
         console.log("Withdraw Complete");
@@ -422,15 +444,15 @@ async function distributeRewards(deploymentDetails) {
             reward_from: mint_wallet.key.accAddress
         }
     };
-	let msgString = Buffer.from(JSON.stringify(iraRequest)).toString('base64');
+    let msgString = Buffer.from(JSON.stringify(iraRequest)).toString('base64');
 
-	let viaMsg = {
-		send : {
-			contract: deploymentDetails.clubStakingAddress,
-			amount: "1000",
-			msg: msgString
-		}
-	};
+    let viaMsg = {
+        send: {
+            contract: deploymentDetails.clubStakingAddress,
+            amount: "1000",
+            msg: msgString
+        }
+    };
 
     let iraResponse = await executeContract(mint_wallet, deploymentDetails.furyContractAddress, viaMsg);
 
@@ -438,18 +460,18 @@ async function distributeRewards(deploymentDetails) {
     await new Promise(resolve => setTimeout(resolve, 30000));
 
     let cadrRequest = {
-        calculate_and_distribute_rewards: {
-        }
+        calculate_and_distribute_rewards: {}
     };
 
-	let cadrResponse = await executeContract(mint_wallet, deploymentDetails.clubStakingAddress, cadrRequest);
-	console.log("distribute reward transaction hash = " + cadrResponse['txhash']);
+    let cadrResponse = await executeContract(mint_wallet, deploymentDetails.clubStakingAddress, cadrRequest);
+    console.log("distribute reward transaction hash = " + cadrResponse['txhash']);
 }
 
 async function queryBalances(deploymentDetails, accAddress) {
     let bankBalances = await terraClient.bank.balance(accAddress);
     console.log(JSON.stringify(bankBalances));
-    let furyBalance = await queryContract(deploymentDetails.furyContractAddress, { balance: { address: accAddress } });
+    let furyBalance = await queryContract(deploymentDetails.furyContractAddress, {balance: {address: accAddress}});
     console.log(JSON.stringify(furyBalance));
 }
+
 main();

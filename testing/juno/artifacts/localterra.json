@@ -1,0 +1,13 @@
+{
+  "adminWallet": "terra1ttjw6nscdmkrx3zhxqx3md37phldgwhggm345k",
+  "authLiquidityProvider": "terra10hcplx9hx7fyecgmhfyrzgd4zfd9t200wlduxn",
+  "defaultLPTokenHolder": "terra1d5tgzmy6wd23r3d7hn3mqp53gk7w0a8qrs7gvm",
+  "furyTokenCodeId": "51310",
+  "furyContractAddress": "terra1zjthyw8e8jayngkvg5kddccwa9v46s4w9sq2pq",
+  "VnDCodeId": "28423",
+  "VnDContractAddress": "terra1p2rlfr06cy4yua2p4ewkpe60t8fxp7r5leva4z",
+  "pairCodeId": 67330,
+  "stakingCodeId": 67331,
+  "whitelistCodeId": 67333,
+  "factoryCodeId": 67335
+}

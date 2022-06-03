@@ -7,25 +7,25 @@ Use This command To Up the Local JUNO
 * */
 
 //-------------------------------
-export const MintingContractPath = "artifacts/cw20_base.wasm"
-export const VnDContractPath = "artifacts/vest_n_distribute.wasm"
-export const PairContractPath = "../artifacts/terraswap_pair.wasm"
+export const MintingContractPath = "../../artifacts/cw20_base.wasm"
+export const VnDContractPath = "../../artifacts/vest_n_distribute.wasm"
+export const PairContractPath = "../../artifacts/terraswap_pair.wasm"
 // export const StakingContractPath = "../artifacts/astroport_staking.wasm"
 // export const WhitelistContractPath = "../artifacts/astroport_whitelist.wasm"
-export const FactoryContractPath = "../artifacts/terraswap_factory.wasm"
-export const ProxyContractPath = "../artifacts/terra_swap_proxy.wasm"
+export const FactoryContractPath = ".../../artifacts/terraswap_factory.wasm"
+export const ProxyContractPath = "../../artifacts/terra_swap_proxy.wasm"
 export const StakingContractPath = "../../artifacts/club_staking.wasm"
 
 // Wallets
-export const mint_wallet = new Wallet(cosmos.getRandomMnemonic())
-export const treasury_wallet = new Wallet(cosmos.getRandomMnemonic())
-export const liquidity_wallet = new Wallet(cosmos.getRandomMnemonic())
-export const marketing_wallet = new Wallet(cosmos.getRandomMnemonic())
-export const team_wallet = new Wallet(cosmos.getRandomMnemonic())
-export const nitin_wallet = new Wallet(cosmos.getRandomMnemonic())
-export const ajay_wallet = new Wallet(cosmos.getRandomMnemonic())
-export const sameer_wallet = new Wallet(cosmos.getRandomMnemonic())
-export const bonded_lp_reward_wallet = new Wallet(cosmos.getRandomMnemonic())
+export const mint_wallet = new Wallet(mnemonic)
+export const treasury_wallet = new Wallet(mnemonic)
+export const liquidity_wallet = new Wallet(mnemonic)
+export const marketing_wallet = new Wallet(mnemonic)
+export const team_wallet = new Wallet(mnemonic)
+export const nitin_wallet = new Wallet(mnemonic)
+export const ajay_wallet = new Wallet(mnemonic)
+export const sameer_wallet = new Wallet(mnemonic)
+export const bonded_lp_reward_wallet = new Wallet(mnemonic)
 export const walletTest1 = new Wallet(mnemonic)
 export const walletTest2 = new Wallet(mnemonic)
 export const walletTest3 = new Wallet(mnemonic)

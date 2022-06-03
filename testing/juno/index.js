@@ -1,39 +1,30 @@
 import dotenv from "dotenv";
-dotenv.config();
 import {
-    mintInitMessage,
-    MintingContractPath,
-    VnDContractPath,
-    PairContractPath,
-    mint_wallet,
-    treasury_wallet,
+    bonded_lp_reward_wallet,
+    FactoryContractPath,
     liquidity_wallet,
     marketing_wallet,
-    bonded_lp_reward_wallet,
+    mint_wallet,
+    MintingContractPath,
+    mintInitMessage,
     nitin_wallet,
-    terraClient,
+    PairContractPath,
+    ProxyContractPath,
     StakingContractPath,
-    FactoryContractPath,
-    ProxyContractPath
+    terraClient,
+    treasury_wallet,
+    VnDContractPath
 } from './constants.js';
-import {
-    storeCode,
-    queryContract,
-    executeContract,
-    instantiateContract,
-    sendTransaction,
-    readArtifact,
-    writeArtifact
-} from "./utils.js";
+import {executeContract, instantiateContract, queryContract, readArtifact, storeCode, writeArtifact} from "./utils.js";
 
-import { primeAccountsWithFunds } from "./primeCustomAccounts.js";
-
-import { promisify } from 'util';
+import {primeAccountsWithFunds} from "./primeCustomAccounts.js";
 
 import * as readline from 'node:readline';
 
 import * as chai from 'chai';
-import { Coin } from '@terra-money/terra.js';
+import {Coin} from '@terra-money/terra.js';
+
+dotenv.config();
 const assert = chai.assert;
 
 const rl = readline.createInterface({
@@ -174,8 +165,7 @@ async function instantiateFuryTokenContract(deploymentDetails) {
         if (answer === 'Y' || answer === 'y') {
             instantiateFury = true;
         } else if (answer === 'N' || answer === 'n') {
-            const contractAddress = await question('Please provide contract address for Fury Token contract: ');
-            deploymentDetails.furyContractAddress = contractAddress;
+            deploymentDetails.furyContractAddress = await question('Please provide contract address for Fury Token contract: ');
             instantiateFury = false;
         }
         if (instantiateFury) {
