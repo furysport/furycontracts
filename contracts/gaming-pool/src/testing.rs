@@ -26,6 +26,7 @@ mod tests {
             platform_fee: platform_fee,
             transaction_fee: transaction_fee,
             game_id: "Game001".to_string(),
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -63,6 +64,7 @@ mod tests {
             platform_fees_collector_wallet: "feewallet".to_string(),
             transaction_fee: transaction_fee,
             astro_proxy_address: "astroport".to_string(),
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -118,6 +120,7 @@ mod tests {
             game_id: "Game001".to_string(),
             platform_fees_collector_wallet: "feewallet".to_string(),
             astro_proxy_address: "astroport".to_string(),
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -202,6 +205,7 @@ mod tests {
             game_id: "Game001".to_string(),
             platform_fees_collector_wallet: "feewallet".to_string(),
             astro_proxy_address: "astroport".to_string(),
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -304,6 +308,7 @@ mod tests {
             game_id: "Game001".to_string(),
             platform_fees_collector_wallet: "feewallet".to_string(),
             astro_proxy_address: "astroport".to_string(),
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -419,6 +424,7 @@ mod tests {
             game_id: "Game001".to_string(),
             platform_fees_collector_wallet: "feewallet".to_string(),
             astro_proxy_address: "astroport".to_string(),
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -692,6 +698,7 @@ mod tests {
             game_id: "Game001".to_string(),
             platform_fees_collector_wallet: "feewallet".to_string(),
             astro_proxy_address: "astroport".to_string(),
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -820,6 +827,7 @@ mod tests {
             game_id: "Game001".to_string(),
             platform_fees_collector_wallet: "feewallet".to_string(),
             astro_proxy_address: "astroport".to_string(),
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -1020,6 +1028,7 @@ mod tests {
             game_id: "Game001".to_string(),
             platform_fees_collector_wallet: "feewallet".to_string(),
             astro_proxy_address: "astroport".to_string(),
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -1134,6 +1143,7 @@ mod tests {
             game_id: "Game001".to_string(),
             platform_fees_collector_wallet: "feewallet".to_string(),
             astro_proxy_address: "astroport".to_string(),
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -1327,6 +1337,7 @@ mod tests {
             game_id: "Game001".to_string(),
             platform_fees_collector_wallet: "feewallet".to_string(),
             astro_proxy_address: "astroport".to_string(),
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -1397,6 +1408,7 @@ mod tests {
             game_id: "Game001".to_string(),
             platform_fees_collector_wallet: "feewallet".to_string(),
             astro_proxy_address: "astroport".to_string(),
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let rewardInfo = mock_info("rewardinfo", &[]);
         instantiate(
@@ -1594,6 +1606,7 @@ mod tests {
             game_id: "Game001".to_string(),
             platform_fees_collector_wallet: "feewallet".to_string(),
             astro_proxy_address: "astroport".to_string(),
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -1861,6 +1874,7 @@ mod tests {
             game_id: "Game001".to_string(),
             platform_fees_collector_wallet: "feewallet".to_string(),
             astro_proxy_address: "astroport".to_string(),
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -1931,6 +1945,7 @@ mod tests {
             game_id: "Game001".to_string(),
             platform_fees_collector_wallet: "feewallet".to_string(),
             astro_proxy_address: "astroport".to_string(),
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let rewardInfo = mock_info("rewardinfo", &[]);
         let ownerXInfo = mock_info("gamer002", &[coin(1000, "stake")]);
@@ -2051,6 +2066,7 @@ mod tests {
             game_id: "Game001".to_string(),
             platform_fees_collector_wallet: "feewallet".to_string(),
             astro_proxy_address: "astroport".to_string(),
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -2262,6 +2278,7 @@ mod tests {
             game_id: "Game001".to_string(),
             platform_fees_collector_wallet: "feewallet".to_string(),
             astro_proxy_address: "astroport".to_string(),
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -2465,6 +2482,7 @@ mod tests {
             game_id: "Game001".to_string(),
             platform_fees_collector_wallet: "feewallet".to_string(),
             astro_proxy_address: "astroport".to_string(),
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let adminInfo = mock_info("admin11111", &[]);
         instantiate(
@@ -2535,6 +2553,7 @@ mod tests {
             game_id: "Game001".to_string(),
             platform_fees_collector_wallet: "feewallet".to_string(),
             astro_proxy_address: "astroport".to_string(),
+            usdc_ibc_symbol: "uusd".to_string(),
         };
         let rewardInfo = mock_info("rewardinfo", &[]);
         let ownerXInfo = mock_info("gamer002", &[coin(1000, "stake")]);
@@ -2704,6 +2723,7 @@ mod tests {
             game_id: "Game001".to_string(),
             platform_fees_collector_wallet: "feewallet".to_string(),
             astro_proxy_address: "astroport".to_string(),
+            usdc_ibc_symbol: "uusd".to_string(),
         };
 
         let adminInfo = mock_info("admin11111", &[]);

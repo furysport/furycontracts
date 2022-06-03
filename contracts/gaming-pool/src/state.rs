@@ -14,6 +14,7 @@ pub struct Config {
     pub platform_fee: Uint128,
     pub transaction_fee: Uint128,
     pub game_id: String,
+    pub usdc_ibc_symbol:String,
 }
 
 pub const CONFIG_KEY: &str = "config";

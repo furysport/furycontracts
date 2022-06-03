@@ -26,6 +26,7 @@ pub struct InstantiateMsg {
     pub astro_proxy_address: String,
     pub platform_fee: Uint128,
     pub game_id: String,
+    pub usdc_ibc_symbol:String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

@@ -420,7 +420,7 @@ pub fn game_pool_bid_submit(
             amount: info.funds[0].amount,
         };
         let fund = info.funds.clone();
-        if fund[0].denom == "uusd" {
+        if fund[0].denom == uusd(&deps)? {
             if fund[0].amount >= required_platform_fee_ust.add(transaction_fee) {
                 asset = Asset {
                     info: AssetInfo::NativeToken { denom: fund[0].denom.clone() },
@@ -566,7 +566,7 @@ pub fn game_pool_bid_submit(
         contract_addr: config.clone().astro_proxy_address.to_string(),
         msg: to_binary(&swap_message).unwrap(),
         funds: vec![Coin {
-            denom: "uusd".to_string(),
+            denom: config.usdc_ibc_symbol.clone(),
             amount: platform_fees_for_swap,
         }],
     }));
@@ -698,7 +698,7 @@ pub fn claim_reward(
     let funds_sent;
     if info.funds.len() != 0 {
         funds_sent = info.funds[0].clone();
-        if (funds_sent.denom != "uusd") || (funds_sent.amount < fee_details.platform_fee.add(fee_details.transaction_fee)) {
+        if (funds_sent.denom != uusd(&deps)?) || (funds_sent.amount < fee_details.platform_fee.add(fee_details.transaction_fee)) {
             return Err(ContractError::InsufficientFeesUst {});
         }
     } else {
@@ -811,7 +811,7 @@ pub fn claim_refund(
     let mut messages = Vec::new();
     let ust_asset = Asset {
         info: AssetInfo::NativeToken {
-            denom: "uusd".to_string()
+            denom: config.usdc_ibc_symbol.clone()
         },
         amount: total_refund_amount,
     };
@@ -840,12 +840,12 @@ pub fn claim_refund(
         contract_addr: config.astro_proxy_address.to_string(),
         msg: to_binary(&swap_message)?,
         funds: vec![Coin {
-            denom: "uusd".to_string(),
+            denom: config.usdc_ibc_symbol.clone(),
             amount: final_amount,
         }],
     }));
     let refund = Coin {
-        denom: "uusd".to_string(),
+        denom: config.usdc_ibc_symbol.clone(),
         amount: refund_in_ust_fees,
     };
     let mut refund_: Vec<Coin> = vec![];
@@ -1078,7 +1078,7 @@ pub fn _transfer_to_multiple_wallets(
     }
     for wallet in wallet_details {
         let mut funds_to_send = vec![Coin {
-            denom: "uusd".to_string(),
+            denom: config.usdc_ibc_symbol.clone(),
             amount: wallet.amount,
         }];
         let transfer_msg = CosmosMsg::Bank(BankMsg::Send {
@@ -1144,7 +1144,7 @@ pub fn swap(
     SWAP_BALANCE_INFO.save(deps.storage, pool_id.clone(), &swap_info)?;
     let ust_asset = Asset {
         info: AssetInfo::NativeToken {
-            denom: "uusd".to_string()
+            denom: config.usdc_ibc_symbol.clone()
         },
         amount,
     };
@@ -1171,7 +1171,7 @@ pub fn swap(
             contract_addr: config.astro_proxy_address.to_string(),
             msg: to_binary(&swap_message)?,
             funds: vec![Coin {
-                denom: "uusd".to_string(),
+                denom: config.usdc_ibc_symbol.clone(),
                 amount: final_amount,
             }],
         }),
@@ -1197,3 +1197,11 @@ pub fn execute_sweep(
         .add_message(r)
         .add_attribute("action", "execute_sweep"))
 }
+
+pub fn uusd(
+    deps: &DepsMut,
+) -> Result<String, ContractError> {
+    let config = CONFIG.load(deps.storage)?;
+    return Ok(config.usdc_ibc_symbol)
+}
+

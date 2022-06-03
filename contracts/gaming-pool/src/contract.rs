@@ -72,6 +72,7 @@ pub fn instantiate(
         platform_fee: msg.platform_fee,
         transaction_fee: msg.transaction_fee,
         game_id: msg.game_id.clone(),
+        usdc_ibc_symbol: msg.usdc_ibc_symbol,
     };
     CONFIG.save(deps.storage, &config)?;
 
