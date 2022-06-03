@@ -40,22 +40,22 @@ export const mintInitMessage = {
     symbol: "FURY",
     decimals: 6,
     initial_balances: [
-        {address: "terra1ttjw6nscdmkrx3zhxqx3md37phldgwhggm345k", amount: "410000000000000"},
-        {address: "terra1m46vy0jk9wck6r9mg2n8jnxw0y4g4xgl3csh9h", amount: "0"},
-        {address: "terra1k20rlfj3ea47zjr2sp672qqscck5k5mf3uersq", amount: "0"},
-        {address: "terra1wjq02nwcv6rq4zutq9rpsyq9k08rj30rhzgvt4", amount: "0"},
-        {address: "terra19rgzfvlvq0f82zyy4k7whrur8x9wnpfcj5j9g7", amount: "0"},
-        {address: "terra12g4sj6euv68kgx40k7mxu5xlm5sfat806umek7", amount: "0"},
+        {address: "juno1ttjw6nscdmkrx3zhxqx3md37phldgwhggm345k", amount: "410000000000000"},
+        {address: "juno1m46vy0jk9wck6r9mg2n8jnxw0y4g4xgl3csh9h", amount: "0"},
+        {address: "juno1k20rlfj3ea47zjr2sp672qqscck5k5mf3uersq", amount: "0"},
+        {address: "juno1wjq02nwcv6rq4zutq9rpsyq9k08rj30rhzgvt4", amount: "0"},
+        {address: "juno19rgzfvlvq0f82zyy4k7whrur8x9wnpfcj5j9g7", amount: "0"},
+        {address: "juno12g4sj6euv68kgx40k7mxu5xlm5sfat806umek7", amount: "0"},
         {address: deployer.publicKey, amount: "010000000000000"},
     ],
     mint: {
-        minter: "terra1ttjw6nscdmkrx3zhxqx3md37phldgwhggm345k",
+        minter: "juno1ttjw6nscdmkrx3zhxqx3md37phldgwhggm345k",
         cap: "420000000000000"
     },
     marketing: {
         project: "crypto11.me",
         description: "This token in meant to be used for playing gamesin crypto11 world",
-        marketing: "terra1wjq02nwcv6rq4zutq9rpsyq9k08rj30rhzgvt4"
+        marketing: "juno1wjq02nwcv6rq4zutq9rpsyq9k08rj30rhzgvt4"
     },
 }
 

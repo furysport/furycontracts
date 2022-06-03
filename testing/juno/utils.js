@@ -55,7 +55,7 @@ export async function uploadCodeId(deployer, path) {
 }
 
 export async function instantiateContract(deployer, codeId, instantiateMsg) {
-    return deployer.init(codeId, instantiateMsg)
+    return await deployer.init(codeId, instantiateMsg)
 }
 
 export async function queryContract(contractAddress, query) {

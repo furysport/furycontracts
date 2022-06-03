@@ -31,6 +31,7 @@ const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
 });
+
 // const question = promisify(rl.question).bind(rl);
 function question(query) {
     return new Promise(resolve => {
@@ -170,9 +171,9 @@ async function instantiateFuryTokenContract(deploymentDetails) {
         }
         if (instantiateFury) {
             console.log("Instantiating Fury token contract");
-            let initiate = await instantiateContract(mint_wallet, deploymentDetails.furyTokenCodeId, mintInitMessage);
+            // let contractAddress = await instantiateContract(mint_wallet, deploymentDetails.furyTokenCodeId, mintInitMessage);
+            let contractAddress = await mint_wallet.init(deploymentDetails.furyTokenCodeId, mintInitMessage)
             // The order is very imp
-            let contractAddress = initiate.logs[0].events[0].attributes[3].value;
             console.log(`Fury Token Contract address: ${contractAddress}`);
             deploymentDetails.furyContractAddress = contractAddress;
             writeArtifact(deploymentDetails, terraClient.chainId);
@@ -221,61 +222,61 @@ async function instantiateVnDContract(deploymentDetails) {
             instantiateVnD = false;
         }
         if (instantiateVnD) {
-            let VnDInitMessage = {  
+            let VnDInitMessage = {
                 admin_wallet: mint_wallet.publicKey,
                 fury_token_contract: deploymentDetails.furyContractAddress,
                 vesting: {
                     vesting_schedules: [
-                      {
-                        address: treasury_wallet.publicKey,
-                        cliff_period: 0,
-                        initial_vesting_count: "0000000",
-                        parent_category_address: treasury_wallet.publicKey,
-                        should_transfer: true,
-                        total_vesting_token_count: "42000000000000",
-                        vesting_count_per_period: "69490740000",
-                        vesting_periodicity: 10
-                      },
-                      {
-                        address: liquidity_wallet.publicKey,
-                        cliff_period: 0,
-                        initial_vesting_count: "7000000000000",
-                        parent_category_address: liquidity_wallet.publicKey,
-                        should_transfer: true,
-                        total_vesting_token_count: "21000000000000",
-                        vesting_count_per_period:     "140000000000",
-                        vesting_periodicity: 120
-                      },
-                      {
-                        address: bonded_lp_reward_wallet.publicKey,
-                        cliff_period: 0,
-                        initial_vesting_count: "3150000000000",
-                        parent_category_address: bonded_lp_reward_wallet.publicKey,
-                        should_transfer: true,
-                        total_vesting_token_count: "31500000000000",
-                        vesting_count_per_period:     "630000000000",
-                        vesting_periodicity: 60
-                      },
-                      {
-                        address: marketing_wallet.publicKey,
-                        cliff_period: 0,
-                        initial_vesting_count: "4000000",
-                        parent_category_address: marketing_wallet.publicKey,
-                        should_transfer: false,
-                        total_vesting_token_count: "40000004000000",
-                        vesting_count_per_period:      "20000000000",
-                        vesting_periodicity: 30
-                      },
-                      {
-                        address: nitin_wallet.publicKey,
-                        cliff_period: 1,
-                        initial_vesting_count: "0",
-                        parent_category_address: marketing_wallet.publicKey,
-                        should_transfer: true,
-                        total_vesting_token_count: "1000000000",
-                        vesting_count_per_period:      "10000000",
-                        vesting_periodicity: 30
-                      }
+                        {
+                            address: treasury_wallet.publicKey,
+                            cliff_period: 0,
+                            initial_vesting_count: "0000000",
+                            parent_category_address: treasury_wallet.publicKey,
+                            should_transfer: true,
+                            total_vesting_token_count: "42000000000000",
+                            vesting_count_per_period: "69490740000",
+                            vesting_periodicity: 10
+                        },
+                        {
+                            address: liquidity_wallet.publicKey,
+                            cliff_period: 0,
+                            initial_vesting_count: "7000000000000",
+                            parent_category_address: liquidity_wallet.publicKey,
+                            should_transfer: true,
+                            total_vesting_token_count: "21000000000000",
+                            vesting_count_per_period: "140000000000",
+                            vesting_periodicity: 120
+                        },
+                        {
+                            address: bonded_lp_reward_wallet.publicKey,
+                            cliff_period: 0,
+                            initial_vesting_count: "3150000000000",
+                            parent_category_address: bonded_lp_reward_wallet.publicKey,
+                            should_transfer: true,
+                            total_vesting_token_count: "31500000000000",
+                            vesting_count_per_period: "630000000000",
+                            vesting_periodicity: 60
+                        },
+                        {
+                            address: marketing_wallet.publicKey,
+                            cliff_period: 0,
+                            initial_vesting_count: "4000000",
+                            parent_category_address: marketing_wallet.publicKey,
+                            should_transfer: false,
+                            total_vesting_token_count: "40000004000000",
+                            vesting_count_per_period: "20000000000",
+                            vesting_periodicity: 30
+                        },
+                        {
+                            address: nitin_wallet.publicKey,
+                            cliff_period: 1,
+                            initial_vesting_count: "0",
+                            parent_category_address: marketing_wallet.publicKey,
+                            should_transfer: true,
+                            total_vesting_token_count: "1000000000",
+                            vesting_count_per_period: "10000000",
+                            vesting_periodicity: 30
+                        }
                     ]
                 }
             }
@@ -283,11 +284,9 @@ async function instantiateVnDContract(deploymentDetails) {
             // TOTAL total_vesting_token_count = 42000000000000+21000000000000+31500000000000+40000004000000+1000000000 = 134501004000000 
 
             console.log("Instantiating VnD token contract");
-            let initiate = await instantiateContract(mint_wallet, deploymentDetails.VnDCodeId, VnDInitMessage);
+            let contractAddress = await mint_wallet.init(deploymentDetails.VnDCodeId, VnDInitMessage)
             // The order is very imp
-            let contractAddress = initiate.logs[0].events[0].attributes[3].value;
             console.log(`VnD Token Contract address: ${contractAddress}`);
-            console.log(`VnD instantiation txhash: ${initiate['txhash']}`);
             deploymentDetails.VnDContractAddress = contractAddress;
             writeArtifact(deploymentDetails, terraClient.chainId);
         }
@@ -296,25 +295,27 @@ async function instantiateVnDContract(deploymentDetails) {
 
 async function VnDIncreaseAllowance(deploymentDetails) {
     // TOTAL total_vesting_token_count = 42000000000000+21000000000000+31500000000000+40000004000000+1000000000 = 134501004000000 
-    let increaseAllowanceMsg = { increase_allowance: 
-        { owner : mint_wallet.publicKey, 
-          spender : deploymentDetails.VnDContractAddress,
-          amount : "134501004000000"
-        } 
+    let increaseAllowanceMsg = {
+        increase_allowance:
+            {
+                owner: mint_wallet.publicKey,
+                spender: deploymentDetails.VnDContractAddress,
+                amount: "134501004000000"
+            }
     };
     let response = await executeContract(mint_wallet, deploymentDetails.furyContractAddress, increaseAllowanceMsg);
     console.log(`Increase allowance for Vnd from fury_wallet - ${response['txhash']}`);
 }
 
 async function VnDPeriodic(deploymentDetails) {
-    let VnDTransfer = { periodically_calculate_vesting: {}};
+    let VnDTransfer = {periodically_calculate_vesting: {}};
     let response = await executeContract(mint_wallet, deploymentDetails.VnDContractAddress, VnDTransfer);
     console.log(`periodically_calculate_vesting Response - ${response['txhash']}`);
-    let VnDVest = { periodically_transfer_to_categories: {}};
+    let VnDVest = {periodically_transfer_to_categories: {}};
     response = await executeContract(mint_wallet, deploymentDetails.VnDContractAddress, VnDVest);
     console.log(`periodically_transfer_to_categories Response - ${response['txhash']}`);
-    await increasePOLRewardAllowance(deploymentDetails,bonded_lp_reward_wallet);
-    await increasePOLRewardAllowance(deploymentDetails,liquidity_wallet);
+    await increasePOLRewardAllowance(deploymentDetails, bonded_lp_reward_wallet);
+    await increasePOLRewardAllowance(deploymentDetails, liquidity_wallet);
 }
 
 async function transferFuryToTreasury(deploymentDetails) {
@@ -431,7 +432,7 @@ async function instantiateFactory(deploymentDetails) {
             pair_configs: [
                 {
                     code_id: deploymentDetails.pairCodeId,
-                    pair_type: { "xyk": {} },
+                    pair_type: {"xyk": {}},
                     total_fee_bps: 0,
                     maker_fee_bps: 0
                 }
@@ -524,12 +525,12 @@ async function queryProxyConfiguration(deploymentDetails) {
 
 async function createPoolPairs(deploymentDetails) {
     if (!deploymentDetails.poolPairContractAddress) {
-        let init_param = { proxy: deploymentDetails.proxyContractAddress };
+        let init_param = {proxy: deploymentDetails.proxyContractAddress};
         console.log(`init_param = ${JSON.stringify(init_param)}`);
         console.log(Buffer.from(JSON.stringify(init_param)).toString('base64'));
         let executeMsg = {
             create_pair: {
-                pair_type: { xyk: {} },
+                pair_type: {xyk: {}},
                 asset_infos: [
                     {
                         token: {
@@ -537,7 +538,7 @@ async function createPoolPairs(deploymentDetails) {
                         }
                     },
                     {
-                        native_token: { denom: "uusd" }
+                        native_token: {denom: "uusd"}
                     }
                 ],
                 init_params: Buffer.from(JSON.stringify(init_param)).toString('base64')
@@ -640,7 +641,7 @@ async function performOperations(deploymentDetails) {
     await VnDPeriodic(deploymentDetails)
     await new Promise(resolve => setTimeout(resolve, sleep_time));
 
-    await claimVestedFury(deploymentDetails,marketing_wallet);
+    await claimVestedFury(deploymentDetails, marketing_wallet);
 
     console.log("Finished operations");
 }
@@ -661,7 +662,7 @@ async function checkLPTokenBalances(deploymentDetails) {
         console.log(JSON.stringify(allAccounts.accounts));
         allAccounts.accounts.forEach((account) => {
             queryContract(deploymentDetails.poolLpTokenAddress, {
-                balance: { address: account }
+                balance: {address: account}
             }).then((balance) => {
                 console.log(`Balance of ${account} : ${JSON.stringify(balance)}`);
             });
@@ -706,7 +707,7 @@ async function provideLiquidityAuthorised(deploymentDetails) {
     let funds = Number(500000000);
     funds = funds + Number(tax.amount);
     console.log(`funds = ${funds}`);
-    let response = await executeContract(treasury_wallet, deploymentDetails.proxyContractAddress, executeMsg, { 'uusd': funds });
+    let response = await executeContract(treasury_wallet, deploymentDetails.proxyContractAddress, executeMsg, {'uusd': funds});
     console.log(`Provide Liquidity (from treasury) Response - ${response['txhash']}`);
 }
 
@@ -767,7 +768,7 @@ async function provideLiquidityGeneral(deploymentDetails) {
     let funds = Number(5000000);
     funds = funds + Number(tax.amount);
     console.log(`funds = ${funds}`);
-    let response = await executeContract(marketing_wallet, deploymentDetails.proxyContractAddress, executeMsg, { 'uusd': funds });
+    let response = await executeContract(marketing_wallet, deploymentDetails.proxyContractAddress, executeMsg, {'uusd': funds});
     console.log(`Provide Liquidity (from marketing) Response - ${response['txhash']}`);
 }
 
@@ -843,12 +844,12 @@ async function providePairForReward(deploymentDetails) {
     let funds = baseUstAmount + Number(tax.amount);
     console.log(`funds + tax = ${funds}`);
 
-    let platformFees = await queryContract(deploymentDetails.proxyContractAddress, { query_platform_fees: { msg: Buffer.from(JSON.stringify(executeMsg)).toString('base64') } });
+    let platformFees = await queryContract(deploymentDetails.proxyContractAddress, {query_platform_fees: {msg: Buffer.from(JSON.stringify(executeMsg)).toString('base64')}});
     console.log(`platformFees = ${JSON.stringify(platformFees)}`);
     funds = funds + Number(platformFees);
     console.log(`funds + tax + platform fees = ${funds}`);
 
-    let response = await executeContract(marketing_wallet, deploymentDetails.proxyContractAddress, executeMsg, { 'uusd': funds });
+    let response = await executeContract(marketing_wallet, deploymentDetails.proxyContractAddress, executeMsg, {'uusd': funds});
     console.log(`Provide Pair for Liquidity (from marketing) Response - ${response['txhash']}`);
 }
 
@@ -870,7 +871,7 @@ async function claimInvestmentReward(deploymentDetails) {
     //ADD DELAY small to check failure of quick withdraw - 1sec
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    let platformFees = await queryContract(deploymentDetails.proxyContractAddress, { query_platform_fees: { msg: Buffer.from(JSON.stringify(rewardClaimMsg)).toString('base64') } });
+    let platformFees = await queryContract(deploymentDetails.proxyContractAddress, {query_platform_fees: {msg: Buffer.from(JSON.stringify(rewardClaimMsg)).toString('base64')}});
     console.log(`platformFees = ${JSON.stringify(platformFees)}`);
 
     let response;
@@ -878,7 +879,7 @@ async function claimInvestmentReward(deploymentDetails) {
     try {
         console.log(`rewardClaimMsg = ${JSON.stringify(rewardClaimMsg)}`);
         console.log("Trying to Claim Pair Reward before Maturity");
-        response = await executeContract(marketing_wallet, deploymentDetails.proxyContractAddress, rewardClaimMsg, { 'uusd': Number(platformFees) });
+        response = await executeContract(marketing_wallet, deploymentDetails.proxyContractAddress, rewardClaimMsg, {'uusd': Number(platformFees)});
         console.log("Not expected to reach here");
         console.log(`Reward Claim Response - ${response['txhash']}`);
     } catch (error) {
@@ -887,7 +888,7 @@ async function claimInvestmentReward(deploymentDetails) {
         //ADD DELAY to reach beyond the bonding duration - 2min
         await new Promise(resolve => setTimeout(resolve, 120000));
 
-        response = await executeContract(marketing_wallet, deploymentDetails.proxyContractAddress, rewardClaimMsg, { 'uusd': Number(platformFees) });
+        response = await executeContract(marketing_wallet, deploymentDetails.proxyContractAddress, rewardClaimMsg, {'uusd': Number(platformFees)});
         console.log("Withdraw Reward transaction hash = " + response['txhash']);
 
         rewardClaimMsg = {
@@ -902,7 +903,7 @@ async function claimInvestmentReward(deploymentDetails) {
         //ADD DELAY small to check failure of quick withdraw - 60sec
         await new Promise(resolve => setTimeout(resolve, 60000));
 
-        response = await executeContract(marketing_wallet, deploymentDetails.proxyContractAddress, rewardClaimMsg, { 'uusd': Number(platformFees) });
+        response = await executeContract(marketing_wallet, deploymentDetails.proxyContractAddress, rewardClaimMsg, {'uusd': Number(platformFees)});
         console.log("Withdraw Reward transaction hash = " + response['txhash']);
 
     } finally {
@@ -965,12 +966,12 @@ async function provideNativeForRewards(deploymentDetails) {
     let funds = baseUstAmount + Number(tax.amount);
     console.log(`funds + tax = ${funds}`);
 
-    let platformFees = await queryContract(deploymentDetails.proxyContractAddress, { query_platform_fees: { msg: Buffer.from(JSON.stringify(executeMsg)).toString('base64') } });
+    let platformFees = await queryContract(deploymentDetails.proxyContractAddress, {query_platform_fees: {msg: Buffer.from(JSON.stringify(executeMsg)).toString('base64')}});
     console.log(`platformFees = ${JSON.stringify(platformFees)}`);
     funds = funds + Number(platformFees);
     console.log(`funds + tax + platform fees = ${funds}`);
 
-    let response = await executeContract(marketing_wallet, deploymentDetails.proxyContractAddress, executeMsg, { 'uusd': funds });
+    let response = await executeContract(marketing_wallet, deploymentDetails.proxyContractAddress, executeMsg, {'uusd': funds});
     console.log(`Provide Native for Liquidity (from marketing) Response - ${response['txhash']}`);
 }
 
@@ -1022,12 +1023,12 @@ async function buyFuryTokens(deploymentDetails) {
     let funds = 10000 + Number(tax.amount);
     console.log(`funds + tax = ${funds}`);
 
-    let platformFees = await queryContract(deploymentDetails.proxyContractAddress, { query_platform_fees: { msg: Buffer.from(JSON.stringify(buyFuryMsg)).toString('base64') } });
+    let platformFees = await queryContract(deploymentDetails.proxyContractAddress, {query_platform_fees: {msg: Buffer.from(JSON.stringify(buyFuryMsg)).toString('base64')}});
     console.log(`platformFees = ${JSON.stringify(platformFees)}`);
     funds = funds + Number(platformFees);
     console.log(`funds + tax + platform fees = ${funds}`);
 
-    let buyFuryResp = await executeContract(mint_wallet, deploymentDetails.proxyContractAddress, buyFuryMsg, { 'uusd': funds });
+    let buyFuryResp = await executeContract(mint_wallet, deploymentDetails.proxyContractAddress, buyFuryMsg, {'uusd': funds});
     console.log(`Buy Fury swap response tx hash = ${buyFuryResp['txhash']}`);
 }
 
@@ -1063,12 +1064,12 @@ async function sellFuryTokens(deploymentDetails) {
             }
         }
     };
-    let platformFees = await queryContract(deploymentDetails.proxyContractAddress, { query_platform_fees: { msg: Buffer.from(JSON.stringify(sellFuryMsg)).toString('base64') } });
+    let platformFees = await queryContract(deploymentDetails.proxyContractAddress, {query_platform_fees: {msg: Buffer.from(JSON.stringify(sellFuryMsg)).toString('base64')}});
     console.log(`platformFees = ${JSON.stringify(platformFees)}`);
     let funds = Number(platformFees);
     console.log(`funds + platform fees = ${funds}`);
 
-    let sellFuryResp = await executeContract(mint_wallet, deploymentDetails.proxyContractAddress, sellFuryMsg, { 'uusd': funds });
+    let sellFuryResp = await executeContract(mint_wallet, deploymentDetails.proxyContractAddress, sellFuryMsg, {'uusd': funds});
     console.log(`Sell Fury swap response tx hash = ${sellFuryResp['txhash']}`);
 }
 
@@ -1149,32 +1150,39 @@ async function queryInvestmentReward(deploymentDetails) {
     console.log(`bonded reward query response ${JSON.stringify(qRes)}`);
 }
 
-const increasePOLRewardAllowance = async (deploymentDetails,wallet) => {
+const increasePOLRewardAllowance = async (deploymentDetails, wallet) => {
     let response = await queryContract(deploymentDetails.furyContractAddress, {
         balance: {address: wallet.publicKey}
     });
     let respBalance = Number(response.balance);
     response = await queryContract(deploymentDetails.furyContractAddress, {
-        allowance: {owner: wallet.publicKey,
-                    spender: deploymentDetails.proxyContractAddress}
+        allowance: {
+            owner: wallet.publicKey,
+            spender: deploymentDetails.proxyContractAddress
+        }
     });
     let respAllowance = Number(response.allowance);
     console.log(`fury : existing balance ${respBalance}, existing allowance ${respAllowance}, increase allowance by ${respBalance - respAllowance}`);
     if (respBalance > respAllowance) {
         let increase_amount = respBalance - respAllowance;
-        let execMsg = {increase_allowance: { spender : deploymentDetails.proxyContractAddress, amount: increase_amount.toString()}};
-        let execResponse = await executeContract (wallet, deploymentDetails.furyContractAddress, execMsg);
+        let execMsg = {
+            increase_allowance: {
+                spender: deploymentDetails.proxyContractAddress,
+                amount: increase_amount.toString()
+            }
+        };
+        let execResponse = await executeContract(wallet, deploymentDetails.furyContractAddress, execMsg);
         console.log(`POL increase allowance by ${increase_amount} uFury for proxy in wallet ${wallet.publicKey}, txhash ${execResponse['txhash']}`);
     }
 }
 
-const claimVestedFury = async (deploymentDetails,wallet) => {
+const claimVestedFury = async (deploymentDetails, wallet) => {
     let response = await queryContract(deploymentDetails.VnDContractAddress, {
         vesting_details: {address: wallet.publicKey}
     });
     let respBalance = Number(response.tokens_available_to_claim);
-    let execMsg = {claim_vested_tokens: { amount : respBalance.toString()}};
-    let execResponse = await executeContract (wallet, deploymentDetails.VnDContractAddress, execMsg);
+    let execMsg = {claim_vested_tokens: {amount: respBalance.toString()}};
+    let execResponse = await executeContract(wallet, deploymentDetails.VnDContractAddress, execMsg);
     console.log(`Claim all Vested Tokens ${respBalance} uFury for wallet ${wallet.publicKey}, txhash ${execResponse['txhash']}`);
 }
 

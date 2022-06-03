@@ -72,7 +72,7 @@ export class Wallet {
     }
 
     get_execute(message, contract, coins) {
-        let transferBytes = new Buffer(JSON.stringify(message));
+        let transferBytes = new Buffer.from(JSON.stringify(message));
         const msgExecuteContract = new message.cosmwasm.wasm.v1.MsgExecuteContract({
             sender: this.wallet_address,
             contract: contract,
