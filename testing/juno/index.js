@@ -53,7 +53,7 @@ const main = async () => {
     try {
         let deploymentDetails = readArtifact(terraClient.chainID);
         let primeAccounts = 'N';
-        if (process.env.TERRA_CLIENT === "localTerra") {
+        if (process.env.TERRA_CLIENT === "testing") {
             primeAccounts = await question('Do you want to preload custom accounts? (y/N) ');
         }
         if (primeAccounts === 'Y' || primeAccounts === 'y') {
@@ -84,7 +84,7 @@ async function proceedToSetup(deploymentDetails) {
     if (!deploymentDetails.defaultLPTokenHolder) {
         deploymentDetails.defaultLPTokenHolder = liquidity_wallet.key.accAddress;
     }
-    const sleep_time = (process.env.TERRA_CLIENT === "localTerra") ? 31 : 15000;
+    const sleep_time = (process.env.TERRA_CLIENT === "testing") ? 31 : 15000;
 
     await uploadFuryTokenContract(deploymentDetails);
     await new Promise(resolve => setTimeout(resolve, sleep_time));
@@ -590,7 +590,7 @@ async function savePairAddressToProxy(deploymentDetails) {
 }
 
 async function performOperations(deploymentDetails) {
-    const sleep_time = (process.env.TERRA_CLIENT === "localTerra") ? 31 : 15000;
+    const sleep_time = (process.env.TERRA_CLIENT === "testing") ? 31 : 15000;
     await checkLPTokenDetails(deploymentDetails);
     await new Promise(resolve => setTimeout(resolve, sleep_time));
 
@@ -993,7 +993,7 @@ async function queryPool(deploymentDetails) {
 }
 
 async function performSimulation(deploymentDetails) {
-    const sleep_time = (process.env.TERRA_CLIENT === "localTerra") ? 31 : 15000;
+    const sleep_time = (process.env.TERRA_CLIENT === "testing") ? 31 : 15000;
     await simulationOfferNative(deploymentDetails);
     await new Promise(resolve => setTimeout(resolve, sleep_time));
     await simulationOfferFury(deploymentDetails);
