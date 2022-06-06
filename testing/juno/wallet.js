@@ -3,11 +3,20 @@ import fs from "fs";
 import fetch from "node-fetch";
 import {Cosmos} from "@cosmostation/cosmosjs";
 
+
+let debug = false
+
+
 const chainId = "juno"
 const lcdUrl = "http://localhost:1317"
+const chainIdTestNet = "uni-3"
+const lcdUrlTestNet = "https://uni-api.blockpane.com"
+const testnetMemonic = "patch rookie cupboard salon powder depend grass account crawl raise cigar swim sunny van monster fatal system edge loop matter course muffin rigid ill"
+// juno1lm3y9pyznfdmdl8kj3rgj3afkm0xh6p7deh6wc
 // Copy Memonic from the Terminal in which the Juno Node contrainer was upped
-export const mnemonic = "cover need myth call code gap sibling tomorrow limit alley bundle dutch ride jealous regular input drip motion clown debris level beach picture wheat"
-export const cosmos = new Cosmos(lcdUrl, chainId);
+export const mnemonic = (debug) ? "host buyer prevent inhale tattoo lunar history enemy man ahead expose dolphin issue glare delay slide inside scorpion access okay together era scrap message" : testnetMemonic;
+
+export const cosmos = (debug) ? new Cosmos(lcdUrl, chainId) : new Cosmos(lcdUrlTestNet, chainIdTestNet);
 cosmos.setBech32MainPrefix("juno")
 console.log(cosmos.bech32MainPrefix)
 
@@ -22,8 +31,8 @@ export class Wallet {
         this.wallet_address = cosmos.getAddress(memonic);
         this.url = cosmos.url
         this.feeValue = new message.cosmos.tx.v1beta1.Fee({
-            amount: [{denom: "ujunox", amount: String(20000)}],
-            gas_limit: 100000000
+            amount: [{denom: "ujunox", amount: String(45000000)}],
+            gas_limit: 1000000000
         });
     }
 
@@ -104,6 +113,7 @@ export class Wallet {
             type_url: "/cosmwasm.wasm.v1.MsgStoreCode",
             value: message.cosmwasm.wasm.v1.MsgStoreCode.encode(msgStoreCode).finish()
         }])
+        console.log(response)
         console.log(response.tx_response.raw_log)
         let j = JSON.parse(response.tx_response.raw_log)
         return parseInt(j[0].events[1].attributes[0].value)

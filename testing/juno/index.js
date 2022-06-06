@@ -75,7 +75,7 @@ async function proceedToSetup(deploymentDetails) {
     if (!deploymentDetails.defaultLPTokenHolder) {
         deploymentDetails.defaultLPTokenHolder = liquidity_wallet.wallet_address;
     }
-    const sleep_time = (process.env.TERRA_CLIENT === "testing") ? 31 : 150;
+    const sleep_time = (process.env.TERRA_CLIENT === "testing") ? 31 : 15000;
 
     await uploadFuryTokenContract(deploymentDetails);
     await new Promise(resolve => setTimeout(resolve, sleep_time));
@@ -463,6 +463,7 @@ async function instantiateProxyContract(deploymentDetails) {
             ///Specified in percentage multiplied by 100, i.e. 100% = 10000 and 0.01% = 1
             swap_fees: "0",
             max_bonding_limit_per_user: 100,
+            usdc_ibc_symbol: "ujunox"
         };
         console.log(JSON.stringify(proxyInitMessage, null, 2));
         deploymentDetails.proxyContractAddress = await instantiateContract(mint_wallet, deploymentDetails.proxyCodeId, proxyInitMessage);
