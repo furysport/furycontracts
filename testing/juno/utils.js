@@ -1,6 +1,6 @@
 import {readFileSync, writeFileSync} from "fs";
 import path from 'path';
-import {cosmos} from "./wallet.js";
+//import {cosmos} from "./wallet.js";
 
 export const ARTIFACTS_PATH = 'artifacts'
 
@@ -124,6 +124,7 @@ export async function bankTransferFund(wallet_from, wallet_to, uluna_amount, uus
     return wallet_from.send_funds(wallet_to, funds)
 }
 
+/*
 export async function get_wallets(number_of_users) {
     let wallets_to_return = []
     for (let i = 0; i < number_of_users; i++) {
@@ -131,6 +132,7 @@ export async function get_wallets(number_of_users) {
     }
     return wallets_to_return
 }
+*/
 
 export async function sendTransaction(senderWallet, msgs, verbose = false) {
     return senderWallet.sign_and_broadcast(msgs)

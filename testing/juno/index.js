@@ -145,8 +145,10 @@ async function uploadFuryTokenContract(deploymentDetails) {
         if (deployFury) {
             console.log("Uploading Fury token contract");
             console.log(`mint_wallet = ${mint_wallet.wallet_address}`);
-            let contractId = await storeCode(mint_wallet, MintingContractPath); // Getting the contract id from local terra
-            console.log(`Fury Token Contract ID: ${contractId}`);
+            console.log(JSON.stringify(mint_wallet.wallet_address));
+	    const uploadReciept = await storeCode(mint_wallet, MintingContractPath); // Getting the contract id from local terra
+            const contractId = uploadReciept.codeId
+	    console.log(`Fury Token Contract ID: ${contractId}`);
             deploymentDetails.furyTokenCodeId = contractId;
             writeArtifact(deploymentDetails, terraClient.chainId);
         }
@@ -196,8 +198,9 @@ async function uploadVnDContract(deploymentDetails) {
         if (deployVnD) {
             console.log("Uploading VnD contract");
             console.log(`mint_wallet = ${mint_wallet.wallet_address}`);
-            let contractId = await storeCode(mint_wallet, VnDContractPath); // Getting the contract id from local terra
-            console.log(`VnD Contract ID: ${contractId}`);
+            const uploadReciept = await storeCode(mint_wallet, VnDContractPath); // Getting the contract id from local terra
+            const contractId = uploadReciept.codeId
+	    console.log(`VnD Contract ID: ${contractId}`);
             deploymentDetails.VnDCodeId = contractId;
             writeArtifact(deploymentDetails, terraClient.chainId);
         }
@@ -279,7 +282,7 @@ async function instantiateVnDContract(deploymentDetails) {
 
             console.log("Instantiating VnD token contract");
             let contractAddress = await mint_wallet.init(deploymentDetails.VnDCodeId, VnDInitMessage)
-            // The order is very imp
+	    // The order is very imp
             console.log(`VnD Token Contract address: ${contractAddress}`);
             deploymentDetails.VnDContractAddress = contractAddress;
             writeArtifact(deploymentDetails, terraClient.chainId);
