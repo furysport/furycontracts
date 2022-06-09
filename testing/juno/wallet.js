@@ -8,14 +8,13 @@ import { calculateFee, GasPrice } from "@cosmjs/stargate"
 
 const debug = false
 
-
 const chainId = "juno"
-const lcdUrl = "http://localhost:1317"
+//const lcdUrl = "http://localhost:26657"
 //const endpoint = "http://localhost:26657";
-const endpoint = "https://uni-api.blockpane.com";
+const endpoint = "https://uni-api.blockpane.com"
 
-const chainIdTestNet = "uni-3"
-const lcdUrlTestNet = "https://uni-api.blockpane.com"
+//const chainIdTestNet = "uni-3"
+//const lcdUrlTestNet = "https://uni-api.blockpane.com"
 const testnetMemonic = "patch rookie cupboard salon powder depend grass account crawl raise cigar swim sunny van monster fatal system edge loop matter course muffin rigid ill"
 // juno1lm3y9pyznfdmdl8kj3rgj3afkm0xh6p7deh6wc
 // Copy Memonic from the Terminal in which the Juno Node contrainer was upped
@@ -70,9 +69,11 @@ export class Wallet {
             return cosmos.broadcast(signedTxBytes, "BROADCAST_MODE_BLOCK")
         })
 	*/
-	const fee = calculateFee(0.001, GasPrice.fromString("0.0001ujunox"));
+	//const fee = calculateFee(1, GasPrice.fromString("0.0001ujunox"));
         const memo = "memo_for_sign_and_broadcast";
-	return this.client.signAndBroadcast(this.wallet_address, messages, "auto", memo)
+	//FIXME: Need to sign and broadcast messgaes
+        //return this.client.signAndBroadcast(this.wallet_address, messages, "auto", memo)
+	return 
     }
 
     async send_funds(to_address, coins) {
@@ -88,7 +89,7 @@ export class Wallet {
             value: message.cosmos.bank.v1beta1.MsgSend.encode(msgSend).finish()
         }])
 	*/
-	const fee = calculateFee(100, GasPrice.fromString("0.0001ujunox"));
+	//const fee = calculateFee(100, GasPrice.fromString("0.0001ujunox"));
   	const memo = "memo_for_send_fund";
   	const sendResult = await this.client.sendTokens(this.wallet_address, to_address, coins, "auto", memo);
 	const response = await this.sign_and_broadcast(sendResult)
@@ -127,7 +128,7 @@ export class Wallet {
             value: message.cosmwasm.wasm.v1.MsgExecuteContract.encode(msgExecuteContract).finish()
         })
 	*/
-	const fee = calculateFee(100, GasPrice.fromString("0.0001ujunox"));
+	//const fee = calculateFee(100, GasPrice.fromString("0.0001ujunox"));
 	return this.client.execute(this.wallet_address, contract, msg, "auto", "", coins)
     }
 

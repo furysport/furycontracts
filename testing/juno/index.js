@@ -300,8 +300,9 @@ async function VnDIncreaseAllowance(deploymentDetails) {
                 amount: "134501004000000"
             }
     };
+    console.log(`Increasing the allowance for Vnd from fury_wallet`);
     let response = await executeContract(mint_wallet, deploymentDetails.furyContractAddress, increaseAllowanceMsg);
-    console.log(`Increase allowance for Vnd from fury_wallet - ${response['txhash']}`);
+    console.log(`Increased allowance for Vnd from fury_wallet - ${response['txhash']}`);
 }
 
 async function VnDPeriodic(deploymentDetails) {
