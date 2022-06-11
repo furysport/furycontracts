@@ -108,14 +108,14 @@ async function proceedToSetup(deploymentDetails) {
     await new Promise(resolve => setTimeout(resolve, sleep_time));
     await transferFuryToFactory(deploymentDetails);
     await new Promise(resolve => setTimeout(resolve, sleep_time));
-    await queryProxyConfiguration(deploymentDetails);
-    await new Promise(resolve => setTimeout(resolve, sleep_time));
+//    await queryProxyConfiguration(deploymentDetails);
+//    await new Promise(resolve => setTimeout(resolve, sleep_time));
     await createPoolPairs(deploymentDetails);
     await new Promise(resolve => setTimeout(resolve, sleep_time));
     await savePairAddressToProxy(deploymentDetails);
     await new Promise(resolve => setTimeout(resolve, sleep_time));
-    await queryProxyConfiguration(deploymentDetails);
-    await new Promise(resolve => setTimeout(resolve, sleep_time));
+//    await queryProxyConfiguration(deploymentDetails);
+//    await new Promise(resolve => setTimeout(resolve, sleep_time));
     console.log(`TGE Vesting and Distribution`);
     await VnDPeriodic(deploymentDetails)
 
@@ -302,16 +302,16 @@ async function VnDIncreaseAllowance(deploymentDetails) {
     };
     console.log(`Increasing the allowance for Vnd from fury_wallet`);
     let response = await executeContract(mint_wallet, deploymentDetails.furyContractAddress, increaseAllowanceMsg);
-    console.log(`Increased allowance for Vnd from fury_wallet - ${response['txhash']}`);
+    console.log(`Increased allowance for Vnd from fury_wallet - ${response['transactionHash']}`);
 }
 
 async function VnDPeriodic(deploymentDetails) {
     let VnDTransfer = {periodically_calculate_vesting: {}};
     let response = await executeContract(mint_wallet, deploymentDetails.VnDContractAddress, VnDTransfer);
-    console.log(`periodically_calculate_vesting Response - ${response['txhash']}`);
+    console.log(`periodically_calculate_vesting Response - ${response['transactionHash']}`);
     let VnDVest = {periodically_transfer_to_categories: {}};
     response = await executeContract(mint_wallet, deploymentDetails.VnDContractAddress, VnDVest);
-    console.log(`periodically_transfer_to_categories Response - ${response['txhash']}`);
+    console.log(`periodically_transfer_to_categories Response - ${response['transactionHash']}`);
     await increasePOLRewardAllowance(deploymentDetails, bonded_lp_reward_wallet);
     await increasePOLRewardAllowance(deploymentDetails, liquidity_wallet);
 }
@@ -325,7 +325,7 @@ async function transferFuryToTreasury(deploymentDetails) {
     };
     console.log(`transferFuryToTreasuryMsg = ${JSON.stringify(transferFuryToTreasuryMsg)}`);
     let response = await executeContract(mint_wallet, deploymentDetails.furyContractAddress, transferFuryToTreasuryMsg);
-    console.log(`transferFuryToTreasuryMsg Response - ${response['txhash']}`);
+    console.log(`transferFuryToTreasuryMsg Response - ${response['transactionHash']}`);
 }
 
 async function transferFuryTokens(deploymentDetails, toAddress, amount) {
@@ -337,7 +337,7 @@ async function transferFuryTokens(deploymentDetails, toAddress, amount) {
     };
     console.log(`transferFuryToTreasuryMsg = ${JSON.stringify(transferFuryToTreasuryMsg)}`);
     let response = await executeContract(mint_wallet, deploymentDetails.furyContractAddress, transferFuryToTreasuryMsg);
-    console.log(`transferFuryToTreasuryMsg Response - ${response['txhash']}`);
+    console.log(`transferFuryToTreasuryMsg Response - ${response['transactionHash']}`);
 }
 
 async function transferFuryToMarketing(deploymentDetails) {
@@ -349,7 +349,7 @@ async function transferFuryToMarketing(deploymentDetails) {
     };
     console.log(`transferFuryToMarketingMsg = ${JSON.stringify(transferFuryToMarketingMsg)}`);
     let response = await executeContract(mint_wallet, deploymentDetails.furyContractAddress, transferFuryToMarketingMsg);
-    console.log(`transferFuryToMarketingMsg Response - ${response['txhash']}`);
+    console.log(`transferFuryToMarketingMsg Response - ${response['transactionHash']}`);
 }
 
 async function transferFuryToLiquidity(deploymentDetails) {
@@ -361,15 +361,15 @@ async function transferFuryToLiquidity(deploymentDetails) {
     };
     console.log(`transferFuryToLiquidityMsg = ${JSON.stringify(transferFuryToLiquidityMsg)}`);
     let response = await executeContract(mint_wallet, deploymentDetails.furyContractAddress, transferFuryToLiquidityMsg);
-    console.log(`transferFuryToLiquidityMsg Response - ${response['txhash']}`);
+    console.log(`transferFuryToLiquidityMsg Response - ${response['transactionHash']}`);
 }
 
 async function uploadPairContract(deploymentDetails) {
     if (!deploymentDetails.pairCodeId) {
         console.log("Uploading pair contract (xyk)");
-        let contractId = await storeCode(mint_wallet, PairContractPath); // Getting the contract id from local terra
-        console.log(`Pair Contract ID: ${contractId}`);
-        deploymentDetails.pairCodeId = contractId;
+        let resp = await storeCode(mint_wallet, PairContractPath); // Getting the contract id from local terra
+        console.log(`Pair Contract ID: ${resp.codeId}`);
+        deploymentDetails.pairCodeId = resp.codeId;
         writeArtifact(deploymentDetails, terraClient.chainId);
     }
 }
@@ -378,9 +378,9 @@ async function uploadPairContract(deploymentDetails) {
 async function uploadWhiteListContract(deploymentDetails) {
     if (!deploymentDetails.whitelistCodeId) {
         console.log("Uploading whitelist contract");
-        let contractId = await storeCode(mint_wallet, StakingContractPath); // Getting the contract id from local terra
-        console.log(`Whitelist Contract ID: ${contractId}`);
-        deploymentDetails.whitelistCodeId = contractId;
+        let resp = await storeCode(mint_wallet, StakingContractPath); // Getting the contract id from local terra
+        console.log(`Whitelist Contract ID: ${resp.codeId}`);
+        deploymentDetails.whitelistCodeId = resp.codeId;
         writeArtifact(deploymentDetails, terraClient.chainId);
     }
 }
@@ -388,9 +388,9 @@ async function uploadWhiteListContract(deploymentDetails) {
 async function uploadFactoryContract(deploymentDetails) {
     if (!deploymentDetails.factoryCodeId) {
         console.log("Uploading factory contract");
-        let contractId = await storeCode(mint_wallet, FactoryContractPath); // Getting the contract id from local terra
-        console.log(`Factory Contract ID: ${contractId}`);
-        deploymentDetails.factoryCodeId = contractId;
+        let resp = await storeCode(mint_wallet, FactoryContractPath); // Getting the contract id from local terra
+        console.log(`Factory Contract ID: ${resp.codeId}`);
+        deploymentDetails.factoryCodeId = resp.codeId;
         writeArtifact(deploymentDetails, terraClient.chainId);
     }
 }
@@ -413,9 +413,9 @@ async function instantiateFactory(deploymentDetails) {
 async function uploadProxyContract(deploymentDetails) {
     if (!deploymentDetails.proxyCodeId) {
         console.log("Uploading proxy contract");
-        let contractId = await storeCode(mint_wallet, ProxyContractPath); // Getting the contract id from local terra
-        console.log(`Proxy Contract ID: ${contractId}`);
-        deploymentDetails.proxyCodeId = contractId;
+        let response = await storeCode(mint_wallet, ProxyContractPath); // Getting the contract id from local terra
+        console.log(`Proxy Contract ID: ${response.codeId}`);
+        deploymentDetails.proxyCodeId = response.codeId;
         writeArtifact(deploymentDetails, terraClient.chainId);
     }
 }
@@ -477,7 +477,7 @@ async function instantiateProxyContract(deploymentDetails) {
 
 async function queryProxyConfiguration(deploymentDetails) {
     //Fetch configuration
-    let configResponse = await queryContract(deploymentDetails.proxyContractAddress, {
+    let configResponse = await queryContract(mint_wallet, deploymentDetails.proxyContractAddress, {
         configuration: {}
     });
     configResponseReceived = configResponse;
@@ -494,7 +494,7 @@ async function transferFuryToFactory(deploymentDetails) {
     };
     console.log(`transferFuryToFactoryMsg = ${JSON.stringify(transferFuryToLiquidityMsg)}`);
     let response = await executeContract(mint_wallet, deploymentDetails.furyContractAddress, transferFuryToLiquidityMsg);
-    console.log(`transferFuryToLiquidityMsg Response - ${response['txhash']}`);
+    console.log(`transferFuryToLiquidityMsg Response - ${response['transactionHash']}`);
 }
 
 
@@ -524,7 +524,7 @@ async function createPoolPairs(deploymentDetails) {
 
         deploymentDetails.poolPairContractAddress = response.logs[0].eventsByType.from_contract.pair_contract_addr[0];
 
-        let pool_info = await queryContract(deploymentDetails.poolPairContractAddress, {
+        let pool_info = await queryContract(mint_wallet, deploymentDetails.poolPairContractAddress, {
             pair: {}
         });
 
@@ -538,9 +538,13 @@ async function createPoolPairs(deploymentDetails) {
 async function savePairAddressToProxy(deploymentDetails) {
     if (!deploymentDetails.poolpairSavedToProxy) {
         //Fetch configuration
-        let configResponse = await queryContract(deploymentDetails.proxyContractAddress, {
-            configuration: {}
-        });
+        //let configResponse = await queryContract(mint_wallet, deploymentDetails.proxyContractAddress, {
+        //    configuration: {}
+        //});
+	    
+        let configResponse = await queryContract(mint_wallet, deploymentDetails.proxyContractAddress, {
+		pair:{}
+	})
         configResponse.pool_pair_address = deploymentDetails.poolPairContractAddress;
         configResponse.liquidity_token = deploymentDetails.poolLpTokenAddress;
         console.log(`Configuration = ${JSON.stringify(configResponse)}`);
@@ -549,7 +553,7 @@ async function savePairAddressToProxy(deploymentDetails) {
         };
         console.log(`executeMsg = ${JSON.stringify(executeMsg, null, 2)}`);
         let response = await executeContract(mint_wallet, deploymentDetails.proxyContractAddress, executeMsg);
-        console.log(`Save Response - ${response['txhash']}`);
+        console.log(`Save Response - ${response['transactionHash']}`);
         deploymentDetails.poolpairSavedToProxy = true;
         writeArtifact(deploymentDetails, terraClient.chainId);
     }
@@ -622,7 +626,7 @@ async function performOperations(deploymentDetails) {
 }
 
 async function checkLPTokenDetails(deploymentDetails) {
-    let lpTokenDetails = await queryContract(deploymentDetails.poolLpTokenAddress, {
+    let lpTokenDetails = await queryContract(mint_wallet, deploymentDetails.poolLpTokenAddress, {
         token_info: {}
     });
     console.log(JSON.stringify(lpTokenDetails));
@@ -631,12 +635,12 @@ async function checkLPTokenDetails(deploymentDetails) {
 
 async function checkLPTokenBalances(deploymentDetails) {
     console.log("Getting LPToken balances");
-    await queryContract(deploymentDetails.poolLpTokenAddress, {
+    await queryContract(mint_wallet, deploymentDetails.poolLpTokenAddress, {
         all_accounts: {}
     }).then((allAccounts) => {
         console.log(JSON.stringify(allAccounts.accounts));
         allAccounts.accounts.forEach((account) => {
-            queryContract(deploymentDetails.poolLpTokenAddress, {
+            queryContract(mint_wallet, deploymentDetails.poolLpTokenAddress, {
                 balance: {address: account}
             }).then((balance) => {
                 console.log(`Balance of ${account} : ${JSON.stringify(balance)}`);
@@ -654,7 +658,7 @@ async function provideLiquidityAuthorised(deploymentDetails) {
         }
     };
     let incrAllowResp = await executeContract(treasury_wallet, deploymentDetails.furyContractAddress, increaseAllowanceMsg);
-    console.log(`Increase allowance response hash = ${incrAllowResp['txhash']}`);
+    console.log(`Increase allowance response hash = ${incrAllowResp['transactionHash']}`);
     let executeMsg = {
         provide_liquidity: {
             assets: [
@@ -683,7 +687,7 @@ async function provideLiquidityAuthorised(deploymentDetails) {
     funds = funds + Number(tax.amount);
     console.log(`funds = ${funds}`);
     let response = await executeContract(treasury_wallet, deploymentDetails.proxyContractAddress, executeMsg, {'uusdc': funds});
-    console.log(`Provide Liquidity (from treasury) Response - ${response['txhash']}`);
+    console.log(`Provide Liquidity (from treasury) Response - ${response['transactionHash']}`);
 }
 
 async function withdrawLiquidityAutorized(deploymentDetails) {
@@ -703,7 +707,7 @@ async function withdrawLiquidityAutorized(deploymentDetails) {
         }
     };
     let qResp = await executeContract(treasury_wallet, deploymentDetails.poolLpTokenAddress, executeMsg);
-    console.log(`withdraw Liquidity (from treasury) Response - ${qResp['txhash']}`);
+    console.log(`withdraw Liquidity (from treasury) Response - ${qResp['transactionHash']}`);
 }
 
 async function provideLiquidityGeneral(deploymentDetails) {
@@ -715,7 +719,7 @@ async function provideLiquidityGeneral(deploymentDetails) {
         }
     };
     let incrAllowResp = await executeContract(marketing_wallet, deploymentDetails.furyContractAddress, increaseAllowanceMsg);
-    console.log(`Increase allowance response hash = ${incrAllowResp['txhash']}`);
+    console.log(`Increase allowance response hash = ${incrAllowResp['transactionHash']}`);
     let executeMsg = {
         provide_liquidity: {
             assets: [
@@ -744,14 +748,14 @@ async function provideLiquidityGeneral(deploymentDetails) {
     funds = funds + Number(tax.amount);
     console.log(`funds = ${funds}`);
     let response = await executeContract(marketing_wallet, deploymentDetails.proxyContractAddress, executeMsg, {'uusdc': funds});
-    console.log(`Provide Liquidity (from marketing) Response - ${response['txhash']}`);
+    console.log(`Provide Liquidity (from marketing) Response - ${response['transactionHash']}`);
 }
 
 async function providePairForReward(deploymentDetails) {
     //Get the pool details
     let ufuryCount;
     let uustCount;
-    let poolDetails = await queryContract(deploymentDetails.proxyContractAddress, {
+    let poolDetails = await queryContract(mint_wallet, deploymentDetails.proxyContractAddress, {
         pool: {}
     });
     poolDetails.assets.forEach(asset => {
@@ -781,7 +785,7 @@ async function providePairForReward(deploymentDetails) {
         }
     };
     let incrAllowRespLW = await executeContract(liquidity_wallet, deploymentDetails.furyContractAddress, increaseAllowanceMsgLW);
-    console.log(`Increase allowance response hash = ${incrAllowRespLW['txhash']}`);
+    console.log(`Increase allowance response hash = ${incrAllowRespLW['transactionHash']}`);
 
     //First increase allowance for proxy to spend from marketing_wallet wallet
     let increaseAllowanceMsg = {
@@ -791,7 +795,7 @@ async function providePairForReward(deploymentDetails) {
         }
     };
     let incrAllowResp = await executeContract(marketing_wallet, deploymentDetails.furyContractAddress, increaseAllowanceMsg);
-    console.log(`Increase allowance response hash = ${incrAllowResp['txhash']}`);
+    console.log(`Increase allowance response hash = ${incrAllowResp['transactionHash']}`);
     let executeMsg = {
         provide_pair_for_reward: {
             assets: [
@@ -819,17 +823,17 @@ async function providePairForReward(deploymentDetails) {
     let funds = baseUstAmount + Number(tax.amount);
     console.log(`funds + tax = ${funds}`);
 
-    let platformFees = await queryContract(deploymentDetails.proxyContractAddress, {query_platform_fees: {msg: Buffer.from(JSON.stringify(executeMsg)).toString('base64')}});
+    let platformFees = await queryContract(mint_wallet, deploymentDetails.proxyContractAddress, {query_platform_fees: {msg: Buffer.from(JSON.stringify(executeMsg)).toString('base64')}});
     console.log(`platformFees = ${JSON.stringify(platformFees)}`);
     funds = funds + Number(platformFees);
     console.log(`funds + tax + platform fees = ${funds}`);
 
     let response = await executeContract(marketing_wallet, deploymentDetails.proxyContractAddress, executeMsg, {'uusdc': funds});
-    console.log(`Provide Pair for Liquidity (from marketing) Response - ${response['txhash']}`);
+    console.log(`Provide Pair for Liquidity (from marketing) Response - ${response['transactionHash']}`);
 }
 
 async function claimInvestmentReward(deploymentDetails) {
-    let qRes = await queryContract(deploymentDetails.proxyContractAddress, {
+    let qRes = await queryContract(mint_wallet, deploymentDetails.proxyContractAddress, {
         get_bonding_details: {
             user_address: marketing_wallet.wallet_address
         }
@@ -846,7 +850,7 @@ async function claimInvestmentReward(deploymentDetails) {
     //ADD DELAY small to check failure of quick withdraw - 1sec
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    let platformFees = await queryContract(deploymentDetails.proxyContractAddress, {query_platform_fees: {msg: Buffer.from(JSON.stringify(rewardClaimMsg)).toString('base64')}});
+    let platformFees = await queryContract(mint_wallet, deploymentDetails.proxyContractAddress, {query_platform_fees: {msg: Buffer.from(JSON.stringify(rewardClaimMsg)).toString('base64')}});
     console.log(`platformFees = ${JSON.stringify(platformFees)}`);
 
     let response;
@@ -856,7 +860,7 @@ async function claimInvestmentReward(deploymentDetails) {
         console.log("Trying to Claim Pair Reward before Maturity");
         response = await executeContract(marketing_wallet, deploymentDetails.proxyContractAddress, rewardClaimMsg, {'uusdc': Number(platformFees)});
         console.log("Not expected to reach here");
-        console.log(`Reward Claim Response - ${response['txhash']}`);
+        console.log(`Reward Claim Response - ${response['transactionHash']}`);
     } catch (error) {
         console.log("Failure as expected");
         console.log("Waiting for 120sec to try Claim after bonding period 2min- should pass");
@@ -864,7 +868,7 @@ async function claimInvestmentReward(deploymentDetails) {
         await new Promise(resolve => setTimeout(resolve, 120000));
 
         response = await executeContract(marketing_wallet, deploymentDetails.proxyContractAddress, rewardClaimMsg, {'uusdc': Number(platformFees)});
-        console.log("Withdraw Reward transaction hash = " + response['txhash']);
+        console.log("Withdraw Reward transaction hash = " + response['transactionHash']);
 
         rewardClaimMsg = {
             reward_claim: {
@@ -879,7 +883,7 @@ async function claimInvestmentReward(deploymentDetails) {
         await new Promise(resolve => setTimeout(resolve, 60000));
 
         response = await executeContract(marketing_wallet, deploymentDetails.proxyContractAddress, rewardClaimMsg, {'uusdc': Number(platformFees)});
-        console.log("Withdraw Reward transaction hash = " + response['txhash']);
+        console.log("Withdraw Reward transaction hash = " + response['transactionHash']);
 
     } finally {
         console.log("Withdraw Complete");
@@ -890,7 +894,7 @@ async function provideNativeForRewards(deploymentDetails) {
     //Get the pool details
     let ufuryCount;
     let uustCount;
-    let poolDetails = await queryContract(deploymentDetails.proxyContractAddress, {
+    let poolDetails = await queryContract(mint_wallet, deploymentDetails.proxyContractAddress, {
         pool: {}
     });
     poolDetails.assets.forEach(asset => {
@@ -922,7 +926,7 @@ async function provideNativeForRewards(deploymentDetails) {
         }
     };
     let incrAllowRespLW = await executeContract(bonded_lp_reward_wallet, deploymentDetails.furyContractAddress, increaseAllowanceMsgLW);
-    console.log(`Increase allowance response hash = ${incrAllowRespLW['txhash']}`);
+    console.log(`Increase allowance response hash = ${incrAllowRespLW['transactionHash']}`);
 
     let executeMsg = {
         provide_native_for_reward: {
@@ -941,18 +945,18 @@ async function provideNativeForRewards(deploymentDetails) {
     let funds = baseUstAmount + Number(tax.amount);
     console.log(`funds + tax = ${funds}`);
 
-    let platformFees = await queryContract(deploymentDetails.proxyContractAddress, {query_platform_fees: {msg: Buffer.from(JSON.stringify(executeMsg)).toString('base64')}});
+    let platformFees = await queryContract(mint_wallet, deploymentDetails.proxyContractAddress, {query_platform_fees: {msg: Buffer.from(JSON.stringify(executeMsg)).toString('base64')}});
     console.log(`platformFees = ${JSON.stringify(platformFees)}`);
     funds = funds + Number(platformFees);
     console.log(`funds + tax + platform fees = ${funds}`);
 
     let response = await executeContract(marketing_wallet, deploymentDetails.proxyContractAddress, executeMsg, {'uusdc': funds});
-    console.log(`Provide Native for Liquidity (from marketing) Response - ${response['txhash']}`);
+    console.log(`Provide Native for Liquidity (from marketing) Response - ${response['transactionHash']}`);
 }
 
 async function queryPool(deploymentDetails) {
     console.log("querying pool details");
-    let poolDetails = await queryContract(deploymentDetails.proxyContractAddress, {
+    let poolDetails = await queryContract(mint_wallet, deploymentDetails.proxyContractAddress, {
         pool: {}
     });
     console.log(JSON.stringify(poolDetails));
@@ -971,7 +975,7 @@ async function performSimulation(deploymentDetails) {
 
 async function getFuryEquivalentToUST(deploymentDetails) {
     let ustCount = "10000";
-    let furyCount = await queryContract(deploymentDetails.proxyContractAddress, {
+    let furyCount = await queryContract(mint_wallet, deploymentDetails.proxyContractAddress, {
         get_fury_equivalent_to_ust: {
             ust_count: ustCount
         }
@@ -998,18 +1002,18 @@ async function buyFuryTokens(deploymentDetails) {
     let funds = 10000 + Number(tax.amount);
     console.log(`funds + tax = ${funds}`);
 
-    let platformFees = await queryContract(deploymentDetails.proxyContractAddress, {query_platform_fees: {msg: Buffer.from(JSON.stringify(buyFuryMsg)).toString('base64')}});
+    let platformFees = await queryContract(mint_wallet, deploymentDetails.proxyContractAddress, {query_platform_fees: {msg: Buffer.from(JSON.stringify(buyFuryMsg)).toString('base64')}});
     console.log(`platformFees = ${JSON.stringify(platformFees)}`);
     funds = funds + Number(platformFees);
     console.log(`funds + tax + platform fees = ${funds}`);
 
     let buyFuryResp = await executeContract(mint_wallet, deploymentDetails.proxyContractAddress, buyFuryMsg, {'uusdc': funds});
-    console.log(`Buy Fury swap response tx hash = ${buyFuryResp['txhash']}`);
+    console.log(`Buy Fury swap response tx hash = ${buyFuryResp['transactionHash']}`);
 }
 
 async function getUSTEquivalentToFury(deploymentDetails) {
     let furyCount = "1000000";
-    let ustCount = await queryContract(deploymentDetails.proxyContractAddress, {
+    let ustCount = await queryContract(mint_wallet, deploymentDetails.proxyContractAddress, {
         get_ust_equivalent_to_fury: {
             fury_count: furyCount
         }
@@ -1025,7 +1029,7 @@ async function sellFuryTokens(deploymentDetails) {
         }
     };
     let incrAllowResp = await executeContract(mint_wallet, deploymentDetails.furyContractAddress, increaseAllowanceMsg);
-    console.log("increase allowance resp tx = " + incrAllowResp['txhash']);
+    console.log("increase allowance resp tx = " + incrAllowResp['transactionHash']);
     let sellFuryMsg = {
         swap: {
             to: mint_wallet.wallet_address,
@@ -1039,18 +1043,18 @@ async function sellFuryTokens(deploymentDetails) {
             }
         }
     };
-    let platformFees = await queryContract(deploymentDetails.proxyContractAddress, {query_platform_fees: {msg: Buffer.from(JSON.stringify(sellFuryMsg)).toString('base64')}});
+    let platformFees = await queryContract(mint_wallet, deploymentDetails.proxyContractAddress, {query_platform_fees: {msg: Buffer.from(JSON.stringify(sellFuryMsg)).toString('base64')}});
     console.log(`platformFees = ${JSON.stringify(platformFees)}`);
     let funds = Number(platformFees);
     console.log(`funds + platform fees = ${funds}`);
 
     let sellFuryResp = await executeContract(mint_wallet, deploymentDetails.proxyContractAddress, sellFuryMsg, {'uusdc': funds});
-    console.log(`Sell Fury swap response tx hash = ${sellFuryResp['txhash']}`);
+    console.log(`Sell Fury swap response tx hash = ${sellFuryResp['transactionHash']}`);
 }
 
 async function simulationOfferNative(deploymentDetails) {
     console.log("performing simulation for offering native coins");
-    let simulationResult = await queryContract(deploymentDetails.proxyContractAddress, {
+    let simulationResult = await queryContract(mint_wallet, deploymentDetails.proxyContractAddress, {
         simulation: {
             offer_asset: {
                 info: {
@@ -1067,7 +1071,7 @@ async function simulationOfferNative(deploymentDetails) {
 
 async function simulationOfferFury(deploymentDetails) {
     console.log("performing simulation for offering Fury tokens");
-    let simulationResult = await queryContract(deploymentDetails.proxyContractAddress, {
+    let simulationResult = await queryContract(mint_wallet, deploymentDetails.proxyContractAddress, {
         simulation: {
             offer_asset: {
                 info: {
@@ -1084,7 +1088,7 @@ async function simulationOfferFury(deploymentDetails) {
 
 async function reverseSimulationAskNative(deploymentDetails) {
     console.log("performing reverse simulation asking for native coins");
-    let simulationResult = await queryContract(deploymentDetails.proxyContractAddress, {
+    let simulationResult = await queryContract(mint_wallet, deploymentDetails.proxyContractAddress, {
         reverse_simulation: {
             ask_asset: {
                 info: {
@@ -1101,7 +1105,7 @@ async function reverseSimulationAskNative(deploymentDetails) {
 
 async function reverseSimulationAskFury(deploymentDetails) {
     console.log("performing reverse simulation asking for Fury tokens");
-    let simulationResult = await queryContract(deploymentDetails.proxyContractAddress, {
+    let simulationResult = await queryContract(mint_wallet, deploymentDetails.proxyContractAddress, {
         reverse_simulation: {
             ask_asset: {
                 info: {
@@ -1117,7 +1121,7 @@ async function reverseSimulationAskFury(deploymentDetails) {
 }
 
 async function queryInvestmentReward(deploymentDetails) {
-    let qRes = await queryContract(deploymentDetails.proxyContractAddress, {
+    let qRes = await queryContract(mint_wallet, deploymentDetails.proxyContractAddress, {
         get_bonding_details: {
             user_address: marketing_wallet.wallet_address
         }
@@ -1126,11 +1130,11 @@ async function queryInvestmentReward(deploymentDetails) {
 }
 
 const increasePOLRewardAllowance = async (deploymentDetails, wallet) => {
-    let response = await queryContract(deploymentDetails.furyContractAddress, {
+    let response = await queryContract(mint_wallet, deploymentDetails.furyContractAddress, {
         balance: {address: wallet.wallet_address}
     });
     let respBalance = Number(response.balance);
-    response = await queryContract(deploymentDetails.furyContractAddress, {
+    response = await queryContract(mint_wallet, deploymentDetails.furyContractAddress, {
         allowance: {
             owner: wallet.wallet_address,
             spender: deploymentDetails.proxyContractAddress
@@ -1147,18 +1151,18 @@ const increasePOLRewardAllowance = async (deploymentDetails, wallet) => {
             }
         };
         let execResponse = await executeContract(wallet, deploymentDetails.furyContractAddress, execMsg);
-        console.log(`POL increase allowance by ${increase_amount} uFury for proxy in wallet ${wallet.wallet_address}, txhash ${execResponse['txhash']}`);
+        console.log(`POL increase allowance by ${increase_amount} uFury for proxy in wallet ${wallet.wallet_address}, transactionHash ${execResponse['transactionHash']}`);
     }
 }
 
 const claimVestedFury = async (deploymentDetails, wallet) => {
-    let response = await queryContract(deploymentDetails.VnDContractAddress, {
+    let response = await queryContract(mint_wallet, deploymentDetails.VnDContractAddress, {
         vesting_details: {address: wallet.wallet_address}
     });
     let respBalance = Number(response.tokens_available_to_claim);
     let execMsg = {claim_vested_tokens: {amount: respBalance.toString()}};
     let execResponse = await executeContract(wallet, deploymentDetails.VnDContractAddress, execMsg);
-    console.log(`Claim all Vested Tokens ${respBalance} uFury for wallet ${wallet.wallet_address}, txhash ${execResponse['txhash']}`);
+    console.log(`Claim all Vested Tokens ${respBalance} uFury for wallet ${wallet.wallet_address}, transactionHash ${execResponse['transactionHash']}`);
 }
 
 main()

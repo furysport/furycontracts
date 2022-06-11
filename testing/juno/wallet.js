@@ -2,16 +2,20 @@
 import fs from "fs";
 import fetch from "node-fetch";
 //import {Cosmos} from "@cosmostation/cosmosjs";
-import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate"
-import { DirectSecp256k1HdWallet } from"@cosmjs/proto-signing"
-import { calculateFee, GasPrice } from "@cosmjs/stargate"
+import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
+import { DirectSecp256k1HdWallet, Registry } from "@cosmjs/proto-signing";
+import { calculateFee, GasPrice } from "@cosmjs/stargate";
+import wasmTxType from "cosmjs-types/cosmwasm/wasm/v1/tx.js";
+const  {MsgExecuteContract, MsgSend } = wasmTxType;
+import { toUtf8 } from "@cosmjs/encoding";
 
-const debug = false
+//const debug = false
+const debug = true
 
 const chainId = "juno"
-//const lcdUrl = "http://localhost:26657"
-//const endpoint = "http://localhost:26657";
-const endpoint = "https://uni-api.blockpane.com"
+//const lcdUrl = "http://localhost:1317"
+const endpoint = "http://localhost:26657";
+//const endpoint = "https://rpc.uni.juno.deuslabs.fi"
 
 //const chainIdTestNet = "uni-3"
 //const lcdUrlTestNet = "https://uni-api.blockpane.com"
@@ -69,14 +73,12 @@ export class Wallet {
             return cosmos.broadcast(signedTxBytes, "BROADCAST_MODE_BLOCK")
         })
 	*/
-	//const fee = calculateFee(1, GasPrice.fromString("0.0001ujunox"));
-        const memo = "memo_for_sign_and_broadcast";
 	//FIXME: Need to sign and broadcast messgaes
-        //return this.client.signAndBroadcast(this.wallet_address, messages, "auto", memo)
-	return 
+	const memo = "sign_and_broadcast_memo";
+        return this.client.signAndBroadcast(this.wallet_address, messages, "auto", memo)
     }
 
-    async send_funds(to_address, coins) {
+    send_funds(to_address, coins) {
 	/*    
         const msgSend = new message.cosmos.bank.v1beta1.MsgSend({
             from_address: this.wallet_address,
@@ -91,10 +93,20 @@ export class Wallet {
 	*/
 	//const fee = calculateFee(100, GasPrice.fromString("0.0001ujunox"));
   	const memo = "memo_for_send_fund";
-  	const sendResult = await this.client.sendTokens(this.wallet_address, to_address, coins, "auto", memo);
-	const response = await this.sign_and_broadcast(sendResult)
-        console.log(response)
-        return response
+  	//const sendResult = await this.client.sendTokens(this.wallet_address, to_address, coins, "auto", memo);
+	    
+	return {
+            typeUrl: "/cosmos.bank.v1beta1.MsgSend",
+            value: MsgSend.fromPartial({
+              fromAddress: this.wallet_address,
+              toAddress: to_address,
+              amount: [coins],
+	    }),
+        };
+    
+	//const response = await this.sign_and_broadcast(sendResult)
+        //console.log(response)
+        //return response
     }
 
     async execute_contract(msg, contractAddress, coins) {
@@ -109,6 +121,8 @@ export class Wallet {
                 this.get_execute(msg, contractAddress)
             ]
         }
+	console.log("execute_contract is called")
+	console.log(JSON.stringify(msg_list))
         let response = await this.sign_and_broadcast(msg_list)
         console.log(response)
         return response
@@ -129,7 +143,17 @@ export class Wallet {
         })
 	*/
 	//const fee = calculateFee(100, GasPrice.fromString("0.0001ujunox"));
-	return this.client.execute(this.wallet_address, contract, msg, "auto", "", coins)
+	//return this.client.execute(this.wallet_address, contract, msg, "auto", "", coins)
+	const executeContractMsg = {
+            typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+            value: MsgExecuteContract.fromPartial({
+                sender: this.wallet_address,
+                contract: contract,
+                msg: (0, toUtf8)(JSON.stringify(msg)),
+                funds: [...(coins || [])],
+            }),
+        };
+	return executeContractMsg;
     }
 
     query(address, query) {

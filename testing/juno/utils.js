@@ -58,12 +58,18 @@ export async function instantiateContract(deployer, codeId, instantiateMsg) {
     return await deployer.init(codeId, instantiateMsg)
 }
 
-export async function queryContract(contractAddress, query) {
+export async function queryContract(senderWallet, contractAddress, query) {
+    /*
     cosmos.wasmQuery(
         contractAddress,
         JSON.stringify(query)
     ).then(json => {
         return json
+    })
+    */
+    senderWallet.client.queryContractSmart(contractAddress, JSON.stringify(query)).then(json => {
+        console.log ('Response from query contract : $(JSON.stringify(json))')
+	return json
     })
 }
 
