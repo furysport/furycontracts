@@ -108,6 +108,8 @@ async function proceedToSetup(deploymentDetails) {
     await new Promise(resolve => setTimeout(resolve, sleep_time));
     await transferFuryToFactory(deploymentDetails);
     await new Promise(resolve => setTimeout(resolve, sleep_time));
+    await transferNativeToFactory(deploymentDetails);
+    await new Promise(resolve => setTimeout(resolve, sleep_time));
 //    await queryProxyConfiguration(deploymentDetails);
 //    await new Promise(resolve => setTimeout(resolve, sleep_time));
     await createPoolPairs(deploymentDetails);
@@ -484,6 +486,10 @@ async function queryProxyConfiguration(deploymentDetails) {
     console.log(JSON.stringify(configResponseReceived));
 }
 
+function transferNativeToFactory(deploymentDetails) {
+    console.log(`Funding ${deploymentDetails.factoryAddress}`);
+    return mint_wallet.send_funds(deploymentDetails.factoryAddress, { "10000": "ujunox" })
+}
 
 async function transferFuryToFactory(deploymentDetails) {
     let transferFuryToLiquidityMsg = {
@@ -505,7 +511,6 @@ async function createPoolPairs(deploymentDetails) {
         console.log(Buffer.from(JSON.stringify(init_param)).toString('base64'));
         let executeMsg = {
             create_pair: {
-                pair_type: {xyk: {}},
                 asset_infos: [
                     {
                         token: {
@@ -513,13 +518,13 @@ async function createPoolPairs(deploymentDetails) {
                         }
                     },
                     {
-                        native_token: {denom: "uusdc"}
+                        native_token: {denom: "ujunox"}
                     }
                 ],
                 init_params: Buffer.from(JSON.stringify(init_param)).toString('base64')
             }
         };
-        console.log(`executeMsg = ${executeMsg}`);
+        console.log(`executeMsg = ${JSON.stringify(executeMsg)}`);
         let response = await executeContract(mint_wallet, deploymentDetails.factoryAddress, executeMsg);
 
         deploymentDetails.poolPairContractAddress = response.logs[0].eventsByType.from_contract.pair_contract_addr[0];
