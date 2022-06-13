@@ -10,8 +10,8 @@
   "author": "Nitin Khobragade",
   "license": "ISC",
   "dependencies": {
-    "@cosmjs/stargate": "^0.28.0",
-    "@cosmjs/cosmwasm-stargate": "^0.28.0",
+    "@cosmjs/stargate": "^0.28.4",
+    "@cosmjs/cosmwasm-stargate": "^0.28.4",
     "@cosmjs/proto-signing": "^0.28.4",
     "chai": "^4.3.6",
     "dotenv": "^16.0.0",

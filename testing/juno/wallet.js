@@ -3,7 +3,7 @@ import fs from "fs";
 import fetch from "node-fetch";
 //import {Cosmos} from "@cosmostation/cosmosjs";
 import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
-import { DirectSecp256k1HdWallet, Registry } from "@cosmjs/proto-signing";
+import { DirectSecp256k1HdWallet, coins } from "@cosmjs/proto-signing";
 import { calculateFee, GasPrice } from "@cosmjs/stargate";
 import wasmTxType from "cosmjs-types/cosmwasm/wasm/v1/tx.js";
 const  {MsgExecuteContract, MsgSend } = wasmTxType;
@@ -78,7 +78,7 @@ export class Wallet {
         return this.client.signAndBroadcast(this.wallet_address, messages, "auto", memo)
     }
 
-    send_funds(to_address, coins) {
+    async send_funds(to_address, amount, denom) {
 	/*    
         const msgSend = new message.cosmos.bank.v1beta1.MsgSend({
             from_address: this.wallet_address,
@@ -95,18 +95,15 @@ export class Wallet {
   	const memo = "memo_for_send_fund";
   	//const sendResult = await this.client.sendTokens(this.wallet_address, to_address, coins, "auto", memo);
 	    
-	return {
+	return this.sign_and_broadcast([{
             typeUrl: "/cosmos.bank.v1beta1.MsgSend",
-            value: MsgSend.fromPartial({
+            value: {
               fromAddress: this.wallet_address,
               toAddress: to_address,
-              amount: [coins],
-	    }),
-        };
-    
-	//const response = await this.sign_and_broadcast(sendResult)
-        //console.log(response)
-        //return response
+              amount: [{amount:amount, denom:denom}]
+	    }
+          }
+        ])
     }
 
     async execute_contract(msg, contractAddress, coins) {

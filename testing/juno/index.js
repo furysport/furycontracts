@@ -486,9 +486,11 @@ async function queryProxyConfiguration(deploymentDetails) {
     console.log(JSON.stringify(configResponseReceived));
 }
 
-function transferNativeToFactory(deploymentDetails) {
+async function transferNativeToFactory(deploymentDetails) {
     console.log(`Funding ${deploymentDetails.factoryAddress}`);
-    return mint_wallet.send_funds(deploymentDetails.factoryAddress, { "10000": "ujunox" })
+    const resp = await mint_wallet.send_funds(deploymentDetails.factoryAddress, "1", "ujunox");
+    console.log(`Response from transferNativeToFactory : ${JSON.stringify(resp)}`);
+    return resp;	
 }
 
 async function transferFuryToFactory(deploymentDetails) {
@@ -527,15 +529,31 @@ async function createPoolPairs(deploymentDetails) {
         console.log(`executeMsg = ${JSON.stringify(executeMsg)}`);
         let response = await executeContract(mint_wallet, deploymentDetails.factoryAddress, executeMsg);
 
-        deploymentDetails.poolPairContractAddress = response.logs[0].eventsByType.from_contract.pair_contract_addr[0];
+        console.log(`Create pair call response is: ${JSON.stringify(response)}`)
+        
+        const raw_log = JSON.parse(response.rawLog);
+	
+	console.log(`Raw_log is: ${raw_log}`)
 
+	console.log(`Raw_log[0] is: ${JSON.stringify(raw_log[0])}`)
+
+	const events = raw_log[0].events
+	
+        console.log(`Events is: ${events[1]}`)
+
+	const attributes = events[1].attributes[0]
+
+        console.log(`Attributes is: ${JSON.stringify(attributes)}`)
+
+	deploymentDetails.poolPairContractAddress = attributes.value;
+	
+	console.log(`Pool pair contract address is: ${deploymentDetails.poolPairContractAddress}`)
+        #FIXME This query contract needs to be fixed. 
         let pool_info = await queryContract(mint_wallet, deploymentDetails.poolPairContractAddress, {
-            pair: {}
+         pair: deploymentDetails.poolPairContractAddress
         });
-
+	console.log("pool_info: " + JSON.stringify(pool_info));
         deploymentDetails.poolLpTokenAddress = pool_info.liquidity_token;
-
-        console.log(`Pair successfully created! Address: ${deploymentDetails.poolPairContractAddress}`);
         writeArtifact(deploymentDetails, terraClient.chainId);
     }
 }
