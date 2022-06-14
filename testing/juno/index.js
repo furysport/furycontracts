@@ -547,10 +547,10 @@ async function createPoolPairs(deploymentDetails) {
 
 	deploymentDetails.poolPairContractAddress = attributes.value;
 	
-	console.log(`Pool pair contract address is: ${deploymentDetails.poolPairContractAddress}`)
-        #FIXME This query contract needs to be fixed. 
+	console.log(`Pool pair contract address is: ${deploymentDetails.poolPairContractAddress}`);
+        //FIXME This query contract needs to be fixed. 
         let pool_info = await queryContract(mint_wallet, deploymentDetails.poolPairContractAddress, {
-         pair: deploymentDetails.poolPairContractAddress
+         pair: {}
         });
 	console.log("pool_info: " + JSON.stringify(pool_info));
         deploymentDetails.poolLpTokenAddress = pool_info.liquidity_token;

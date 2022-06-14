@@ -67,7 +67,7 @@ export async function queryContract(senderWallet, contractAddress, query) {
         return json
     })
     */
-    senderWallet.client.queryContractSmart(contractAddress, JSON.stringify(query)).then(json => {
+    senderWallet.client.queryContractSmart(contractAddress, query).then(json => {
         console.log ('Response from query contract : $(JSON.stringify(json))')
 	return json
     })
