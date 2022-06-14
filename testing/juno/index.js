@@ -689,7 +689,7 @@ async function provideLiquidityAuthorised(deploymentDetails) {
                 {
                     info: {
                         native_token: {
-                            denom: "uusdc"
+                            denom: "ujunox"
                         }
                     },
                     amount: "500000000"
