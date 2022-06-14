@@ -115,7 +115,7 @@ export class Wallet {
 
         } else {
             msg_list = [
-                this.get_execute(msg, contractAddress)
+                this.get_execute(msg, contractAddress, coins)
             ]
         }
 	console.log("execute_contract is called")

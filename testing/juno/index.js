@@ -88,8 +88,14 @@ async function proceedToSetup(deploymentDetails) {
     await new Promise(resolve => setTimeout(resolve, sleep_time));
     await VnDIncreaseAllowance(deploymentDetails)
     await new Promise(resolve => setTimeout(resolve, sleep_time));
+    
+   // await performPeriodicDistribution(deploymentDetails);
+   // await new Promise(resolve => setTimeout(resolve, sleep_time));
+   // await performPeriodicVesting(deploymentDetails);
+   // await new Promise(resolve => setTimeout(resolve, sleep_time));
+   // await claimVestedFury(deploymentDetails, marketing_wallet);
+   // await new Promise(resolve => setTimeout(resolve, sleep_time));
 
-    await new Promise(resolve => setTimeout(resolve, sleep_time));
     await transferFuryToTreasury(deploymentDetails);
     await new Promise(resolve => setTimeout(resolve, sleep_time));
     await transferFuryToMarketing(deploymentDetails);
@@ -268,13 +274,13 @@ async function instantiateVnDContract(deploymentDetails) {
                         },
                         {
                             address: nitin_wallet.wallet_address,
-                            cliff_period: 1,
+                            cliff_period: 0,
                             initial_vesting_count: "0",
                             parent_category_address: marketing_wallet.wallet_address,
-                            should_transfer: true,
+                            should_transfer: false,
                             total_vesting_token_count: "1000000000",
                             vesting_count_per_period: "10000000",
-                            vesting_periodicity: 30
+                            vesting_periodicity: 2
                         }
                     ]
                 }
@@ -643,7 +649,7 @@ async function performOperations(deploymentDetails) {
     await VnDPeriodic(deploymentDetails)
     await new Promise(resolve => setTimeout(resolve, sleep_time));
 
-    await claimVestedFury(deploymentDetails, marketing_wallet);
+    //await claimVestedFury(deploymentDetails, marketing_wallet);
 
     console.log("Finished operations");
 }
@@ -1181,13 +1187,30 @@ const increasePOLRewardAllowance = async (deploymentDetails, wallet) => {
 }
 
 const claimVestedFury = async (deploymentDetails, wallet) => {
+    //console.log(JSON.stringify(wallet));
     let response = await queryContract(mint_wallet, deploymentDetails.VnDContractAddress, {
         vesting_details: {address: wallet.wallet_address}
     });
+    console.log(`Query response: ${JSON.stringify(response)}`)
     let respBalance = Number(response.tokens_available_to_claim);
     let execMsg = {claim_vested_tokens: {amount: respBalance.toString()}};
     let execResponse = await executeContract(wallet, deploymentDetails.VnDContractAddress, execMsg);
     console.log(`Claim all Vested Tokens ${respBalance} uFury for wallet ${wallet.wallet_address}, transactionHash ${execResponse['transactionHash']}`);
 }
+
+const performPeriodicDistribution = async (deploymentDetails) => {
+    console.log("Performing periodic distribution");
+    let periodicDistributionMsg = { periodically_transfer_to_categories: {} }
+    let periodicDistributionResp = await executeContract(mint_wallet, deploymentDetails.VnDContractAddress, periodicDistributionMsg);
+    console.log(periodicDistributionResp['transactionHash']);
+}
+
+const performPeriodicVesting = async (deploymentDetails) => {
+    console.log("Performing periodic vesting");
+    let periodicVestingMsg = { periodically_calculate_vesting: {} };
+    let periodicVestingResp = await executeContract(mint_wallet, deploymentDetails.VnDContractAddress, periodicVestingMsg);
+    console.log(periodicVestingResp['transactionHash']);
+}
+
 
 main()
