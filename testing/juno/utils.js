@@ -67,10 +67,7 @@ export async function queryContract(senderWallet, contractAddress, query) {
         return json
     })
     */
-    senderWallet.client.queryContractSmart(contractAddress, query).then(json => {
-        console.log ('Response from query contract : $(JSON.stringify(json))')
-	return json
-    })
+    return await senderWallet.client.queryContractSmart(contractAddress, query);
 }
 
 // TODO Need to fix a method in cosmos for it
