@@ -2,12 +2,13 @@
 import fs from "fs";
 import fetch from "node-fetch";
 //import {Cosmos} from "@cosmostation/cosmosjs";
-import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
-import { DirectSecp256k1HdWallet, coins } from "@cosmjs/proto-signing";
-import { calculateFee, GasPrice } from "@cosmjs/stargate";
+import {SigningCosmWasmClient} from "@cosmjs/cosmwasm-stargate";
+import {DirectSecp256k1HdWallet} from "@cosmjs/proto-signing";
+import {calculateFee, GasPrice} from "@cosmjs/stargate";
 import wasmTxType from "cosmjs-types/cosmwasm/wasm/v1/tx.js";
-const  {MsgExecuteContract, MsgSend } = wasmTxType;
-import { toUtf8 } from "@cosmjs/encoding";
+import {toUtf8} from "@cosmjs/encoding";
+
+const {MsgExecuteContract, MsgSend} = wasmTxType;
 
 //const debug = false
 const debug = true
@@ -22,7 +23,8 @@ const endpoint = "http://localhost:26657";
 const testnetMemonic = "patch rookie cupboard salon powder depend grass account crawl raise cigar swim sunny van monster fatal system edge loop matter course muffin rigid ill"
 // juno1lm3y9pyznfdmdl8kj3rgj3afkm0xh6p7deh6wc
 // Copy Memonic from the Terminal in which the Juno Node contrainer was upped
-export const mnemonic = (debug) ? "bind scout grass sport note hero marine float deliver shrimp lunar owner gym mixed march glass swear asthma pass segment grant history flock trend" : testnetMemonic;
+export const mnemonic = (debug) ? "design relief police search behind success tortoise sugar axis pen expand fuel win flavor cash very head eager price prosper leaf lumber correct follow" : testnetMemonic;
+
 
 //export const cosmos = (debug) ? new Cosmos(lcdUrl, chainId) : new Cosmos(lcdUrlTestNet, chainIdTestNet);
 //cosmos.setBech32MainPrefix("juno")
@@ -38,71 +40,34 @@ export class Wallet {
     memonic;
 
     constructor(memonic) {
-        /*
-	this.privateKey = cosmos.getECPairPriv(memonic);
-        this.publicKey = cosmos.getPubKeyAny(this.privateKey);
-        this.wallet_address = cosmos.getAddress(memonic);
-        this.url = cosmos.url
-        this.feeValue = new message.cosmos.tx.v1beta1.Fee({
-            amount: [{denom: "ujunox", amount: String(45000000)}],
-            gas_limit: 1000000000
-        });
-	*/
-	this.memonic = memonic;
-	//this.gasPrice = GasPrice.fromString("0.0025ujunox");
+
+        this.memonic = memonic;
     }
 
-	async initialize() {
-    		const wallet = await DirectSecp256k1HdWallet.fromMnemonic(this.memonic, { prefix: "juno" });
-	        const account =  await wallet.getAccounts();
-        	this.wallet_address = account[0].address;
-        	this.client = await SigningCosmWasmClient.connectWithSigner(endpoint, wallet, {gasPrice: GasPrice.fromString("1ujunox")});
-  	}
+    async initialize() {
+        const wallet = await DirectSecp256k1HdWallet.fromMnemonic(this.memonic, {prefix: "juno"});
+        const account = await wallet.getAccounts();
+        this.wallet_address = account[0].address;
+        this.client = await SigningCosmWasmClient.connectWithSigner(endpoint, wallet, {gasPrice: GasPrice.fromString("1ujunox")});
+    }
 
     async sign_and_broadcast(messages) {
-	/*
-        return cosmos.getAccounts(this.wallet_address).then(async data => {
-            let signerInfo = new message.cosmos.tx.v1beta1.SignerInfo({
-                public_key: this.publicKey,
-                mode_info: {single: {mode: message.cosmos.tx.signing.v1beta1.SignMode.SIGN_MODE_DIRECT}},
-                sequence: data.account.sequence
-            });
-            const txBody = new message.cosmos.tx.v1beta1.TxBody({messages: messages, memo: ""});
-            const authInfo = new message.cosmos.tx.v1beta1.AuthInfo({signer_infos: [signerInfo], fee: this.feeValue});
-            const signedTxBytes = cosmos.sign(txBody, authInfo, data.account.account_number, this.privateKey);
-            return cosmos.broadcast(signedTxBytes, "BROADCAST_MODE_BLOCK")
-        })
-	*/
-	//FIXME: Need to sign and broadcast messgaes
-	const memo = "sign_and_broadcast_memo";
+
+        //FIXME: Need to sign and broadcast messgaes
+        const memo = "sign_and_broadcast_memo";
         return this.client.signAndBroadcast(this.wallet_address, messages, "auto", memo)
     }
 
     async send_funds(to_address, amount, denom) {
-	/*    
-        const msgSend = new message.cosmos.bank.v1beta1.MsgSend({
-            from_address: this.wallet_address,
-            to_address: to_address,
-            amount: [coins]
-        });
 
         return this.sign_and_broadcast([{
-            type_url: "/cosmos.bank.v1beta1.MsgSend",
-            value: message.cosmos.bank.v1beta1.MsgSend.encode(msgSend).finish()
-        }])
-	*/
-	//const fee = calculateFee(100, GasPrice.fromString("0.0001ujunox"));
-  	const memo = "memo_for_send_fund";
-  	//const sendResult = await this.client.sendTokens(this.wallet_address, to_address, coins, "auto", memo);
-	    
-	return this.sign_and_broadcast([{
             typeUrl: "/cosmos.bank.v1beta1.MsgSend",
             value: {
-              fromAddress: this.wallet_address,
-              toAddress: to_address,
-              amount: [{amount:amount, denom:denom}]
-	    }
-          }
+                fromAddress: this.wallet_address,
+                toAddress: to_address,
+                amount: [{amount: amount, denom: denom}]
+            }
+        }
         ])
     }
 
@@ -118,118 +83,68 @@ export class Wallet {
                 this.get_execute(msg, contractAddress, coins)
             ]
         }
-	console.log("execute_contract is called")
-	console.log(JSON.stringify(msg_list))
+        console.log("execute_contract is called")
+        console.log(JSON.stringify(msg_list))
         let response = await this.sign_and_broadcast(msg_list)
         console.log(response)
         return response
     }
 
     get_execute(msg, contract, coins) {
-	/*
-        let transferBytes = new Buffer.from(JSON.stringify(msg));
-        const msgExecuteContract = new message.cosmwasm.wasm.v1.MsgExecuteContract({
-            sender: this.wallet_address,
-            contract: contract,
-            msg: transferBytes,
-            funds: coins
-        });
-        return new message.google.protobuf.Any({
-            type_url: "/cosmwasm.wasm.v1.MsgExecuteContract",
-            value: message.cosmwasm.wasm.v1.MsgExecuteContract.encode(msgExecuteContract).finish()
-        })
-	*/
-	//const fee = calculateFee(100, GasPrice.fromString("0.0001ujunox"));
-	//return this.client.execute(this.wallet_address, contract, msg, "auto", "", coins)
-	const executeContractMsg = {
+
+        if (typeof coins === {}) {
+            coins = [coins]
+        } else {
+            coins = []
+        }
+
+        const executeContractMsg = {
             typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
             value: MsgExecuteContract.fromPartial({
                 sender: this.wallet_address,
                 contract: contract,
                 msg: (0, toUtf8)(JSON.stringify(msg)),
-                funds: [...(coins || [])],
+                funds: coins,
             }),
         };
-	return executeContractMsg;
+        return executeContractMsg;
     }
 
     query(address, query) {
-	/*
-        cosmos.wasmQuery(
-            address,
-            JSON.stringify(query)
-        ).then(json => {
-            return json
-        })
-	*/
-	return this.client.queryContractSmart(address, JSON.stringify(query))
+
+        return this.client.queryContractSmart(address, JSON.stringify(query))
     }
 
+
     async upload(file) {
-	/*
-        const code = fs.readFileSync(file).toString("base64");
-        const msgStoreCode = new message.cosmwasm.wasm.v1.MsgStoreCode({
-            sender: this.wallet_address,
-            wasm_byte_code: code,
-        });
-        let response = await this.sign_and_broadcast([{
-            type_url: "/cosmwasm.wasm.v1.MsgStoreCode",
-            value: message.cosmwasm.wasm.v1.MsgStoreCode.encode(msgStoreCode).finish()
-        }])
-        console.log(response)
-        console.log(response.tx_response.raw_log)
-        let j = JSON.parse(response.tx_response.raw_log)
-        return parseInt(j[0].events[1].attributes[0].value)
-	*/
-	const code = fs.readFileSync(file);
-  	//const uploadFee = calculateFee(10000, GasPrice.fromString("0.0001ujunox"));
-  	const uploadReceipt = await this.client.upload(
-    		this.wallet_address,
-    		code,
-    		"auto",
-    		"Uploading contract",
-  	);
-  	console.info(`Upload succeeded. Receipt: ${JSON.stringify(uploadReceipt)}`);
-	return uploadReceipt
+        const code = fs.readFileSync(file);
+        const uploadReceipt = await this.client.upload(
+            this.wallet_address,
+            code,
+            "auto",
+            "Uploading contract",
+        );
+        console.info(`Upload succeeded. Receipt: ${JSON.stringify(uploadReceipt)}`);
+        return uploadReceipt
     }
 
     async init(code_id, contract_init) {
-	/*
-        let transferBytes = new Buffer.from(JSON.stringify(contract_init));
-        const msgInit = new message.cosmwasm.wasm.v1.MsgInstantiateContract({
-            sender: this.wallet_address,
-            admin: this.wallet_address,
-            code_id: parseInt(code_id),
-            msg: transferBytes,
-            label: "some",
-            initFunds: []
-        });
-        let response = await this.sign_and_broadcast([{
-            type_url: "/cosmwasm.wasm.v1.MsgInstantiateContract",
-            value: message.cosmwasm.wasm.v1.MsgInstantiateContract.encode(msgInit).finish()
-        }])
 
-        let address = Buffer.from(response.tx_response.events[response.tx_response.events.length - 1].attributes[0].value, "base64").toString()
-        if (address.includes("juno")) {
-            return address
-        }
-        throw new Error("Error Instantiating the contract, please check the init message and try again...")
-	*/
-	const instantiateFee = calculateFee(500, GasPrice.fromString("0.0001ujunox"));
-        const { contractAddress } = await this.client.instantiate(
-      	this.wallet_address,
-      	code_id,
-      	contract_init,
-      	"some_label",
-      	"auto",
-      	{
-        	memo: `Create a instance of contract`,
-        	admin: this.wallet_address,
-      	},
-      );
-     	console.info(`Contract instantiated at ${contractAddress}`);
-	return contractAddress
-  
+        const instantiateFee = calculateFee(500, GasPrice.fromString("0.0001ujunox"));
+        const {contractAddress} = await this.client.instantiate(
+            this.wallet_address,
+            code_id,
+            contract_init,
+            "some_label",
+            "auto",
+            {
+                memo: `Create a instance of contract`,
+                admin: this.wallet_address,
+            },
+        );
+        console.info(`Contract instantiated at ${contractAddress}`);
+        return contractAddress
+
     }
 
 

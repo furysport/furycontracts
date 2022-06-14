@@ -75,7 +75,7 @@ async function proceedToSetup(deploymentDetails) {
     if (!deploymentDetails.defaultLPTokenHolder) {
         deploymentDetails.defaultLPTokenHolder = liquidity_wallet.wallet_address;
     }
-    const sleep_time = (process.env.TERRA_CLIENT === "testing") ? 31 : 15000;
+    const sleep_time = (process.env.TERRA_CLIENT === "testing") ? 31 : 150;
 
     await uploadFuryTokenContract(deploymentDetails);
     await new Promise(resolve => setTimeout(resolve, sleep_time));
@@ -88,13 +88,13 @@ async function proceedToSetup(deploymentDetails) {
     await new Promise(resolve => setTimeout(resolve, sleep_time));
     await VnDIncreaseAllowance(deploymentDetails)
     await new Promise(resolve => setTimeout(resolve, sleep_time));
-    
-   // await performPeriodicDistribution(deploymentDetails);
-   // await new Promise(resolve => setTimeout(resolve, sleep_time));
-   // await performPeriodicVesting(deploymentDetails);
-   // await new Promise(resolve => setTimeout(resolve, sleep_time));
-   // await claimVestedFury(deploymentDetails, marketing_wallet);
-   // await new Promise(resolve => setTimeout(resolve, sleep_time));
+
+    await performPeriodicDistribution(deploymentDetails);
+    await new Promise(resolve => setTimeout(resolve, sleep_time));
+    await performPeriodicVesting(deploymentDetails);
+    await new Promise(resolve => setTimeout(resolve, sleep_time));
+    await claimVestedFury(deploymentDetails, marketing_wallet);
+    await new Promise(resolve => setTimeout(resolve, sleep_time));
 
     await transferFuryToTreasury(deploymentDetails);
     await new Promise(resolve => setTimeout(resolve, sleep_time));
@@ -154,9 +154,9 @@ async function uploadFuryTokenContract(deploymentDetails) {
             console.log("Uploading Fury token contract");
             console.log(`mint_wallet = ${mint_wallet.wallet_address}`);
             console.log(JSON.stringify(mint_wallet.wallet_address));
-	    const uploadReciept = await storeCode(mint_wallet, MintingContractPath); // Getting the contract id from local terra
+            const uploadReciept = await storeCode(mint_wallet, MintingContractPath); // Getting the contract id from local terra
             const contractId = uploadReciept.codeId
-	    console.log(`Fury Token Contract ID: ${contractId}`);
+            console.log(`Fury Token Contract ID: ${contractId}`);
             deploymentDetails.furyTokenCodeId = contractId;
             writeArtifact(deploymentDetails, terraClient.chainId);
         }
@@ -208,7 +208,7 @@ async function uploadVnDContract(deploymentDetails) {
             console.log(`mint_wallet = ${mint_wallet.wallet_address}`);
             const uploadReciept = await storeCode(mint_wallet, VnDContractPath); // Getting the contract id from local terra
             const contractId = uploadReciept.codeId
-	    console.log(`VnD Contract ID: ${contractId}`);
+            console.log(`VnD Contract ID: ${contractId}`);
             deploymentDetails.VnDCodeId = contractId;
             writeArtifact(deploymentDetails, terraClient.chainId);
         }
@@ -290,7 +290,7 @@ async function instantiateVnDContract(deploymentDetails) {
 
             console.log("Instantiating VnD token contract");
             let contractAddress = await mint_wallet.init(deploymentDetails.VnDCodeId, VnDInitMessage)
-	    // The order is very imp
+            // The order is very imp
             console.log(`VnD Token Contract address: ${contractAddress}`);
             deploymentDetails.VnDContractAddress = contractAddress;
             writeArtifact(deploymentDetails, terraClient.chainId);
@@ -496,7 +496,7 @@ async function transferNativeToFactory(deploymentDetails) {
     console.log(`Funding ${deploymentDetails.factoryAddress}`);
     const resp = await mint_wallet.send_funds(deploymentDetails.factoryAddress, "1", "ujunox");
     console.log(`Response from transferNativeToFactory : ${JSON.stringify(resp)}`);
-    return resp;	
+    return resp;
 }
 
 async function transferFuryToFactory(deploymentDetails) {
@@ -536,29 +536,29 @@ async function createPoolPairs(deploymentDetails) {
         let response = await executeContract(mint_wallet, deploymentDetails.factoryAddress, executeMsg);
 
         console.log(`Create pair call response is: ${JSON.stringify(response)}`)
-        
+
         const raw_log = JSON.parse(response.rawLog);
-	
-	console.log(`Raw_log is: ${raw_log}`)
 
-	console.log(`Raw_log[0] is: ${JSON.stringify(raw_log[0])}`)
+        console.log(`Raw_log is: ${raw_log}`)
 
-	const events = raw_log[0].events
-	
+        console.log(`Raw_log[0] is: ${JSON.stringify(raw_log[0])}`)
+
+        const events = raw_log[0].events
+
         console.log(`Events is: ${events[1]}`)
 
-	const attributes = events[1].attributes[0]
+        const attributes = events[1].attributes[0]
 
         console.log(`Attributes is: ${JSON.stringify(attributes)}`)
 
-	deploymentDetails.poolPairContractAddress = attributes.value;
-	
-	console.log(`Pool pair contract address is: ${deploymentDetails.poolPairContractAddress}`);
+        deploymentDetails.poolPairContractAddress = attributes.value;
+
+        console.log(`Pool pair contract address is: ${deploymentDetails.poolPairContractAddress}`);
         //FIXME This query contract needs to be fixed. 
         let pool_info = await queryContract(mint_wallet, deploymentDetails.poolPairContractAddress, {
-         pair: {}
+            pair: {}
         });
-	console.log("pool_info: " + JSON.stringify(pool_info));
+        console.log("pool_info: " + JSON.stringify(pool_info));
         deploymentDetails.poolLpTokenAddress = pool_info.liquidity_token;
         writeArtifact(deploymentDetails, terraClient.chainId);
     }
@@ -570,10 +570,10 @@ async function savePairAddressToProxy(deploymentDetails) {
         //let configResponse = await queryContract(mint_wallet, deploymentDetails.proxyContractAddress, {
         //    configuration: {}
         //});
-	    
+
         let configResponse = await queryContract(mint_wallet, deploymentDetails.proxyContractAddress, {
-		configuration: {}
-	})
+            configuration: {}
+        })
         configResponse.pool_pair_address = deploymentDetails.poolPairContractAddress;
         configResponse.liquidity_token = deploymentDetails.poolLpTokenAddress;
         console.log(`Configuration = ${JSON.stringify(configResponse)}`);
@@ -589,6 +589,7 @@ async function savePairAddressToProxy(deploymentDetails) {
 }
 
 async function performOperations(deploymentDetails) {
+    console.log("Performance Operations")
     const sleep_time = (process.env.TERRA_CLIENT === "testing") ? 31 : 15000;
     await checkLPTokenDetails(deploymentDetails);
     await new Promise(resolve => setTimeout(resolve, sleep_time));
@@ -601,7 +602,7 @@ async function performOperations(deploymentDetails) {
 
     await transferFuryTokens(deploymentDetails, bonded_lp_reward_wallet, "5000000000");
     await new Promise(resolve => setTimeout(resolve, sleep_time));
-
+    // TODO CURRENT ERROR IS HERE
     await provideLiquidityAuthorised(deploymentDetails);
     await new Promise(resolve => setTimeout(resolve, sleep_time));
 
@@ -711,10 +712,7 @@ async function provideLiquidityAuthorised(deploymentDetails) {
             ]
         }
     };
-    let tax = 0;
-    console.log(`tax = ${tax}`);
     let funds = Number(500000000);
-    funds = funds + Number(tax.amount);
     console.log(`funds = ${funds}`);
     //let response = await executeContract(treasury_wallet, deploymentDetails.proxyContractAddress, executeMsg, {'uusdc': funds});
     let response = await executeContract(treasury_wallet, deploymentDetails.proxyContractAddress, executeMsg, {'ujonox': funds});
@@ -1200,14 +1198,14 @@ const claimVestedFury = async (deploymentDetails, wallet) => {
 
 const performPeriodicDistribution = async (deploymentDetails) => {
     console.log("Performing periodic distribution");
-    let periodicDistributionMsg = { periodically_transfer_to_categories: {} }
+    let periodicDistributionMsg = {periodically_transfer_to_categories: {}}
     let periodicDistributionResp = await executeContract(mint_wallet, deploymentDetails.VnDContractAddress, periodicDistributionMsg);
     console.log(periodicDistributionResp['transactionHash']);
 }
 
 const performPeriodicVesting = async (deploymentDetails) => {
     console.log("Performing periodic vesting");
-    let periodicVestingMsg = { periodically_calculate_vesting: {} };
+    let periodicVestingMsg = {periodically_calculate_vesting: {}};
     let periodicVestingResp = await executeContract(mint_wallet, deploymentDetails.VnDContractAddress, periodicVestingMsg);
     console.log(periodicVestingResp['transactionHash']);
 }
