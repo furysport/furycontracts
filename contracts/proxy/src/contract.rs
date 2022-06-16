@@ -15,7 +15,7 @@ use terraswap::pair::ExecuteMsg as PairExecuteMsg;
 use terraswap::pair::QueryMsg::{Pair, Pool, ReverseSimulation, Simulation};
 
 use crate::error::ContractError;
-use crate::msg::{ExecuteMsg, InstantiateMsg, ProxyCw20HookMsg, QueryMsg};
+use crate::msg::{CW20Custom, ExecuteMsg, InstantiateMsg, ProxyCw20HookMsg, QueryMsg};
 use crate::state::{
     BONDED_REWARDS_DETAILS, BondedRewardsDetails, Config, CONFIG, CONTRACT,
     ContractVersion, SUB_MESSAGE_DETAILS, SUB_REQ_ID,
@@ -98,6 +98,30 @@ pub fn set_contract_version<T: Into<String>, U: Into<String>>(
     CONTRACT.save(store, &val)
 }
 
+
+fn hello_sub(
+    deps: DepsMut,
+) -> Result<Response, ContractError> {
+    let config: Config = CONFIG.load(deps.storage)?;
+    // TESTING AS EXECUTE
+    let pl_msg = CW20Custom::HelloSub {};
+    let exec = CosmosMsg::Wasm(WasmMsg::Execute {
+        contract_addr: config.pool_pair_address.to_string(),
+        msg: to_binary(&pl_msg).unwrap(),
+        funds: Vec::new(),
+    });
+    //TESTING AS SUB
+    let mut send: SubMsg = SubMsg::new(exec.clone());
+    let mut sub_req_id = 1;
+    send.id = sub_req_id;
+    send.reply_on = ReplyOn::Always;
+    let mut resp = Response::new();
+    resp = resp.add_submessage(send);
+    resp = resp.add_message(exec);
+
+    return Ok(resp)
+}
+
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
     deps: DepsMut,
@@ -106,6 +130,7 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
+        ExecuteMsg::HelloSub {} => hello_sub(deps),
         ExecuteMsg::Configure {
             pool_pair_address,
             liquidity_token,
@@ -1502,6 +1527,9 @@ pub fn query_platform_fees(deps: Deps, msg: Binary) -> StdResult<Uint128> {
     let mut fury_amount_provided = Uint128::zero();
     let mut ust_amount_provided = Uint128::zero();
     match from_binary(&msg) {
+        Ok(ExecuteMsg::HelloSub {}) => {
+            return Ok(Uint128::zero());
+        },
         Ok(ExecuteMsg::Configure {
                pool_pair_address: _,
                liquidity_token: _,

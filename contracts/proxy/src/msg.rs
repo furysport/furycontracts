@@ -53,6 +53,12 @@ pub struct InstantiateMsg {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+pub enum CW20Custom {
+    HelloSub {},
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
     /// Configure the Proxy Parameters after Astroport Core contract initialization
     Configure {
@@ -105,6 +111,7 @@ pub enum ExecuteMsg {
         receiver: String,
         withdrawal_amount: Uint128,
     },
+    HelloSub {},
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

@@ -129,6 +129,10 @@ async function proceedToSetup(deploymentDetails) {
 
     console.log("deploymentDetails = " + JSON.stringify(deploymentDetails, null, ' '));
     rl.close();
+    let response = await executeContract(mint_wallet, deploymentDetails.proxyContractAddress, {
+        hello_sub: {}
+    })
+    console.log(`Response From Proxy HELLO SUB ${response['transactionHash']}`)
     await performOperations(deploymentDetails);
 }
 
