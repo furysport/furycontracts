@@ -1,21 +1,14 @@
+use cosmwasm_std::{Addr, Binary, CosmosMsg, Deps, DepsMut, entry_point, Env, MessageInfo, Reply, ReplyOn, Response, StdResult, SubMsg, to_binary, Uint128, WasmMsg};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-
-use cosmwasm_std::{
-    entry_point, to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo,
-    Response, StdResult, Uint128
-};
 
 use cw2::set_contract_version;
 
 use crate::error::ContractError;
 use crate::execute::{add_vesting_schedules, claim_vested_tokens, periodically_calculate_vesting, periodically_transfer_to_categories};
-use crate::msg::{
-    ExecuteMsg, InstantiateMsg, InstantiateVestingSchedulesInfo, MigrateMsg, QueryMsg,
-};
+use crate::msg::{CW20Custom, ExecuteMsg, InstantiateMsg, InstantiateVestingSchedulesInfo, MigrateMsg, QueryMsg};
 use crate::query::query_vesting_details;
-
-use crate::state::{Config, VestingDetails, CONFIG, VESTING_DETAILS};
+use crate::state::{Config, CONFIG, VESTING_DETAILS, VestingDetails};
 
 const CONTRACT_NAME: &str = "crates.io:cw20-base";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -122,10 +115,33 @@ pub fn execute(
         ExecuteMsg::ClaimVestedTokens { amount } => claim_vested_tokens(deps, env, info, amount),
         ExecuteMsg::AddVestingSchedules { schedules } => {
             add_vesting_schedules(deps, env, schedules)
-        }
+        },
+        ExecuteMsg::HelloSub {} => hello_sub(deps)
     }
 }
 
+fn hello_sub(
+    deps: DepsMut,
+) -> Result<Response, ContractError> {
+    let config: Config = CONFIG.load(deps.storage)?;
+    // TESTING AS EXECUTE
+    let pl_msg = CW20Custom::HelloSub {};
+    let exec = CosmosMsg::Wasm(WasmMsg::Execute {
+        contract_addr: config.fury_token_address.to_string(),
+        msg: to_binary(&pl_msg).unwrap(),
+        funds: Vec::new(),
+    });
+    //TESTING AS SUB
+    let mut send: SubMsg = SubMsg::new(exec.clone());
+    let mut sub_req_id = 1;
+    send.id = sub_req_id;
+    send.reply_on = ReplyOn::Always;
+    let mut resp = Response::new();
+    resp = resp.add_submessage(send);
+    resp = resp.add_message(exec);
+
+    return Ok(resp)
+}
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
@@ -137,4 +153,9 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn migrate(_deps: DepsMut, _env: Env, _msg: MigrateMsg) -> StdResult<Response> {
     Ok(Response::default())
+}
+
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn reply(deps: DepsMut, env: Env, msg: Reply) -> Result<Response, ContractError> {
+    return Ok(Response::new())
 }

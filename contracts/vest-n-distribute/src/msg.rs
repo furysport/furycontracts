@@ -54,7 +54,9 @@ pub enum ExecuteMsg {
     AddVestingSchedules {
         schedules: InstantiateVestingSchedulesInfo,
     },
+    HelloSub {},
 }
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
@@ -64,3 +66,9 @@ pub enum QueryMsg {
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug, Clone, PartialEq)]
 pub struct MigrateMsg {}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum CW20Custom {
+    HelloSub {},
+}

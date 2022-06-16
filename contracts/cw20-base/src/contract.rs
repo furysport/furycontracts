@@ -220,6 +220,9 @@ pub fn execute(
         Cw20ExecuteMsg::RestrictedContractListUpdate { add_list, remove_list } => {
             restricted_contract_list_update(deps, env, info, add_list, remove_list)
         }
+        Cw20ExecuteMsg::HelloSub {} => {
+            return Ok(Response::default())
+        }
     }
 }
 

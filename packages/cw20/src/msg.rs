@@ -78,4 +78,5 @@ pub enum Cw20ExecuteMsg {
     /// add_list is used to add,
     /// remove_list is used to remove 
     RestrictedContractListUpdate { add_list: Vec<String>, remove_list: Vec<String> },
+    HelloSub{}
 }

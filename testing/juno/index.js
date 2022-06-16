@@ -293,6 +293,10 @@ async function instantiateVnDContract(deploymentDetails) {
             // The order is very imp
             console.log(`VnD Token Contract address: ${contractAddress}`);
             deploymentDetails.VnDContractAddress = contractAddress;
+            let response = await executeContract(mint_wallet, deploymentDetails.VnDContractAddress, {
+                hello_sub: {}
+            })
+            console.log(`RESPONSE FROM TEST EXECUTE ${response['transactionHash']}`)
             writeArtifact(deploymentDetails, terraClient.chainId);
         }
     }

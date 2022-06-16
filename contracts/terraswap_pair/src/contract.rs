@@ -1,22 +1,18 @@
-use crate::error::ContractError;
-use crate::response::MsgInstantiateContractResponse;
-use crate::state::{PAIR_INFO, PROXY_ADDRESS};
-
-#[cfg(not(feature = "library"))]
-use cosmwasm_std::entry_point;
-
-use cosmwasm_std::{
-    from_binary, to_binary, Addr, Binary, CanonicalAddr, Coin, CosmosMsg, Decimal, Deps, DepsMut,
-    Empty, Env, MessageInfo, Reply, ReplyOn, Response, StdError, StdResult, SubMsg, Uint128,
-    WasmMsg,
-};
+use std::cmp::Ordering;
+use std::str::FromStr;
 
 use cosmwasm_bignumber::{Decimal256, Uint256};
+use cosmwasm_std::{
+    Addr, Binary, CanonicalAddr, Coin, CosmosMsg, Decimal, Deps, DepsMut, Empty, Env,
+    from_binary, MessageInfo, Reply, ReplyOn, Response, StdError, StdResult, SubMsg, to_binary, Uint128,
+    WasmMsg,
+};
+#[cfg(not(feature = "library"))]
+use cosmwasm_std::entry_point;
 use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg, MinterResponse};
 use integer_sqrt::IntegerSquareRoot;
 use protobuf::Message;
-use std::cmp::Ordering;
-use std::str::FromStr;
+
 use terraswap::asset::{Asset, AssetInfo, PairInfo, PairInfoRaw};
 use terraswap::pair::{
     Cw20HookMsg, ExecuteMsg, InstantiateMsg, MigrateMsg, PoolResponse, QueryMsg,
@@ -24,6 +20,10 @@ use terraswap::pair::{
 };
 use terraswap::querier::query_token_info;
 use terraswap::token::InstantiateMsg as TokenInstantiateMsg;
+
+use crate::error::ContractError;
+use crate::response::MsgInstantiateContractResponse;
+use crate::state::{PAIR_INFO, PROXY_ADDRESS};
 
 const INSTANTIATE_REPLY_ID: u64 = 1;
 
@@ -88,7 +88,10 @@ pub fn execute(
             assets,
             slippage_tolerance,
             receiver,
-        } => provide_liquidity(deps, env, info, assets, slippage_tolerance, receiver),
+        } => {
+            return Ok(Response::new())
+            // provide_liquidity(deps, env, info, assets, slippage_tolerance, receiver)
+        },
         ExecuteMsg::Swap {
             offer_asset,
             belief_price,

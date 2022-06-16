@@ -23,7 +23,7 @@ const endpoint = "http://localhost:26657";
 const testnetMemonic = "patch rookie cupboard salon powder depend grass account crawl raise cigar swim sunny van monster fatal system edge loop matter course muffin rigid ill"
 // juno1lm3y9pyznfdmdl8kj3rgj3afkm0xh6p7deh6wc
 // Copy Memonic from the Terminal in which the Juno Node contrainer was upped
-export const mnemonic = (debug) ? "design relief police search behind success tortoise sugar axis pen expand fuel win flavor cash very head eager price prosper leaf lumber correct follow" : testnetMemonic;
+export const mnemonic = (debug) ? "either renew puppy cloth series loop brush guilt wine hunt never balance genre delay game wife corn change inflict alter jazz original sand ranch" : testnetMemonic;
 
 
 //export const cosmos = (debug) ? new Cosmos(lcdUrl, chainId) : new Cosmos(lcdUrlTestNet, chainIdTestNet);
