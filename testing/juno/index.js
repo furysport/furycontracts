@@ -996,7 +996,7 @@ async function queryPool(deploymentDetails) {
     let poolDetails = await queryContract(mint_wallet, deploymentDetails.proxyContractAddress, {
         pool: {}
     });
-    console.log(JSON.stringify(poolDetails));
+    console.log(`poolDetails : ${JSON.stringify(poolDetails)}`);
 }
 
 async function performSimulation(deploymentDetails) {
@@ -1090,7 +1090,7 @@ async function sellFuryTokens(deploymentDetails) {
 }
 
 async function simulationOfferNative(deploymentDetails) {
-    console.log("performing simulation for offering native coins");
+    console.log(`performing simulation for offering native coins for proxyContractAddress : ${deploymentDetails.proxyContractAddress}`);
     let simulationResult = await queryContract(mint_wallet, deploymentDetails.proxyContractAddress, {
         simulation: {
             offer_asset: {
@@ -1099,11 +1099,11 @@ async function simulationOfferNative(deploymentDetails) {
                         denom: "ujunox"
                     }
                 },
-                amount: "100000000"
+                amount: "1000000"
             }
         }
     });
-    console.log(JSON.stringify(simulationResult));
+    console.log(`simulationResult : JSON.stringify(simulationResult)`);
 }
 
 async function simulationOfferFury(deploymentDetails) {

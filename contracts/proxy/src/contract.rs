@@ -1377,7 +1377,7 @@ pub fn reply(deps: DepsMut, env: Env, msg: Reply) -> Result<Response, ContractEr
             // For all fall-through messages respond with success
             let mut resp = Response::new();
             for event in sub_msg.events {
-                resp = resp.add_attributes(event.attributes);
+                //resp = resp.add_attributes(event.attributes);
             }
             match sub_msg.data {
                 Some(d) => resp = resp.set_data(d),
