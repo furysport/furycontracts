@@ -23,7 +23,7 @@ const endpoint = "http://localhost:26657";
 const testnetMemonic = "patch rookie cupboard salon powder depend grass account crawl raise cigar swim sunny van monster fatal system edge loop matter course muffin rigid ill"
 // juno1lm3y9pyznfdmdl8kj3rgj3afkm0xh6p7deh6wc
 // Copy Memonic from the Terminal in which the Juno Node contrainer was upped
-export const mnemonic = (debug) ? "either renew puppy cloth series loop brush guilt wine hunt never balance genre delay game wife corn change inflict alter jazz original sand ranch" : testnetMemonic;
+export const mnemonic = (debug) ? "clip hire initial neck maid actor venue client foam budget lock catalog sweet steak waste crater broccoli pipe steak sister coyote moment obvious choose" : testnetMemonic;
 
 
 //export const cosmos = (debug) ? new Cosmos(lcdUrl, chainId) : new Cosmos(lcdUrlTestNet, chainIdTestNet);
@@ -92,7 +92,7 @@ export class Wallet {
 
     get_execute(msg, contract, coins) {
 
-        if (typeof coins === {}) {
+        if (typeof coins === "object") {
             coins = [coins]
         } else {
             coins = []

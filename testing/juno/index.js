@@ -723,7 +723,7 @@ async function provideLiquidityAuthorised(deploymentDetails) {
     let funds = Number(500000000);
     console.log(`funds = ${funds}`);
     //let response = await executeContract(treasury_wallet, deploymentDetails.proxyContractAddress, executeMsg, {'uusdc': funds});
-    let response = await executeContract(treasury_wallet, deploymentDetails.proxyContractAddress, executeMsg, {'ujonox': funds});
+    let response = await executeContract(treasury_wallet, deploymentDetails.proxyContractAddress, executeMsg, {"denom":"ujunox","amount":funds.toString()});
     console.log(`Provide Liquidity (from treasury) Response - ${response['transactionHash']}`);
 }
 

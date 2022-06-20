@@ -92,8 +92,8 @@ pub fn execute(
             slippage_tolerance,
             receiver,
         } => {
-            return Ok(Response::new())
-            // provide_liquidity(deps, env, info, assets, slippage_tolerance, receiver)
+            // return Ok(Response::new())
+            provide_liquidity(deps, env, info, assets, slippage_tolerance, receiver)
         },
         ExecuteMsg::Swap {
             offer_asset,
@@ -233,7 +233,7 @@ pub fn provide_liquidity(
     receiver: Option<String>,
 ) -> Result<Response, ContractError> {
     check_auth(&deps, &info)?;
-
+    
     for asset in assets.iter() {
         asset.assert_sent_native_token_balance(&info)?;
     }
