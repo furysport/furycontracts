@@ -610,7 +610,6 @@ async function performOperations(deploymentDetails) {
 
     await transferFuryTokens(deploymentDetails, bonded_lp_reward_wallet, "5000000000");
     await new Promise(resolve => setTimeout(resolve, sleep_time));
-    // TODO CURRENT ERROR IS HERE
     await provideLiquidityAuthorised(deploymentDetails);
     await new Promise(resolve => setTimeout(resolve, sleep_time));
 
@@ -630,8 +629,8 @@ async function performOperations(deploymentDetails) {
 
     await getUSTEquivalentToFury(deploymentDetails);
     await new Promise(resolve => setTimeout(resolve, sleep_time));
-    await sellFuryTokens(deploymentDetails);
-    await new Promise(resolve => setTimeout(resolve, sleep_time));
+    // await sellFuryTokens(deploymentDetails);
+    // await new Promise(resolve => setTimeout(resolve, sleep_time));
 
     await withdrawLiquidityAutorized(deploymentDetails);
     await new Promise(resolve => setTimeout(resolve, sleep_time));
@@ -723,7 +722,10 @@ async function provideLiquidityAuthorised(deploymentDetails) {
     let funds = Number(500000000);
     console.log(`funds = ${funds}`);
     //let response = await executeContract(treasury_wallet, deploymentDetails.proxyContractAddress, executeMsg, {'uusdc': funds});
-    let response = await executeContract(treasury_wallet, deploymentDetails.proxyContractAddress, executeMsg, {"denom":"ujunox","amount":funds.toString()});
+    let response = await executeContract(treasury_wallet, deploymentDetails.proxyContractAddress, executeMsg, {
+        "denom": "ujunox",
+        "amount": funds.toString()
+    });
     console.log(`Provide Liquidity (from treasury) Response - ${response['transactionHash']}`);
 }
 
@@ -779,12 +781,12 @@ async function provideLiquidityGeneral(deploymentDetails) {
             ]
         }
     };
-    let tax = 0;
-    console.log(`tax = ${tax}`);
     let funds = Number(5000000);
-    funds = funds + Number(tax.amount);
     console.log(`funds = ${funds}`);
-    let response = await executeContract(marketing_wallet, deploymentDetails.proxyContractAddress, executeMsg, {'ujunox': funds});
+    let response = await executeContract(marketing_wallet, deploymentDetails.proxyContractAddress, executeMsg, {
+        "denom": "ujunox",
+        "amount": funds.toString()
+    });
     console.log(`Provide Liquidity (from marketing) Response - ${response['transactionHash']}`);
 }
 
@@ -855,9 +857,8 @@ async function providePairForReward(deploymentDetails) {
             ]
         }
     };
-    let tax = 0;
-    console.log(`tax = ${tax}`);
-    let funds = baseUstAmount + Number(tax.amount);
+
+    let funds = baseUstAmount;
     console.log(`funds + tax = ${funds}`);
 
     let platformFees = await queryContract(mint_wallet, deploymentDetails.proxyContractAddress, {query_platform_fees: {msg: Buffer.from(JSON.stringify(executeMsg)).toString('base64')}});
@@ -865,7 +866,10 @@ async function providePairForReward(deploymentDetails) {
     funds = funds + Number(platformFees);
     console.log(`funds + tax + platform fees = ${funds}`);
 
-    let response = await executeContract(marketing_wallet, deploymentDetails.proxyContractAddress, executeMsg, {'ujunox': funds});
+    let response = await executeContract(marketing_wallet, deploymentDetails.proxyContractAddress, executeMsg, {
+        "denom": "ujunox",
+        "amount": funds.toString()
+    });
     console.log(`Provide Pair for Liquidity (from marketing) Response - ${response['transactionHash']}`);
 }
 
@@ -894,8 +898,12 @@ async function claimInvestmentReward(deploymentDetails) {
 
     try {
         console.log(`rewardClaimMsg = ${JSON.stringify(rewardClaimMsg)}`);
+
         console.log("Trying to Claim Pair Reward before Maturity");
-        response = await executeContract(marketing_wallet, deploymentDetails.proxyContractAddress, rewardClaimMsg, {'uusdc': Number(platformFees)});
+        response = await executeContract(marketing_wallet, deploymentDetails.proxyContractAddress, rewardClaimMsg, {
+            "denom": 'uusdc',
+            "amount": Number(platformFees).toString()
+        });
         console.log("Not expected to reach here");
         console.log(`Reward Claim Response - ${response['transactionHash']}`);
     } catch (error) {
@@ -904,7 +912,10 @@ async function claimInvestmentReward(deploymentDetails) {
         //ADD DELAY to reach beyond the bonding duration - 2min
         await new Promise(resolve => setTimeout(resolve, 120000));
 
-        response = await executeContract(marketing_wallet, deploymentDetails.proxyContractAddress, rewardClaimMsg, {'ujunox': Number(platformFees)});
+        response = await executeContract(marketing_wallet, deploymentDetails.proxyContractAddress, rewardClaimMsg, {
+            "denom": 'ujunox',
+            "amount": Number(platformFees).toString()
+        });
         console.log("Withdraw Reward transaction hash = " + response['transactionHash']);
 
         rewardClaimMsg = {
@@ -919,7 +930,10 @@ async function claimInvestmentReward(deploymentDetails) {
         //ADD DELAY small to check failure of quick withdraw - 60sec
         await new Promise(resolve => setTimeout(resolve, 60000));
 
-        response = await executeContract(marketing_wallet, deploymentDetails.proxyContractAddress, rewardClaimMsg, {'ujunox': Number(platformFees)});
+        response = await executeContract(marketing_wallet, deploymentDetails.proxyContractAddress, rewardClaimMsg, {
+            "denom": 'ujunox',
+            "amount": Number(platformFees).toString()
+        });
         console.log("Withdraw Reward transaction hash = " + response['transactionHash']);
 
     } finally {
@@ -977,9 +991,8 @@ async function provideNativeForRewards(deploymentDetails) {
             }
         }
     };
-    let tax = 0;
-    console.log(`tax = ${tax}`);
-    let funds = baseUstAmount + Number(tax.amount);
+
+    let funds = baseUstAmount;
     console.log(`funds + tax = ${funds}`);
 
     let platformFees = await queryContract(mint_wallet, deploymentDetails.proxyContractAddress, {query_platform_fees: {msg: Buffer.from(JSON.stringify(executeMsg)).toString('base64')}});
@@ -987,7 +1000,10 @@ async function provideNativeForRewards(deploymentDetails) {
     funds = funds + Number(platformFees);
     console.log(`funds + tax + platform fees = ${funds}`);
 
-    let response = await executeContract(marketing_wallet, deploymentDetails.proxyContractAddress, executeMsg, {'ujunox': funds});
+    let response = await executeContract(marketing_wallet, deploymentDetails.proxyContractAddress, executeMsg, {
+        "denom": "ujunox",
+        "amount": funds.toString()
+    });
     console.log(`Provide Native for Liquidity (from marketing) Response - ${response['transactionHash']}`);
 }
 
@@ -1034,17 +1050,18 @@ async function buyFuryTokens(deploymentDetails) {
             },
         }
     };
-    let tax = 0;
-    console.log(`tax = ${tax}`);
-    let funds = 10000 + Number(tax.amount);
-    console.log(`funds + tax = ${funds}`);
+    let funds = 10000;
+    console.log(`funds = ${funds}`);
 
     let platformFees = await queryContract(mint_wallet, deploymentDetails.proxyContractAddress, {query_platform_fees: {msg: Buffer.from(JSON.stringify(buyFuryMsg)).toString('base64')}});
     console.log(`platformFees = ${JSON.stringify(platformFees)}`);
     funds = funds + Number(platformFees);
     console.log(`funds + tax + platform fees = ${funds}`);
 
-    let buyFuryResp = await executeContract(mint_wallet, deploymentDetails.proxyContractAddress, buyFuryMsg, {'ujunox': funds});
+    let buyFuryResp = await executeContract(mint_wallet, deploymentDetails.proxyContractAddress, buyFuryMsg, {
+        "denom": "ujunox",
+        "amount": funds.toString()
+    });
     console.log(`Buy Fury swap response tx hash = ${buyFuryResp['transactionHash']}`);
 }
 
@@ -1066,6 +1083,7 @@ async function sellFuryTokens(deploymentDetails) {
         }
     };
     let incrAllowResp = await executeContract(mint_wallet, deploymentDetails.furyContractAddress, increaseAllowanceMsg);
+    await mint_wallet.sleep(15000)
     console.log("increase allowance resp tx = " + incrAllowResp['transactionHash']);
     let sellFuryMsg = {
         swap: {
@@ -1085,7 +1103,10 @@ async function sellFuryTokens(deploymentDetails) {
     let funds = Number(platformFees);
     console.log(`funds + platform fees = ${funds}`);
 
-    let sellFuryResp = await executeContract(mint_wallet, deploymentDetails.proxyContractAddress, sellFuryMsg, {'ujunox': funds});
+    let sellFuryResp = await executeContract(mint_wallet, deploymentDetails.proxyContractAddress, sellFuryMsg, {
+        "denom": "ujunox",
+        "amount": funds.toString()
+    });
     console.log(`Sell Fury swap response tx hash = ${sellFuryResp['transactionHash']}`);
 }
 
