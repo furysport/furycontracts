@@ -15,6 +15,7 @@ export const PairContractPath = "../../artifacts/terraswap_pair.wasm"
 export const FactoryContractPath = "../../artifacts/terraswap_factory.wasm"
 export const ProxyContractPath = "../../artifacts/terra_swap_proxy.wasm"
 export const StakingContractPath = "../../artifacts/club_staking.wasm"
+export const GamingContractPath = "../../artifacts/gaming_pool.wasm"
 
 // Wallets
 export const mint_wallet = new Wallet(mnemonic)

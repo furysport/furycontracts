@@ -2,9 +2,10 @@ use std::convert::TryFrom;
 use std::ops::{Div, Mul};
 use std::str::FromStr;
 
-use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Reply, Response, StdResult, to_binary, Uint128};
+use cosmwasm_std::{Addr, Binary, Deps, DepsMut, Env, MessageInfo, Reply, Response, StdResult, to_binary, Uint128};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
+use cosmwasm_std::OverflowOperation::Add;
 use schemars::_serde_json::ser::State;
 
 use cw20::Cw20QueryMsg;
@@ -24,7 +25,7 @@ use crate::state::{Config, CONFIG, GAME_DETAILS, GAME_RESULT_DUMMY, GameDetails,
 pub const CONTRACT_NAME: &str = "crates.io:gaming-pool";
 pub const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
-pub const DUMMY_WALLET: &str = "terra1t3czdl5h4w4qwgkzs80fdstj0z7rfv9v2j6uh3";
+pub const DUMMY_WALLET: &str = "juno1ev8q3fml0d79aafd9zgzvxdt7fvmu4ac9czj4u";
 
 // Initial reward amount to gamer for joining a pool
 pub const INITIAL_REWARD_AMOUNT: u128 = 0u128;
@@ -77,7 +78,8 @@ pub fn instantiate(
     CONFIG.save(deps.storage, &config)?;
 
     let dummy_wallet = String::from(DUMMY_WALLET);
-    let main_address = deps.api.addr_validate(dummy_wallet.clone().as_str())?;
+    // This address from terra to juno raised errors so since this is a placeholder we remove
+    let main_address = Addr::unchecked(dummy_wallet.clone());
     GAME_RESULT_DUMMY.save(
         deps.storage,
         &main_address,
