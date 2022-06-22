@@ -629,8 +629,8 @@ async function performOperations(deploymentDetails) {
 
     await getUSTEquivalentToFury(deploymentDetails);
     await new Promise(resolve => setTimeout(resolve, sleep_time));
-    // await sellFuryTokens(deploymentDetails);
-    // await new Promise(resolve => setTimeout(resolve, sleep_time));
+    await sellFuryTokens(deploymentDetails);
+    await new Promise(resolve => setTimeout(resolve, sleep_time));
 
     await withdrawLiquidityAutorized(deploymentDetails);
     await new Promise(resolve => setTimeout(resolve, sleep_time));
