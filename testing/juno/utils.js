@@ -90,8 +90,8 @@ export async function queryContract(senderWallet, contractAddress, query) {
 // }
 
 
-export async function queryTokenBalance(token_address, address) {
-    let response = await queryContract(token_address, {
+export async function queryTokenBalance(wallet, token_address, address) {
+    let response = await queryContract(wallet, token_address, {
         balance: {address: address}
     });
     return Number(response.balance)
@@ -140,3 +140,64 @@ export async function get_wallets(number_of_users) {
 export async function sendTransaction(senderWallet, msgs, verbose = false) {
     return senderWallet.sign_and_broadcast(msgs)
 }
+
+
+export function readDistantArtifact(distantPath, name = 'artifact') {
+    try {
+        console.log(`trying path : ${path.join(distantPath, ARTIFACTS_PATH, `${name}.json`)}`)
+        const data = readFileSync(path.join(distantPath, ARTIFACTS_PATH, `${name}.json`), 'utf8')
+        return JSON.parse(data)
+    } catch (e) {
+        return {}
+    }
+}
+
+/** To check if below functions are needed */
+export async function queryContractInfo(wallet, contractAddress) {
+  const d = await wallet.client.getContract(contractAddress);
+  return d
+}
+
+export async function queryBankUusd(address) {
+    let response =  await terraClient.bank.balance(address)
+    let value;
+    try {
+      value = Number(response[0]._coins.uusd.amount);
+    } catch {
+      value = 0;
+    } finally {
+      return value
+    }
+}
+
+export async function queryBankUusdNew(wallet, denom) {
+    let response =  await wallet.client.queryClient.bank.balance(wallet.wallet_address, denom)
+    let value;
+    try {
+      value = Number(response[0]._coins.uusd.amount);
+    } catch {
+      value = 0;
+    } finally {
+      return value
+    }
+}
+
+export async function queryBankUusdContract(wallet, cAddress, denom) {
+    let response =  await wallet.client.queryClient.bank.balance(cAddress, denom)
+    let value;
+    try {
+      value = Number(response[0]._coins.uusd.amount);
+    } catch {
+      value = 0;
+    } finally {
+      return value
+    }
+}
+
+
+var gas_used = 0;
+
+export function getGasUsed() {
+  return gas_used;
+}
+  

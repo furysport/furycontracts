@@ -10,20 +10,20 @@ import {toUtf8} from "@cosmjs/encoding";
 
 const {MsgExecuteContract, MsgSend} = wasmTxType;
 
-//const debug = false
-const debug = true
+const debug = false
+//const debug = true
 
 const chainId = "juno"
 //const lcdUrl = "http://localhost:1317"
-const endpoint = "http://localhost:26657";
-//const endpoint = "https://rpc.uni.juno.deuslabs.fi"
+//const endpoint = "http://localhost:26657";
+const endpoint = "https://rpc.uni.juno.deuslabs.fi"
 
 //const chainIdTestNet = "uni-3"
 //const lcdUrlTestNet = "https://uni-api.blockpane.com"
 const testnetMemonic = "patch rookie cupboard salon powder depend grass account crawl raise cigar swim sunny van monster fatal system edge loop matter course muffin rigid ill"
 // juno1lm3y9pyznfdmdl8kj3rgj3afkm0xh6p7deh6wc
 // Copy Memonic from the Terminal in which the Juno Node contrainer was upped
-export const mnemonic = (debug) ? "safe helmet leg pioneer squeeze punch uncover idea model update during onion vintage current deal update raise swift bus artist then certain plate rival" : testnetMemonic;
+export const mnemonic = (debug) ? "pony candy predict vote pride yard ecology burden record very fever blush still good pull swarm iron face before crunch liquid steel upper spare" : testnetMemonic;
 
 
 //export const cosmos = (debug) ? new Cosmos(lcdUrl, chainId) : new Cosmos(lcdUrlTestNet, chainIdTestNet);

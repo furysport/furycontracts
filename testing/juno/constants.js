@@ -16,6 +16,9 @@ export const FactoryContractPath = "../../artifacts/terraswap_factory.wasm"
 export const ProxyContractPath = "../../artifacts/terra_swap_proxy.wasm"
 export const StakingContractPath = "../../artifacts/club_staking.wasm"
 
+export const ClubStakingContractPath = "../../artifacts/club_staking.wasm"
+
+
 // Wallets
 export const mint_wallet = new Wallet(mnemonic)
 await mint_wallet.initialize();
@@ -32,13 +35,13 @@ await marketing_wallet.initialize();
 export const team_wallet = new Wallet(mnemonic)
 await team_wallet.initialize();
 
-export const nitin_wallet = new Wallet(mnemonic)
+export const nitin_wallet = new Wallet("exit return report capital all yard render loan service decorate task cash")
 await nitin_wallet.initialize();
 
-export const ajay_wallet = new Wallet(mnemonic)
+export const ajay_wallet = new Wallet("hammer couch soul survey wire execute fossil example million tongue junk excess")
 await ajay_wallet.initialize();
 
-export const sameer_wallet = new Wallet(mnemonic)
+export const sameer_wallet = new Wallet("front clever punch kitchen energy butter fossil tornado veteran cousin slide envelope")
 await sameer_wallet.initialize();
 
 export const bonded_lp_reward_wallet = new Wallet(mnemonic)
