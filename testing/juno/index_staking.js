@@ -372,7 +372,7 @@ async function showAllClubOwnerships(deploymentDetails) {
 
 async function showAllClubStakes(deploymentDetails) {
     let coResponse = await queryContract(mint_wallet, deploymentDetails.clubStakingAddress, {
-        all_stakes: {"user_address_list":[]}
+        all_stakes: {"user_address_list":[deploymentDetails.nitinWallet, deploymentDetails.ajayWallet, deploymentDetails.sameerWallet]}
     });
     // console.log(JSON.stringify(coResponse));
     let stake_string = "All stakes \n";
