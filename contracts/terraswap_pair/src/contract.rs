@@ -102,9 +102,9 @@ pub fn execute(
             to,
         } => {
             check_auth(&deps, &info)?;
-            if !offer_asset.is_native_token() {
-                return Err(ContractError::Unauthorized {});
-            }
+            // if !offer_asset.is_native_token() {
+            //     return Err(ContractError::Unauthorized {});
+            // }
 
             let to_addr = if let Some(to_addr) = to {
                 Some(deps.api.addr_validate(&to_addr)?)
