@@ -288,6 +288,54 @@ async function performOperationsOnClubStaking(deploymentDetails) {
 
     console.log("Balances of contract after withdraw stake");
     await queryBalancesForAddress(deploymentDetails, deploymentDetails.clubStakingAddress, true);
+
+    console.log("Release ownership from nitin to ajay")
+    await checkReleaseAndBuy(nitin_wallet, ajay_wallet, "ClubB", deploymentDetails)
+
+}
+
+async function checkReleaseAndBuy(releaseWallet, buyWallet, clubName, deploymentDetails) {
+    await showAllClubOwnerships(deploymentDetails);
+    await checkClubRelease(releaseWallet, clubName, deploymentDetails)
+    await showAllClubOwnerships(deploymentDetails);
+    await buyClubForUser(buyWallet, releaseWallet, clubName, deploymentDetails)
+    await showAllClubOwnerships(deploymentDetails);
+}
+
+async function checkClubRelease(wallet, clubName, deploymentDetails) {
+    let releaseRequest = {
+        release_club: {
+            owner: wallet.wallet_address,
+            club_name: clubName
+        }
+    };
+    let aacResponse = await executeContract(wallet, deploymentDetails.clubStakingAddress, releaseRequest);
+    console.log("Assign a club transaction hash = " + aacResponse['transactionHash']);
+}
+
+async function buyClubForUser(wallet, sellerAddress, clubName, deploymentDetails) {
+    let increaseAllowanceMsg = {
+        increase_allowance: {
+            spender: deploymentDetails.clubStakingAddress,
+            amount: "500000"
+        }
+    };
+    let incrAllowResp = await executeContract(wallet, deploymentDetails.furyContractAddress, increaseAllowanceMsg);
+    console.log(`Increase allowance response : ${JSON.stringify(incrAllowResp)}`)
+    console.log(`Increase allowance response hash = ${incrAllowResp['transactionHash']}`);
+
+    let bacRequest = {
+        buy_a_club: {
+            buyer: wallet.wallet_address,
+            club_name: clubName,
+            auto_stake: true,
+            seller: sellerAddress.wallet_address
+        }
+    };
+    console.log("nitin .. " + JSON.stringify(wallet))
+    let bacResponse = await executeContract(wallet, deploymentDetails.clubStakingAddress, bacRequest, { "denom": "ujunox", "amount": "130" });
+    console.log(`bacResponse : ${JSON.stringify(bacResponse)}`)
+    console.log("Buy a club transaction hash = " + bacResponse['transactionHash']);
 }
 
 
